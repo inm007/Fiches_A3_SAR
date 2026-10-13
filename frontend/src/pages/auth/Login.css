@@ -1,0 +1,9 @@
+.login-page .auth-form {
+  display: grid;
+  gap: 16px;
+}
+
+.login-page .auth-form a {
+  color: var(--link);
+  font-size: 14px;
+}

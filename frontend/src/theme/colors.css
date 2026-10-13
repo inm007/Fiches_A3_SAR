@@ -1,0 +1,91 @@
+/* ==========================================================================
+   SAR · Palette de couleurs (variables CSS uniquement)
+   Tirée du logo SAR : rouge #E60012 sur fond blanc
+   ========================================================================== */
+
+:root {
+  /* ---------- Marque ---------- */
+  --brand-50:  #FDECEE;
+  --brand-100: #FAD1D5;
+  --brand-500: #E60012;
+  --brand-600: #B8000E;
+  --brand-700: #8F000B;
+
+  /* ---------- Neutres ---------- */
+  --white:    #FFFFFF;
+  --gray-50:  #F7F7F8;
+  --gray-100: #F0F0F2;
+  --gray-200: #E5E5E8;
+  --gray-300: #D2D2D8;
+  --gray-400: #A8A8B3;
+  --gray-500: #6B6B76;
+  --gray-700: #3A3A44;
+  --ink:      #1A1A1F;
+
+  /* ---------- Surfaces et texte ---------- */
+  --bg:            var(--white);
+  --bg-page:       var(--gray-50);
+  --bg-card:       var(--white);
+  --border:        var(--gray-200);
+  --border-strong: var(--gray-300);
+  --text:          var(--ink);
+  --text-muted:    var(--gray-500);
+  --text-disabled: var(--gray-400);
+  --link:          var(--brand-500);
+  --link-hover:    var(--brand-600);
+
+  /* ---------- Messages système ---------- */
+  --success:        #167A4A;
+  --success-bg:     #E8F6EF;
+  --success-border: #A8DCC3;
+  --success-solid:  #167A4A;
+
+  --error:          #C62828;
+  --error-bg:       #FDECEC;
+  --error-border:   #F3B5B5;
+  --error-solid:    #C62828;
+
+  --warning:        #8A5A00;
+  --warning-bg:     #FFF4DD;
+  --warning-border: #F5D08A;
+  --warning-solid:  #F5A524;
+
+  --info:           #1D4ED8;
+  --info-bg:        #EAF1FE;
+  --info-border:    #B7CDF8;
+  --info-solid:     #2563EB;
+
+  /* ---------- Statuts de la fiche A3 ---------- */
+  --st-ouvert:        #8A5A00;  --st-ouvert-bg:        #FFF4DD;
+  --st-encours:       #1D4ED8;  --st-encours-bg:       #E8F0FE;
+  --st-validation:    #6D28D9;  --st-validation-bg:    #F1EAFE;
+  --st-realisation:   #0E7490;  --st-realisation-bg:   #E0F5F9;
+  --st-mesure:        #0369A1;  --st-mesure-bg:        #E1F1FA;
+  --st-maintien:      #4338CA;  --st-maintien-bg:      #ECEBFD;
+  --st-attente:       #C2410C;  --st-attente-bg:       #FFEDE3;
+  --st-cloture:      #167A4A;  --st-cloture-bg:       #E8F6EF;
+
+  /* ---------- Statuts des actions ---------- */
+  --action-a-faire:      var(--gray-500);  --action-a-faire-bg:   var(--gray-100);
+  --action-encours:      var(--st-encours); --action-encours-bg: var(--st-encours-bg);
+  --action-realisee:     var(--success);    --action-realisee-bg: var(--success-bg);
+  --action-annulee:      var(--gray-400);  --action-annulee-bg:   var(--gray-50);
+  --action-retard:       var(--error);      --action-retard-bg:    var(--error-bg);
+
+  /* ---------- Confidentialité ---------- */
+  --conf-normal:         var(--gray-500); --conf-normal-bg:   var(--gray-100);
+  --conf-restreint:      var(--white);    --conf-restreint-bg: var(--ink);
+
+  /* ---------- Graphiques ---------- */
+  --chart-1: #E60012;
+  --chart-2: #2563EB;
+  --chart-3: #167A4A;
+  --chart-4: #F5A524;
+  --chart-5: #6D28D9;
+  --chart-6: #0E7490;
+  --chart-7: #A8A8B3;
+
+  /* ---------- Divers ---------- */
+  --focus-ring: rgba(37, 99, 235, 0.35);
+  --overlay:    rgba(26, 26, 31, 0.5);
+}

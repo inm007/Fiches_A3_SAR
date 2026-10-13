@@ -1,0 +1,34 @@
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge--neutral {
+  color: var(--gray-700);
+  background: var(--gray-100);
+}
+
+.status-badge--open {
+  color: var(--st-ouvert);
+  background: var(--st-ouvert-bg);
+}
+
+.status-badge--progress {
+  color: var(--st-encours);
+  background: var(--st-encours-bg);
+}
+
+.status-badge--done {
+  color: var(--st-cloture);
+  background: var(--st-cloture-bg);
+}
+
+.status-badge--restricted {
+  color: var(--conf-restreint);
+  background: var(--conf-restreint-bg);
+}

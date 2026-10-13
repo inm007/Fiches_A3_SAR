@@ -1,0 +1,14 @@
+.app-layout {
+  min-height: 100vh;
+}
+
+.app-layout__workspace {
+  min-height: 100vh;
+  margin-left: 260px;
+}
+
+.app-layout__content {
+  width: min(100%, 1490px);
+  margin: 0 auto;
+  padding: 28px 32px 48px;
+}

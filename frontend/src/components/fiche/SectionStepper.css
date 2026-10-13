@@ -1,0 +1,36 @@
+.section-stepper {
+  display: grid;
+  gap: 4px;
+}
+
+.section-stepper button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 5px;
+  color: var(--gray-700);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.section-stepper button:hover,
+.section-stepper button:focus-visible {
+  color: var(--brand-600);
+  background: var(--brand-50);
+}
+
+.section-stepper button span {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--white);
+  font-size: 12px;
+}

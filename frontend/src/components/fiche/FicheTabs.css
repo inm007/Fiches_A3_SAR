@@ -1,0 +1,25 @@
+.fiche-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+}
+
+.fiche-tabs button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--gray-700);
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fiche-tabs button:hover,
+.fiche-tabs button:focus-visible {
+  border-bottom-color: var(--brand-500);
+  color: var(--brand-500);
+}

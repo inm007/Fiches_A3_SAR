@@ -1,0 +1,13 @@
+.profile-switcher {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--gray-700);
+  background: var(--white);
+  font-size: 13px;
+}
+
+.profile-switcher:disabled {
+  cursor: default;
+}

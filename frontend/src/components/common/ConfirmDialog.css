@@ -1,0 +1,31 @@
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  padding: 24px;
+  place-items: center;
+  background: var(--overlay);
+}
+
+.confirm-dialog {
+  display: grid;
+  width: min(100%, 560px);
+  gap: 20px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  box-shadow: 0 16px 48px rgb(26 26 31 / 20%);
+}
+
+.confirm-dialog h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.confirm-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}

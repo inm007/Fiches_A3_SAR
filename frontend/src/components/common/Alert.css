@@ -1,0 +1,10 @@
+.sar-alert {
+  padding: 12px 14px;
+  border: 1px solid;
+  border-radius: 6px;
+}
+
+.sar-alert--success { border-color: var(--success-border); color: var(--success); background: var(--success-bg); }
+.sar-alert--error { border-color: var(--error-border); color: var(--error); background: var(--error-bg); }
+.sar-alert--warning { border-color: var(--warning-border); color: var(--warning); background: var(--warning-bg); }
+.sar-alert--info { border-color: var(--info-border); color: var(--info); background: var(--info-bg); }
