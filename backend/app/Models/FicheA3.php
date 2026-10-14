@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Enums\StatutEtape;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class FicheA3 extends Model
 {
@@ -36,6 +38,16 @@ class FicheA3 extends Model
         'objectif_atteint',
         'date_cloture',
         'actif',
+        'contexte',
+        'impact_financier_estime',
+        'objectif_smart',
+        'perimetre',
+        'resultats_attendus',
+        'methode_analyse',
+        'methode_precision',
+        'ecart_objectif',
+        'etape_avant_attente',
+        'motif_attente',
     ];
 
     protected function casts(): array
@@ -48,6 +60,7 @@ class FicheA3 extends Model
             'sans_gain_chiffre' => 'boolean',
             'version' => 'integer',
             'cout_mise_en_oeuvre_b' => 'integer',
+            'impact_financier_estime' => 'integer',
             'actif' => 'boolean',
         ];
     }
@@ -160,5 +173,15 @@ class FicheA3 extends Model
     public function referencesSap(): HasMany
     {
         return $this->hasMany(ReferenceSap::class, 'fiche_id');
+    }
+
+    public function referenceSap(): HasOne
+    {
+        return $this->hasOne(ReferenceSap::class, 'fiche_id')->oldestOfMany();
+    }
+
+    public function etape(): StatutEtape
+    {
+        return StatutEtape::from($this->statut_etape);
     }
 }

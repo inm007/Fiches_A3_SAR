@@ -1,0 +1,289 @@
+<?php
+
+namespace App\Http\Resources;
+
+use App\Enums\Domaine;
+use App\Enums\StatutAction;
+use App\Enums\StatutEtape;
+use App\Models\ActionA3;
+use App\Models\FicheA3;
+use App\Models\FicheA3Indicateur;
+use App\Models\User;
+use App\Models\Validation;
+use App\Services\ActionService;
+use App\Services\ActiveProfile;
+use App\Services\Calculs;
+use App\Services\FicheSectionService;
+use App\Services\ValidationCircuit;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+/**
+ * Détail complet d'une fiche : 12 sections, calculs (classe Calculs), complétude et
+ * droits du profil actif. Les droits servent seulement à l'affichage : le serveur décide.
+ *
+ * @mixin FicheA3
+ */
+class FicheResource extends JsonResource
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        /** @var FicheA3 $fiche */
+        $fiche = $this->resource->loadMissing([
+            'unite:id,code,libelle', 'equipement:id,code,libelle,reference_sap', 'origine:id,code,libelle', 'frequence:id,code,libelle',
+            'declarant:id,nom,prenom', 'pilote:id,nom,prenom', 'sponsor:id,nom,prenom', 'referenceSap',
+            'impacts', 'indicateurs.mesures', 'causes', 'domaines.roleValideur:id,code,libelle', 'risques.responsable:id,nom,prenom',
+            'actions.responsable:id,nom,prenom', 'actions.controles', 'actions.cause:id,numero', 'gains', 'perennisations.responsable:id,nom,prenom',
+            'lecons', 'validations.role:id,code,libelle', 'validations.valideur:id,nom,prenom',
+        ]);
+
+        $calculs = app(Calculs::class);
+        $profile = new ActiveProfile($request);
+        $sansGainRefuse = $fiche->gains->where('statut', '!=', 'REFUSE');
+        $totalA = $calculs->totalA($sansGainRefuse->pluck('montant_annuel'));
+        $totalAValide = $calculs->totalA($fiche->gains->where('statut', 'VALIDE')->pluck('montant_annuel'));
+        $coutB = (int) $fiche->cout_mise_en_oeuvre_b;
+
+        return [
+            'id' => $fiche->id,
+            'numero_a3' => $fiche->numero_a3,
+            'titre' => $fiche->titre,
+            'version' => $fiche->version,
+            'statut_etape' => $fiche->statut_etape,
+            'statut_etape_libelle' => $fiche->etape()->libelle(),
+            'statut_general' => $fiche->statut_general,
+            'etape_avant_attente' => $fiche->etape_avant_attente,
+            'motif_attente' => $fiche->motif_attente,
+            'confidentialite' => $fiche->confidentialite,
+            'created_at' => $fiche->created_at?->toIso8601String(),
+            'date_cloture' => $fiche->date_cloture?->toDateString(),
+            'declarant' => $this->personne($fiche->declarant),
+            'pilote' => $this->personne($fiche->pilote),
+
+            'identification' => [
+                'unite' => $fiche->unite?->only(['id', 'code', 'libelle']),
+                'unite_id' => $fiche->unite_id,
+                'equipement' => $fiche->equipement?->only(['id', 'code', 'libelle', 'reference_sap']),
+                'equipement_id' => $fiche->equipement_id,
+                'numero_avis_sap' => $fiche->referenceSap?->numero_avis,
+                'numero_ordre_sap' => $fiche->referenceSap?->numero_ordre,
+                'sponsor' => $this->personne($fiche->sponsor),
+                'sponsor_id' => $fiche->sponsor_id,
+                'equipe' => $fiche->equipe ?? [],
+                'date_lancement' => $fiche->date_lancement?->toDateString(),
+                'date_cible' => $fiche->date_cible?->toDateString(),
+                'type_amelioration' => $fiche->type_amelioration,
+                'origine_id' => $fiche->origine_id,
+                'origine' => $fiche->origine?->only(['id', 'code', 'libelle']),
+                'origine_precision' => $fiche->origine_precision,
+            ],
+            'contexte' => [
+                'contexte' => $fiche->contexte,
+                'enonce_probleme' => $fiche->enonce_probleme,
+                'frequence_id' => $fiche->frequence_id,
+                'impacts' => $fiche->impacts->pluck('description', 'type_impact'),
+                'impact_financier_estime' => $fiche->impact_financier_estime,
+            ],
+            'indicateurs' => $fiche->indicateurs->sortBy('id')->values()->map(fn (FicheA3Indicateur $indicateur) => $this->indicateur($indicateur, $calculs)),
+            'objectif' => $fiche->only(['objectif_smart', 'perimetre', 'resultats_attendus']),
+            'analyse' => [
+                'methode_analyse' => $fiche->methode_analyse,
+                'methode_precision' => $fiche->methode_precision,
+                'causes' => $fiche->causes->sortBy('numero')->values()->map->only(['id', 'numero', 'categorie', 'libelle', 'niveau', 'racine', 'preuve']),
+            ],
+            'actions' => $fiche->actions->sortBy('id')->values()->map(fn (ActionA3 $action) => $this->action($action)),
+            'domaines' => $fiche->domaines->map(fn ($domaine) => [
+                'domaine' => $domaine->domaine,
+                'valideur_role_code' => $domaine->roleValideur?->code,
+                'valideur_role' => $domaine->roleValideur?->libelle,
+            ]),
+            'risques' => $fiche->risques->sortBy('id')->values()->map(fn ($risque) => [
+                ...$risque->only(['id', 'domaine', 'description', 'moc_requis', 'moc_reference', 'moc_statut', 'moc_preuve', 'mesure_maitrise', 'responsable_id']),
+                'responsable' => $this->personne($risque->responsable),
+            ]),
+            'resultats' => $fiche->only(['objectif_atteint', 'ecart_objectif']),
+            'gains' => [
+                'lignes' => $fiche->gains->sortBy('id')->values()->map->only(['id', 'categorie', 'hypothese_calcul', 'quantite', 'unite', 'cout_unitaire', 'montant_annuel', 'statut']),
+                'sans_gain_chiffre' => $fiche->sans_gain_chiffre,
+                'cout_mise_en_oeuvre_b' => $coutB,
+                'somme_couts_actions' => (int) $fiche->actions->sum('cout_estime'),
+                'total_a' => $totalA,
+                'total_a_valide' => $totalAValide,
+                'gain_net' => $calculs->gainNet($totalA, $coutB),
+                'payback_annees' => $calculs->paybackAnnees($totalA, $coutB),
+            ],
+            'perennisation' => $fiche->perennisations->sortBy('id')->values()->map(fn ($ligne) => [
+                ...$ligne->only(['id', 'type', 'responsable_id', 'statut', 'preuve']),
+                'date' => $ligne->date?->toDateString(),
+                'responsable' => $this->personne($ligne->responsable),
+            ]),
+            'lecons' => $fiche->lecons->pluck('texte', 'rubrique'),
+            'validations' => $fiche->validations->sortBy('id')->values()->map(fn (Validation $validation) => $this->validation($validation, $fiche, $profile)),
+            'completude' => $this->completude($fiche),
+            'droits' => $this->droits($fiche, $profile),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function indicateur(FicheA3Indicateur $indicateur, Calculs $calculs): array
+    {
+        $valeur = fn (string $type): ?float => ($mesure = $indicateur->mesures->firstWhere('type', $type)) ? (float) $mesure->valeur : null;
+        $apres = $indicateur->mesures->firstWhere('type', 'APRES');
+        $reference = $valeur('REFERENCE');
+        $cible = $valeur('CIBLE');
+        $actuelle = $valeur('ACTUELLE');
+        $valeurApres = $valeur('APRES');
+
+        return [
+            ...$indicateur->only(['id', 'libelle', 'unite_mesure', 'sens', 'principal', 'a_ne_pas_degrader', 'source', 'periode']),
+            'reference' => $reference,
+            'cible' => $cible,
+            'actuelle' => $actuelle,
+            'apres' => $valeurApres,
+            'date_mesure_apres' => $apres?->date_mesure?->toDateString(),
+            'periode_verification' => $apres?->periode_verification,
+            'ecart' => $calculs->ecart($actuelle, $cible ?? $reference),
+            'ecart_apres' => $calculs->ecart($valeurApres, $cible ?? $reference),
+            'amelioration_pourcent' => $calculs->ameliorationPourcent($actuelle, $valeurApres, $indicateur->sens),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function action(ActionA3 $action): array
+    {
+        $statut = StatutAction::from($action->statut);
+
+        return [
+            ...$action->only(['id', 'cause_id', 'description', 'type_action', 'responsable_id', 'cout_estime', 'statut', 'motif_statut', 'risque_id', 'action_origine_id', 'statut_avant_blocage']),
+            'cause_numero' => $action->cause?->numero,
+            'statut_libelle' => $statut->libelle(),
+            'echeance' => $action->echeance?->toDateString(),
+            'date_realisation' => $action->date_realisation?->toDateString(),
+            'en_retard' => ! $statut->estTerminee() && $action->echeance?->isBefore(today()),
+            'responsable' => $this->personne($action->responsable),
+            'manques_moc' => in_array($statut, [StatutAction::AFaire, StatutAction::Bloque], true) ? app(ActionService::class)->manquesB1($action) : [],
+            'controles' => $action->controles->sortBy('date_echeance')->values()->map(fn ($controle) => [
+                ...$controle->only(['id', 'jalon', 'resultat', 'commentaire', 'preuve', 'action_corrective_id']),
+                'date_echeance' => $controle->date_echeance?->toDateString(),
+                'date_effective' => $controle->date_effective?->toDateString(),
+                'disponible' => $controle->resultat === null && ! $controle->date_echeance->isAfter(today()),
+            ]),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validation(Validation $validation, FicheA3 $fiche, ActiveProfile $profile): array
+    {
+        $actionnable = $validation->decision === 'EN_ATTENTE'
+            && $validation->valideur_id === $profile->userId()
+            && $validation->role_id === $profile->roleId()
+            && $fiche->pilote_id !== $profile->userId()
+            && app(ValidationCircuit::class)->estActionnable($validation, $fiche);
+
+        return [
+            ...$validation->only(['id', 'porte', 'decision', 'commentaire', 'version_fiche', 'ordre']),
+            'role' => $validation->role?->only(['code', 'libelle']),
+            'valideur' => $this->personne($validation->valideur),
+            'demandee_le' => $validation->demandee_le?->toIso8601String(),
+            'decidee_le' => $validation->decidee_le?->toIso8601String(),
+            'anciennete_jours' => (int) $validation->demandee_le?->startOfDay()->diffInDays(($validation->decidee_le ?? now())->startOfDay()),
+            'actionnable' => $actionnable,
+        ];
+    }
+
+    /**
+     * Indicateur de complétude de la colonne des sections : vide, partiel ou complet.
+     *
+     * @return array<int, string>
+     */
+    private function completude(FicheA3 $fiche): array
+    {
+        $etat = function (array $valeurs): string {
+            $remplies = count(array_filter($valeurs, fn ($valeur) => filled($valeur) && $valeur !== false));
+
+            return $remplies === 0 ? 'vide' : ($remplies === count($valeurs) ? 'complet' : 'partiel');
+        };
+
+        return [
+            1 => $etat([$fiche->titre, $fiche->type_amelioration, $fiche->date_cible, $fiche->origine_id]),
+            2 => $etat([$fiche->enonce_probleme, $fiche->contexte]),
+            3 => $etat([$fiche->indicateurs->isNotEmpty()]),
+            4 => $etat([$fiche->objectif_smart, $fiche->indicateurs->contains('principal', true)]),
+            5 => $etat([$fiche->methode_analyse, $fiche->causes->isNotEmpty()]),
+            6 => $etat([$fiche->actions->isNotEmpty()]),
+            7 => $etat([$fiche->domaines->isNotEmpty()]),
+            8 => $etat([$fiche->objectif_atteint, $fiche->indicateurs->contains(fn ($indicateur) => $indicateur->mesures->contains('type', 'APRES'))]),
+            9 => $fiche->sans_gain_chiffre ? 'complet' : $etat([$fiche->gains->isNotEmpty()]),
+            10 => $etat([$fiche->perennisations->isNotEmpty()]),
+            11 => $etat([$fiche->lecons->isNotEmpty()]),
+            12 => $fiche->etape() === StatutEtape::Cloture ? 'complet' : ($fiche->validations->isNotEmpty() ? 'partiel' : 'vide'),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function droits(FicheA3 $fiche, ActiveProfile $profile): array
+    {
+        $etape = $fiche->etape();
+        $estPilote = $profile->is('PILOTE') && $fiche->pilote_id === $profile->userId();
+        $peutBloquer = $estPilote || $profile->is('DIRECTION');
+
+        $transitions = [];
+        if ($estPilote) {
+            $transitions = match ($etape) {
+                StatutEtape::Ouvert => ['T2'],
+                StatutEtape::EnCours => ['T3'],
+                StatutEtape::RealisationActions => ['T6'],
+                StatutEtape::MesureResultats => ['T7', 'T11'],
+                StatutEtape::VerificationMaintien => ['T8', 'T11'],
+                default => [],
+            };
+        }
+        if ($peutBloquer && $etape->estActive()) {
+            $transitions[] = 'T12';
+        }
+        if ($peutBloquer && $etape === StatutEtape::EnAttente) {
+            $transitions[] = 'T13';
+        }
+
+        $userId = $profile->userId();
+
+        return [
+            'sections_editables' => app(FicheSectionService::class)->sectionsEditables($fiche, $profile),
+            'transitions' => array_values(array_unique($transitions)),
+            'est_pilote' => $estPilote,
+            'peut_designer_pilote' => $profile->is('ADMIN_FONCTIONNEL') && $etape === StatutEtape::Ouvert,
+            'peut_changer_confidentialite' => $estPilote || $profile->is('ADMIN_FONCTIONNEL'),
+            'peut_commenter' => $profile->is('AGENT', 'PILOTE', 'CONTROLE_GESTION', 'DIRECTION', ...Domaine::rolesValideurs()),
+            'peut_voir_historique' => $profile->is('PILOTE', 'DIRECTION', 'ADMIN_FONCTIONNEL'),
+            'peut_enregistrer_controles' => $estPilote && in_array($etape, [StatutEtape::RealisationActions, StatutEtape::MesureResultats, StatutEtape::VerificationMaintien], true),
+            'peut_decider_gains' => $profile->is(ValidationCircuit::CONTROLE_GESTION) && $fiche->validations->contains(
+                fn (Validation $validation) => $validation->porte === 2 && $validation->valideur_id === $userId && app(ValidationCircuit::class)->estActionnable($validation, $fiche)
+            ),
+            'actions_modifiables' => $fiche->actions
+                ->filter(fn (ActionA3 $action) => ($estPilote || ($profile->is('AGENT', 'PILOTE') && $action->responsable_id === $userId))
+                    && ($etape === StatutEtape::RealisationActions
+                        || ($action->action_origine_id !== null && in_array($etape, [StatutEtape::MesureResultats, StatutEtape::VerificationMaintien], true))))
+                ->pluck('id')
+                ->values(),
+        ];
+    }
+
+    /**
+     * @return array{id: int, nom: string}|null
+     */
+    private function personne(?User $user): ?array
+    {
+        return $user === null ? null : ['id' => $user->id, 'nom' => trim($user->prenom.' '.$user->nom)];
+    }
+}

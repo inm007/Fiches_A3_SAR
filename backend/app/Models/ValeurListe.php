@@ -9,6 +9,11 @@ class ValeurListe extends Model
 {
     protected $table = 'valeurs_listes';
 
+    protected $casts = [
+        'ordre' => 'integer',
+        'actif' => 'boolean',
+    ];
+
     protected $fillable = [
         'liste_id',
         'code',

@@ -23,6 +23,7 @@ class ActionA3 extends Model
         'motif_statut',
         'date_realisation',
         'risque_id',
+        'statut_avant_blocage',
     ];
 
     protected $casts = [

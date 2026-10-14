@@ -16,6 +16,7 @@ class Gain extends Model
         'quantite',
         'unite',
         'cout_unitaire',
+        'montant_annuel',
         'statut',
         'valide_par_id',
         'date_validation',
@@ -25,6 +26,7 @@ class Gain extends Model
         'quantite' => 'decimal:4',
         'date_validation' => 'datetime',
         'cout_unitaire' => 'integer',
+        'montant_annuel' => 'integer',
     ];
 
     public function fiche(): BelongsTo

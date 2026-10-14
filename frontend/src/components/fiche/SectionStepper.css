@@ -34,3 +34,39 @@
   background: var(--white);
   font-size: 12px;
 }
+
+.section-stepper button.is-active {
+  color: var(--brand-500);
+  background: var(--brand-50);
+  font-weight: 600;
+}
+
+.section-stepper button small {
+  margin-left: auto;
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.section-stepper__dot {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--gray-300);
+}
+
+.section-stepper__dot--partiel {
+  background: var(--warning-solid);
+}
+
+.section-stepper__dot--complet {
+  background: var(--success);
+}
+
+.section-stepper button {
+  width: 100%;
+}
+
+.section-stepper button span {
+  display: none;
+}

@@ -1,34 +1,48 @@
+/* Pastille de la maquette : texte coloré sur fond pâle, point coloré quand il n'y a pas d'icône. */
 .status-badge {
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
-  padding: 2px 9px;
+  gap: 5px;
+  padding: 2px 10px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
 }
 
-.status-badge--neutral {
-  color: var(--gray-700);
-  background: var(--gray-100);
+.status-badge:not(:has(svg))::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
 }
 
-.status-badge--open {
-  color: var(--st-ouvert);
-  background: var(--st-ouvert-bg);
+.status-badge .sar-icon {
+  width: 13px;
+  height: 13px;
 }
 
-.status-badge--progress {
-  color: var(--st-encours);
-  background: var(--st-encours-bg);
-}
-
-.status-badge--done {
-  color: var(--st-cloture);
-  background: var(--st-cloture-bg);
-}
-
-.status-badge--restricted {
-  color: var(--conf-restreint);
-  background: var(--conf-restreint-bg);
-}
+.status-badge--neutral { color: var(--gray-700); background: var(--gray-100); }
+.status-badge--open,
+.status-badge--ouvert { color: var(--st-ouvert); background: var(--st-ouvert-bg); }
+.status-badge--progress,
+.status-badge--encours { color: var(--st-encours); background: var(--st-encours-bg); }
+.status-badge--validation { color: var(--st-validation); background: var(--st-validation-bg); }
+.status-badge--realisation { color: var(--st-realisation); background: var(--st-realisation-bg); }
+.status-badge--mesure { color: var(--st-mesure); background: var(--st-mesure-bg); }
+.status-badge--maintien { color: var(--st-maintien); background: var(--st-maintien-bg); }
+.status-badge--attente { color: var(--st-attente); background: var(--st-attente-bg); }
+.status-badge--done,
+.status-badge--cloture { color: var(--st-cloture); background: var(--st-cloture-bg); }
+.status-badge--restricted { color: var(--conf-restreint); background: var(--conf-restreint-bg); }
+.status-badge--normal { color: var(--conf-normal); background: var(--conf-normal-bg); }
+.status-badge--a-faire { color: var(--action-a-faire); background: var(--action-a-faire-bg); }
+.status-badge--realisee { color: var(--action-realisee); background: var(--action-realisee-bg); }
+.status-badge--annulee { color: var(--action-annulee); background: var(--action-annulee-bg); }
+.status-badge--retard { color: var(--action-retard); background: var(--action-retard-bg); }
+.status-badge--success { color: var(--success); background: var(--success-bg); }
+.status-badge--error { color: var(--error); background: var(--error-bg); }
+.status-badge--warning { color: var(--warning); background: var(--warning-bg); }
+.status-badge--brand { color: var(--white); background: var(--brand-500); }

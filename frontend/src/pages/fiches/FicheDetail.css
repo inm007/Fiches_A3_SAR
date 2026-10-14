@@ -1,3 +1,19 @@
-.fiche-detail-page .page-placeholder__surface {
-  min-height: 560px;
+.fiche-detail-page {
+  display: grid;
+  gap: 16px;
+}
+
+.fiche-detail-page__body {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+
+.fiche-detail-page__stepper {
+  padding: 12px;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  background: var(--white);
+  box-shadow: var(--shadow-card);
 }

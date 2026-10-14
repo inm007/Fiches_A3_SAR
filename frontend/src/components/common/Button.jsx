@@ -1,8 +1,9 @@
 import './Button.css'
 
-function Button({ children, variant = 'primary', className = '', ...props }) {
+function Button({ children, variant = 'primary', size, className = '', ...props }) {
+  const classes = ['sar-button', `sar-button--${variant}`, size === 'small' ? 'sar-button--small' : '', className].filter(Boolean).join(' ')
   return (
-    <button className={`sar-button sar-button--${variant} ${className}`.trim()} {...props}>
+    <button className={classes} {...props}>
       {children}
     </button>
   )

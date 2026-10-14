@@ -1,3 +1,77 @@
-.parametres-fonctionnels-page .page-placeholder__surface {
-  min-height: 320px;
+.parametres-fonctionnels-page {
+  display: grid;
+  gap: 20px;
+}
+
+.parametres-fonctionnels-page > header h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.parametres-fonctionnels-page > header p {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+}
+
+.parametres-fonctionnels-page__form {
+  display: grid;
+  justify-items: start;
+  gap: 20px;
+}
+
+.parametres-fonctionnels-page__form fieldset {
+  display: grid;
+  width: min(100%, 760px);
+  gap: 18px;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+}
+
+.parametres-fonctionnels-page__form legend {
+  padding: 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.parametres-fonctionnels-page__form fieldset > label {
+  display: grid;
+  max-width: 440px;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.parametres-fonctionnels-page__form input[type="number"] {
+  min-height: 42px;
+  padding: 8px 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+}
+
+.parametres-fonctionnels-page__form .parametres-fonctionnels-page__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.parametres-fonctionnels-page__form fieldset p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.parametres-fonctionnels-page__message {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 6px;
+}
+
+.parametres-fonctionnels-page__message--error {
+  color: var(--error);
+  background: var(--error-bg);
+}
+
+.parametres-fonctionnels-page__message--success {
+  color: var(--success);
+  background: var(--success-bg);
 }

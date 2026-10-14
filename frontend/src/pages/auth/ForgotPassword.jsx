@@ -1,14 +1,55 @@
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { apiRequest } from '../../auth/api.js'
 import AuthPage from '../../components/layout/AuthPage.jsx'
 import FormField from '../../components/common/FormField.jsx'
 import Button from '../../components/common/Button.jsx'
 import './ForgotPassword.css'
 
 function ForgotPassword() {
+  const [account, setAccount] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    setSubmitting(true)
+    setError('')
+    setNotice('')
+    try {
+      const result = await apiRequest('/auth/mot-de-passe-oublie', {
+        method: 'POST',
+        body: JSON.stringify({ account }),
+      })
+      setNotice(result.message)
+    } catch (requestError) {
+      setError(requestError.data?.errors?.account?.[0] || requestError.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
-    <AuthPage pageClass="forgot-password-page" title="Mot de passe oublié" description="Demandez un lien de réinitialisation.">
-      <form className="auth-form">
-        <FormField autoComplete="username" id="compte" label="Identifiant ou courriel" name="account" />
-        <Button type="button">Envoyer la demande</Button>
+    <AuthPage
+      description="Saisissez votre identifiant ou votre courriel : un lien de réinitialisation vous sera envoyé."
+      footer={<Link to="/connexion">← Retour à la connexion</Link>}
+      pageClass="forgot-password-page"
+      title="Mot de passe oublié"
+    >
+      {notice && <p className="auth-feedback auth-feedback--success" role="status">{notice}</p>}
+      {error && <p className="auth-feedback auth-feedback--error" role="alert">{error}</p>}
+      <form className="auth-form" onSubmit={handleSubmit}>
+        <FormField
+          autoComplete="username"
+          id="compte"
+          label="Identifiant ou courriel"
+          name="account"
+          onChange={(event) => setAccount(event.target.value)}
+          required
+          value={account}
+        />
+        <Button disabled={submitting} type="submit">{submitting ? 'Envoi…' : 'Envoyer la demande'}</Button>
       </form>
     </AuthPage>
   )

@@ -9,6 +9,10 @@ class Unite extends Model
 {
     protected $table = 'unites';
 
+    protected $casts = [
+        'actif' => 'boolean',
+    ];
+
     protected $fillable = [
         'code',
         'libelle',

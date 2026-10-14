@@ -4,15 +4,17 @@
   gap: 4px;
   overflow-x: auto;
   border-bottom: 1px solid var(--border);
-  background: var(--white);
 }
 
 .fiche-tabs button {
-  min-height: 44px;
+  min-height: 42px;
+  margin-bottom: -1px;
   padding: 0 14px;
   border: 0;
   border-bottom: 2px solid transparent;
-  color: var(--gray-700);
+  border-radius: 8px 8px 0 0;
+  color: var(--gray-500);
+  font-weight: 500;
   background: transparent;
   cursor: pointer;
   white-space: nowrap;
@@ -20,6 +22,21 @@
 
 .fiche-tabs button:hover,
 .fiche-tabs button:focus-visible {
+  background: var(--gray-100);
+}
+
+.fiche-tabs button.is-active {
   border-bottom-color: var(--brand-500);
   color: var(--brand-500);
+  font-weight: 600;
+}
+
+.fiche-tabs__count {
+  margin-left: 6px;
+  padding: 0 7px;
+  border-radius: 999px;
+  color: var(--white);
+  background: var(--brand-500);
+  font-size: 11px;
+  line-height: 18px;
 }

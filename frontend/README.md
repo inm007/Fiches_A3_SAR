@@ -1,41 +1,24 @@
-# SAR — Frontend Fiche A3
+# Frontend Fiche A3
 
-Frontend React/Vite de l’application SAR P13. Les routes, pages et composants partagés
-sont actuellement des squelettes d’interface ; les règles métier et les appels API restent
-à implémenter.
+## Prérequis
 
-## Développement
+| Node.js | 26 |
+| npm | fourni avec Node |
+| Backend | API Laravel démarrée sur `http://127.0.0.1:8000` |
 
-Depuis ce dossier :
+## Démarrage
 
-```sh
+```bash
 npm install
-npm run dev
+npm run dev        # http://127.0.0.1:5173
 ```
 
-Vérification de production et lint :
+Comptes de démonstration (mot de passe `Azerty123`) : `agent.demo`, `pilote.demo`, `valideur.demo`, `valideur-hse.demo`, `controle.demo`, `direction.demo`, `admin-fonctionnel.demo`, `admin-technique.demo` (liste complète dans `../backend/README.md`).
 
-```sh
-npm run build
-npm run lint
-```
+## Scripts
 
-## Routes préparées
+| `npm run dev` | Serveur de développement |
+| `npm run build` | Build de production dans `dist/` |
+| `npm run preview` | Aperçu du build |
+| `npm run lint` | ESLint |
 
-- `src/pages/auth/` : connexion, inscription de développement, oubli et réinitialisation du mot de passe
-- `src/pages/dashboard/` : tableau de bord
-- `src/pages/fiches/` : registre, nouvelle fiche et détail
-- `src/pages/workflow/` : validations et notifications
-- `src/pages/admin/` : utilisateurs, affectations, unités, équipements, listes et paramètres
-- `src/pages/system/` : état technique, accès refusé et page introuvable
-
-Chaque page JSX possède son fichier CSS voisin. Les styles et éléments communs aux pages
-restent dans `src/components/common/` ou `src/components/layout/`.
-
-Les composants qui portent leur propre présentation importent également leur CSS voisin.
-Les composants de délégation (sections et onglets de la fiche) réutilisent le composant
-visuel partagé, afin d’éviter de dupliquer les mêmes règles CSS.
-
-La route de développement `/inscription` est désactivée par défaut ; elle peut être
-affichée localement avec `VITE_ENABLE_DEV_REGISTER=true` et devra être retirée avant la
-livraison.

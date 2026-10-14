@@ -1,3 +1,38 @@
-.notifications-page .page-placeholder__surface {
-  min-height: 360px;
+.notifications-page {
+  display: grid;
+  gap: 16px;
+}
+
+.notifications-page__list {
+  padding: 0;
+  overflow: hidden;
+}
+
+.notifications-page__item {
+  width: 100%;
+  padding: 14px 20px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+  cursor: pointer;
+  text-align: left;
+}
+
+.notifications-page__item:hover {
+  background: var(--gray-50);
+}
+
+.notifications-page__item.is-unread {
+  background: var(--brand-50);
+}
+
+.notifications-page__date {
+  font-size: 12px;
+}
+
+.notifications-page__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
 }

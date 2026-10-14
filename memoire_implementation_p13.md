@@ -1,178 +1,296 @@
 # Mémoire de projet — P13 / Fiche A3 SAR
 
-## 1. Contexte
+Dernière mise à jour : 14 octobre 2026 (jour 2 du calendrier, démonstration prévue le 30 octobre).
 
-Projet : numérisation de la fiche A3 d’amélioration continue de la SAR.
+## Sommaire
 
-Documents de référence analysés :
-- PRD.md
-- TRD.md
-- Plan_implementation.md
-- uxui_design.md
-- sp_cification_technique_base_de_donn_es_p13.md
-- colors.css
+1. Contexte et références
+2. Environnement
+3. Démarrage rapide
+4. Architecture
+5. Avancement par étape
+6. Données de démonstration
+7. Tests
+8. Décisions d'implémentation
+9. Écarts avec les documents de référence
+10. Reste à faire
+11. Points de vigilance
 
-## 2. Environnement de travail vérifié
+---
 
-- Dossier racine : `D:\A3`
-- Backend Laravel : `D:\A3\backend`
-- Frontend React/Vite : `D:\A3\frontend`
-- Base de données prévue : PostgreSQL
-- Authentification prévue : Laravel Sanctum + cookies SPA
-- Stack : Laravel 13 + React 19 + PostgreSQL + Vite + Material UI
+## 1. Contexte et références
 
-## 3. Palette SAR appliquée
+Numérisation de la fiche A3 d'amélioration continue de la SAR : déclaration, fiche en 12 sections, workflow à deux portes de validation, actions et MOC, contrôles d'efficacité J+30/60/90, gains en FCFA, historique immuable.
 
-Couleurs de référence issues de `colors.css` :
-- Brand : `#E60012` / `#B8000E` / `#8F000B`
-- Fond : `#F7F7F8`
-- Contours : `#E5E5E8` / `#D2D2D8`
-- Texte principal : `#1A1A1F`
-- Texte secondaire : `#6B6B76`
-- Succès : `#167A4A`
-- Erreur : `#C62828`
-- Avertissement : `#8A5A00`
-- Information : `#1D4ED8`
+Documents de référence (la priorité va au PRD en cas de conflit) :
 
-## 4. Principes de conception retenus
+| Document | Rôle |
+|---|---|
+| `PRD.md` | Règles métier, matrice des droits (§2.3), visibilité (§2.4), workflow T1–T13 et B1–B8 (§5), modèle de données (§12) |
+| `TRD.md` | Architecture, API, sécurité, installation |
+| `Plan_implementation.md` | Calendrier du 13 au 30 octobre, lots L0 à L14 |
+| `uxui_design.md` | Écrans, charte, structure du code |
+| `SAR · Fiches A3 — Démo.html` | Maquette visuelle de référence |
+| `sp_cification_technique_base_de_donn_es_p13.md`, `colors.css` | Schéma et palette |
 
-- Interface desktop PC uniquement, largeur minimum 1280 px
-- Interface en français
-- Menu latéral + barre supérieure commune
-- Theme SAR appliqué via variables CSS centralisées
-- Sécurité métier contrôlée côté backend
-- Historique immuable
-- Fichiers / PDF / PDF A3 généré côté serveur
-- Workflow de fiche structuré en étapes et validations
+## 2. Environnement
 
-## 5. Point de départ technique
+| Élément | Valeur |
+|---|---|
+| Racine | `D:\A3` (`backend/` Laravel 13, `frontend/` React 19 + Vite 8 + Material UI) |
+| Base | PostgreSQL 18.6 locale, base `fiche_a3` (application et tests) |
+| Authentification | Laravel Sanctum en mode SPA (session, cookies, CSRF) |
+| Session | 30 minutes d'inactivité |
+| Courriel | transport `log` en démonstration |
 
-### Backend
+Palette SAR (`colors.css`, copiée dans `frontend/src/theme/colors.css`) : marque `#E60012` / `#B8000E` / `#8F000B`, fond `#F7F7F8`, contours `#E5E5E8` / `#D2D2D8`, texte `#1A1A1F` / `#6B6B76`, succès `#167A4A`, erreur `#C62828`, avertissement `#8A5A00`, information `#1D4ED8`, plus les couleurs d'étape `--st-*`, d'action `--action-*` et de confidentialité `--conf-*`.
 
-Base de données construite sur le socle métier suivant :
-- utilisateurs (`users` Laravel, avec les champs SAR intégrés à la migration initiale)
-- rôles
-- unités
-- affectations
-- listes et valeurs de référentiels
-- équipements et références SAP
-- fiches A3, domaines, indicateurs et mesures
-- impacts, causes, actions, risques, gains, pérennisation et leçons
-- contrôles, validations, commentaires, pièces jointes et relances
-- historique métier immuable, notifications métier, paramètres et journal d’administration
+## 3. Démarrage rapide
 
-### Frontend
+```bash
+# Backend
+cd backend
+php artisan migrate:fresh --seed   # recrée la base ET les données de démonstration
+php artisan serve                  # http://127.0.0.1:8000
 
-Les visuels et composants de démonstration Elegent (ventes, produits, avatars et photos)
-ont été retirés. L’application dispose maintenant d’une ossature SAR : routes React Router,
-coque de navigation, thème Material UI aux couleurs SAR, primitives UI partagées,
-pages placeholder, structure des 12 sections et onglets de la fiche.
-Les pages et composants sont des squelettes : aucune authentification, règle de rôle,
-donnée métier ou API n’est encore branchée.
+# Frontend
+cd frontend
+npm run dev                        # http://127.0.0.1:5173 (proxy /api et /sanctum vers Laravel)
 
-## 6. Plan de travail actuel
+# Vérifications
+php artisan test --compact         # backend
+npm run lint && npm run build      # frontend
+```
 
-### Étape 1 – Base de données (révisée et validée)
+Mot de passe de tous les comptes de démonstration : `Azerty123` (liste en §6).
 
-- Vérification de la structure Laravel existante
-- Séparation stricte du schéma A3 en migrations indépendantes par table / thématique
-- Champs SAR intégrés à la migration de création `users` ; aucune migration additive `alter_users`
-- Conservation des tables Laravel `password_reset_tokens` et `sessions`
-- Conservation de `references_sap`
-- Notifications Laravel database dans `notifications` et notifications métier isolées dans `notifications_metier`
-- Contraintes de suppression restrictives sur les liens métier afin de préserver les historiques ; privilégier la désactivation des comptes et référentiels
-- Historique protégé contre `UPDATE` et `DELETE` par PostgreSQL et par le modèle Eloquent
-- Nettoyage défensif de la fonction PostgreSQL du trigger, car `migrate:fresh` supprime les tables mais peut laisser la fonction seule
+## 4. Architecture
 
-### Ordre des migrations validé
+### 4.1 Backend (`backend/app`)
 
-1. `0001_01_01_000000_create_users_table`
-2. `0001_01_01_000001_create_cache_table`
-3. `0001_01_01_000002_create_jobs_table`
-4. `0001_01_01_000003_create_password_reset_tokens_table`
-5. `0001_01_01_000004_create_sessions_table`
-6. `0001_01_01_000005_create_notifications_table`
-7. `2026_10_12_161946_create_personal_access_tokens_table`
-8. `2026_10_13_000001_create_roles_table`
-9. `2026_10_13_000002_create_unites_table`
-10. `2026_10_13_000003_create_listes_table`
-11. `2026_10_13_000004_create_valeurs_listes_table`
-12. `2026_10_13_000005_create_equipements_table`
-13. `2026_10_13_000006_create_affectations_table`
-14. `2026_10_13_000007_create_fiches_a3_table`
-15. `2026_10_13_000008_create_fiche_domaines_table`
-16. `2026_10_13_000009_create_indicateurs_table`
-17. `2026_10_13_000010_create_mesures_table`
-18. `2026_10_13_000011_create_references_sap_table`
-19. `2026_10_13_000012_create_compteurs_fiches_table`
-20. `2026_10_13_000013_create_impacts_table`
-21. `2026_10_13_000014_create_causes_table`
-22. `2026_10_13_000015_create_risques_table`
-23. `2026_10_13_000016_create_actions_table`
-24. `2026_10_13_000017_create_gains_table`
-25. `2026_10_13_000018_create_perennisation_table`
-26. `2026_10_13_000019_create_lecons_table`
-27. `2026_10_13_000020_create_controles_table`
-28. `2026_10_13_000021_create_validations_table`
-29. `2026_10_13_000022_create_evenements_historique_table`
-30. `2026_10_13_000023_create_commentaires_table`
-31. `2026_10_13_000024_create_pieces_jointes_table`
-32. `2026_10_13_000025_create_notifications_metier_table`
-33. `2026_10_13_000026_create_relances_table`
-34. `2026_10_13_000027_create_parametres_table`
-35. `2026_10_13_000028_create_journal_administration_table`
+| Dossier | Contenu |
+|---|---|
+| `Enums/` | `StatutEtape` (9 étapes + statut général), `StatutAction`, `Domaine` (avec le rôle valideur de chaque domaine) |
+| `Services/` | Règles métier (tableau ci-dessous) |
+| `Http/Controllers/` | `AuthController`, `AdminController`, `TechniqueController`, `FicheController`, `WorkflowController`, `CommentaireController`, `ReferentielController`, `NotificationController`, `TableauDeBordController` ; trait `ResolvesVisibleFiche` |
+| `Http/Middleware/` | `EnsureActiveRole:<ROLE>` (rôle de l'affectation active) |
+| `Http/Resources/` | `FicheResource` (12 sections, calculs, complétude, droits du profil actif) |
+| `Exceptions/` | `RegleMetierException` (403, 409, 422 avec liste `manques`) |
+| `config/a3.php` | `auth_provider` (`local`), `sap_enabled` (faux) |
 
-### Étape 2 – Frontend / structure SAR
+| Service | Responsabilité |
+|---|---|
+| `ActiveProfile` | Affectation active en session (`auth.active_assignment_id`) |
+| `FicheVisibility` | Portée des fiches (PRD §2.4) ; une fiche hors portée renvoie 404 |
+| `FicheWorkflow` | Seul code qui change l'étape : T1–T13, transaction + `lockForUpdate`, 409 / 422 |
+| `ValidationCircuit` | Portes 1 et 2, titulaires (unité puis global, jamais le pilote), B7, empreinte des signatures |
+| `FicheSectionService` | Enregistrement des sections 1 à 11 par le pilote, selon l'étape, historique champ par champ |
+| `ActionService` | Statuts d'action, B1 (MOC), motifs, blocage et reprise, actions correctives |
+| `ControleEfficaciteService` | Contrôles J+30/60/90, contrôle correctif à 30 jours, B4 |
+| `Calculs` | Formules PRD §6.2 ; `null` = « Non calculable » |
+| `HistoryLogger`, `NotificationService` | Historique métier immuable, notifications internes |
+| `TechnicalSettingsService` | Paramètres SMTP (liste blanche, mot de passe chiffré) |
 
-- suppression des photos, avatars, produits, graphiques et modules d’exemple Elegent
-- préparation des routes publiques, métier, administration et erreurs avec React Router
-- classement des pages par domaine (`auth`, `dashboard`, `fiches`, `workflow`, `admin`, `system`), chacune avec son CSS dédié
-- déplacement du composant placeholder partagé dans `components/common`
-- coque SAR (navigation latérale, fil d’Ariane, profil actif et cloche placeholder)
-- thème Material UI initialisé depuis la palette SAR ; variables CSS préservées
-- composants partagés pour boutons, champs, badges, alertes, KPI, tableau, état vide et sauvegarde
-- CSS voisin pour chaque composant présentant une interface ; les composants de délégation réutilisent les styles du composant visuel partagé
-- dossiers fiche : en-tête, navigation, 12 sections et onglets liés
-- pages créées comme placeholders, sans appels API ni règles métier
+### 4.2 API (préfixe `/api`, sans version)
 
-### Étape 3 – Workflow métier
+| Domaine | Routes |
+|---|---|
+| Authentification | `POST /auth/connexion`, `/auth/deconnexion`, `/auth/profil-actif`, `/auth/mot-de-passe-oublie`, `/auth/mot-de-passe` ; `GET /auth/moi` |
+| Administration fonctionnelle (`ADMIN_FONCTIONNEL`) | `/admin/users`, `/admin/assignments`, `/admin/units`, `/admin/equipment`, `/admin/lists`, `/admin/settings`, `/admin/roles`, `/admin/fiches` (pilote et confidentialité seulement) |
+| Administration technique (`ADMIN_TECHNIQUE`) | `GET /technique`, `PUT /technique/settings` |
+| Fiches | `GET/POST /fiches`, `GET /fiches/{id}`, `PUT /fiches/{id}/sections/{n}`, `POST /fiches/{id}/transitions`, `POST /fiches/{id}/confidentialite`, `GET /fiches/{id}/historique`, `GET /fiches/{id}/options`, `GET/POST /fiches/{id}/commentaires` |
+| Workflow | `GET /validations`, `POST /validations/{id}/decision`, `POST /actions/{id}/statut`, `PATCH /controles/{id}`, `POST /gains/{id}/decision` |
+| Transversal | `GET /referentiels`, `GET /tableau-de-bord`, `GET /notifications`, `GET /notifications/non-lues`, `POST /notifications/{id}/lu`, `POST /notifications/tout-lu` |
 
-- fiches A3
-- transitions de statut
-- validation par porte
-- contrôles J+30 / J+60 / J+90
-- gains FCFA
+### 4.3 Base de données
 
-### Étape 4 – Finitions
+36 migrations : les 35 du socle (utilisateurs, rôles, unités, affectations, listes, équipements, fiches et leurs tables liées, contrôles, validations, historique, commentaires, pièces jointes, notifications métier, relances, paramètres, journal d'administration) et la migration additive `2026_10_14_132254_add_contenu_columns_to_fiches_a3_table` (champs des sections 2, 4, 5 et 8, mise en attente, statut avant blocage, contraintes CHECK, décision `ANNULE`).
 
-- notifications
-- relances
-- export PDF
-- tests
-- revue finale
+Principes : suppressions restrictives (désactivation plutôt que suppression), historique protégé contre `UPDATE` et `DELETE` par un déclencheur PostgreSQL et par le modèle, notifications Laravel (`notifications`) séparées des notifications métier (`notifications_metier`).
 
-## 7. Statut actuel
+### 4.4 Frontend (`frontend/src`)
 
-- Analyse documentaire terminée.
-- Environnement de travail validé.
-- Palette SAR identifiée et transposée dans le code.
-- Schéma révisé reconstruit et seedé avec `php artisan migrate:fresh --seed`.
-- Tests Laravel : 2 tests réussis, 2 assertions.
-- Vérification des tables/champs `$fillable` sur les 29 modèles métier : réussie.
-- Vérification de la séparation effective des relations de notification : `notifications` Laravel / `notifications_metier` métier.
-- Vérification syntaxique PHP : 64 fichiers modèles et migrations valides.
-- L’ordre des migrations vérifié, notamment risques avant actions.
-- Les migrations standards de réinitialisation de mot de passe et sessions Laravel sont conservées.
-- Structure frontend SAR créée et vérifiée avec `npm run build` et `npm run lint`.
-- Le frontend reste une ossature : les API, l’authentification/protection des routes, les droits par profil et le contenu métier sont les prochaines étapes.
+| Dossier | Contenu |
+|---|---|
+| `auth/` | `api.js` (cookies, CSRF, option `passive`), `AuthContext`, `ProtectedLayout`, `RequireRole` |
+| `services/` | `ficheService.js`, `notificationService.js` |
+| `hooks/` | `useCounters` (compteurs de la coque, toutes les 60 s) |
+| `utils/` | `constants.js` (étapes, rôles, transitions), `format.js` (FCFA, dates Africa/Dakar), `toast.js`, `crumb.js` |
+| `components/common/` | `Button`, `Icon`, `Alert`, `StatusBadge`, `ConfirmDialog`, `FormControls`, `DataTable`, `ToastHost`… |
+| `components/layout/` | `AppLayout`, `Sidebar`, `Topbar`, `NotificationBell`, `ProfileSwitcher`, `AuthPage`, `A3Sheet` |
+| `components/fiche/` | `FicheHeader`, `FicheTabs`, `SectionStepper`, `SectionEditor`, `WorkflowActions`, `MissingConditionsPanel`, `sections/` (12 sections, `sectionModel.js`, `RowsEditor`), `tabs/` (Actions, Contrôles, Validations, Pièces jointes, Commentaires, Historique) |
+| `pages/` | `auth/`, `dashboard/`, `fiches/`, `workflow/`, `admin/`, `system/`, `Technique.jsx` |
 
-## 8. Décisions d’implémentation
+## 5. Avancement par étape
 
-- Utiliser PostgreSQL conformément au PRD.
-- Garder le backend Laravel comme source de vérité métier.
-- Utiliser `#[Fillable]` comme source unique de remplissage déclaratif sur `User`.
-- Séparer les notifications métier (`notifications_metier`) des notifications Laravel (`notifications`).
-- Conserver les jetons Laravel de réinitialisation et les références SAP.
-- Centraliser le thème dans des variables CSS pour éviter les couleurs du template.
-- Éviter le couplage UI/back au niveau des règles métier.
-- Préparer une base de données extensible pour les règles de workflow et de visibilité.
+### Étape 1 — Base de données ✅
+
+Schéma complet en migrations séparées, champs SAR dans la migration `users`, tables Laravel de réinitialisation et de session conservées, déclencheur d'historique avec nettoyage défensif de sa fonction.
+
+### Étape 2 — Socle frontend ✅
+
+Template Elegent nettoyé, routes React Router publiques, métier, administration et erreurs, coque SAR, thème Material UI depuis la palette, composants partagés, un fichier CSS par composant.
+
+### Étape 2 bis — Authentification et profils ✅
+
+- Connexion locale par identifiant et mot de passe (Sanctum SPA), restauration de session, expiration après 30 minutes d'inactivité.
+- 5 échecs en 15 minutes par identifiant et par adresse ; message identique pour un identifiant inconnu et un mauvais mot de passe.
+- Profil actif en session, changement de profil, redirection vers `/tableau-de-bord` (ou `/technique` pour l'administrateur technique).
+- Menu filtré par le rôle actif (UX §5). Aucune inscription publique.
+
+### Étape 2 ter — Administration fonctionnelle ✅
+
+Comptes (création sans mot de passe, lien de définition), affectations, unités, équipements, valeurs des listes (ordre modifiable), paramètres fonctionnels ; registre des fiches limité à la désignation du pilote (étape Ouvert, pilote de l'unité) et à la confidentialité. Journal d'administration pour chaque modification. La désignation du pilote écrit aussi l'historique métier et notifie le pilote.
+
+### Étape 2 quater — Administration technique et sécurité ✅
+
+Corrections de sécurité du 14 octobre :
+- **Faille corrigée** : l'API `/api/admin/*` n'avait que `auth:sanctum`, donc tout compte connecté y avait accès. Elle est maintenant protégée par `EnsureActiveRole:ADMIN_FONCTIONNEL`.
+- `/api/technique/*` lisait une clé de session inexistante : `EnsureActiveRole:ADMIN_TECHNIQUE` le remplace.
+- Route Laravel par défaut `GET /api/user` supprimée.
+- Mot de passe PostgreSQL retiré de `.env.example` (il reste dans l'historique Git, commit `2219fc9`).
+- Le frontend plantait au chargement (`Technique` non importé dans `App.jsx`, import `G` inexistant) : corrigé.
+
+Administration technique : fournisseur d'authentification et SAP en lecture seule (`config/a3.php`), paramètres SMTP sur liste blanche, mot de passe SMTP chiffré, jamais renvoyé et masqué dans le journal. Rôle `ADMIN_TECHNIQUE` ajouté aux seeders.
+
+### Étape 3 — Fiche A3 et workflow ✅
+
+Prérequis corrigés :
+- Rôles valideurs par domaine : `VALIDEUR_HSE`, `VALIDEUR_PROCEDE`, `VALIDEUR_MAINTENANCE`, `VALIDEUR_INSPECTION`, en plus de `VALIDEUR_PRODUCTION` (« Production / Exploitation »).
+- Codes des listes corrompus par `iconv` sous Windows (`S_ECURIT_E_HSE`…) : `Str::ascii`, renommage en place. Domaines alignés sur la contrainte CHECK. Types d'action provisoires : Corrective, Préventive, Amélioration.
+
+Livré :
+- Déclaration en une étape, numéro `A3-AAAA-NNN` sous verrou, remis à 001 chaque année.
+- 12 sections enregistrées explicitement par le pilote, selon l'étape, avec complétude et état de sauvegarde.
+- Workflow complet T1 à T13 et règles B1 à B8, avec liste des conditions manquantes (422) et conflits (409).
+- Porte 1 : Production / Exploitation d'abord, puis domaines cochés en parallèle. Porte 2 : Contrôle de gestion (si gains, validation ligne par ligne), puis Direction. Signatures conservées tant que le contenu du domaine ne change pas.
+- Actions (MOC bloquant, annulation et blocage motivés, reprise), contrôles J+30/60/90, action corrective vérifiée à 30 jours, gains calculés en FCFA entiers.
+- Registre (recherche, filtres, tri, pagination), écran de fiche avec onglets, page « Validations à traiter ».
+
+### Étape 3 bis — Interface alignée sur la maquette ✅
+
+- Socle visuel : cartes arrondies, ombres douces, en-têtes de tableau en capitales, pastilles à point, icônes au trait, toasts noirs en bas à droite.
+- Coque : compteurs dans le menu (validations, notifications), recherche en pilule, fil d'Ariane « Fiches › A3-… », cloche avec les cinq dernières notifications. Les compteurs sont interrogés toutes les 60 s sans prolonger la session (`passive: true`).
+- Tableau de bord par profil : bandeau « priorités du jour », quatre cartes propres au rôle, barres par étape, liste « À traiter » ; calculé côté serveur dans la limite de la visibilité.
+- Notifications : API et page (« Non lu », « Tout marquer comme lu »).
+- Fiche : en-tête fixe, frise de progression, historique et validations en frise, commentaires avec avatars, retards en rouge avec horloge.
+
+### Étape 3 ter — Page de connexion ✅
+
+Refonte autour de la fiche A3 elle-même (`AuthPage`, `A3Sheet`, `Login`) :
+- à gauche, papier quadrillé d'ingénierie et une fiche A3 dessinée au format paysage (√2), sections 1–6 et 7–12, cartouche technique (N°, unité, pilote, format) ; les sections se remplissent dans l'ordre au chargement (animation désactivée si l'utilisateur réduit les animations) ;
+- à droite, formulaire sobre : identifiant, mot de passe avec bouton d'affichage, lien « Mot de passe oublié ? » sur la ligne du libellé, bouton pleine largeur inactif tant que les champs sont vides, messages avec icône (identifiants incorrects, trop de tentatives avec délai, session expirée) ;
+- même gabarit pour « Mot de passe oublié » (avec retour à la connexion) et « Réinitialisation » ; aucune ressource externe.
+
+### Étape 4 — Finitions ⏳
+
+Voir §10.
+
+## 6. Données de démonstration
+
+Recréées par `php artisan migrate:fresh --seed` (environnement `local`).
+
+**Unités et équipements** : DIST (Distillation atmosphérique), REF (Reformage catalytique), UTIL (Utilités) ; 10 équipements (P-201, F-101, E-104, V-310, K-301, R-401, E-420, T-02, P-650, L-12).
+
+**Comptes** : 22 comptes, deux par rôle. Le premier compte d'un rôle d'unité est affecté à DIST, le second à REF et UTIL (deux profils, utile pour le sélecteur). Les autres rôles sont globaux.
+
+| Rôle | Compte 1 | Compte 2 |
+|---|---|---|
+| Agent | `agent.demo` | `agent2.demo` |
+| Pilote | `pilote.demo` | `pilote2.demo` |
+| Valideur Production / Exploitation | `valideur.demo` | `valideur2.demo` |
+| Valideur HSE | `valideur-hse.demo` | `valideur-hse2.demo` |
+| Valideur Procédé / Technique | `valideur-procede.demo` | `valideur-procede2.demo` |
+| Valideur Maintenance | `valideur-maintenance.demo` | `valideur-maintenance2.demo` |
+| Valideur Inspection / Intégrité | `valideur-inspection.demo` | `valideur-inspection2.demo` |
+| Contrôle de gestion | `controle.demo` | `controle2.demo` |
+| Direction | `direction.demo` | `direction2.demo` |
+| Administrateur fonctionnel | `admin-fonctionnel.demo` | `admin-fonctionnel2.demo` |
+| Administrateur technique | `admin-technique.demo` | `admin-technique2.demo` |
+
+**Fiches** (`DemoFichesSeeder`) : 15 fiches simulées en passant par les vrais services, en remontant jusqu'à 175 jours dans le temps. L'historique, les validations, les contrôles et les notifications sont donc cohérents.
+
+| N° | Étape | Scénario |
+|---|---|---|
+| 001, 002 | Clôturé | Gains validés |
+| 003 | Clôturé | Sans gain chiffré |
+| 004 | En validation de clôture | Gains à valider par `controle.demo`, puis `direction.demo` |
+| 005 | Vérification du maintien | Contrôle J+90 disponible |
+| 006 | Vérification du maintien | J+60 non conforme, action corrective en cours |
+| 007 | Mesure des résultats | Mesure Après à saisir |
+| 008 | Réalisation des actions | Action bloquée par un MOC non clôturé (B1) |
+| 009 | En attente (Restreint) | Blocage à lever |
+| 010 | En validation du plan | `valideur-hse.demo` doit décider |
+| 011 | En validation du plan | `valideur2.demo` doit décider |
+| 012 | En cours | Plan refusé, à resoumettre |
+| 013 | En cours (Restreint) | Brouillon partiel |
+| 014 | Ouvert | Pilote désigné, analyse à commencer |
+| 015 | Ouvert | Sans pilote |
+
+## 7. Tests
+
+88 tests, 1 102 assertions, sur PostgreSQL, isolés par transactions (aucune table créée ni supprimée par les tests).
+
+| Fichier | Couverture |
+|---|---|
+| `AuthSessionTest` | Connexion, limitation, profils, session |
+| `AdminAdministrationTest` | Administration fonctionnelle, accès réservé |
+| `TechnicalAdministrationTest` (5) | Accès réservé, SMTP chiffré et masqué, liste blanche |
+| `FicheWorkflowTest` (9) | Parcours complet de la déclaration à la clôture, numérotation annuelle, B8, 409, mise en attente |
+| `VisibiliteFichesTest` (7) | Visibilité PRD §2.4 par rôle, 404 sur toutes les ressources d'une fiche invisible |
+| `DroitsFichesTest` (9) | Matrice des droits PRD §2.3 |
+| `ReglesMetierTest` (25) | B1 à B8, T2 à T13, domaines → valideurs, signatures, actions, contrôles, gains, porte 2, concurrence, historique immuable même en SQL direct |
+| `NotificationTest` | Compteur, lecture, isolation par utilisateur |
+| `CalculsTest` (5) | Formules et « Non calculable » |
+
+Outil commun : trait `tests/Concerns/SimuleFiches` (acteurs par rôle, amener une fiche à une étape donnée).
+
+Contrôle par mutation : désactiver B8 ou B1 dans le code fait échouer les tests correspondants.
+
+Frontend : `npm run lint` sans erreur, `npm run build` réussi. Aucune vérification visuelle dans un navigateur pour les étapes 3 bis et 3 ter (pas de navigateur disponible) ; l'API a été vérifiée par le proxy Vite avec cookies Sanctum.
+
+## 8. Décisions d'implémentation
+
+- **PostgreSQL seul**, pour l'application et les tests ; SQLite retiré de la configuration (un fichier `database/database.sqlite` non suivi subsiste).
+- **Backend source de vérité** : le masquage d'un bouton n'est qu'un confort, chaque opération est vérifiée côté serveur.
+- **Pas de version d'API** : un seul frontend livré avec le backend, toutes les routes sous `/api` (le `/api/v1` du TRD §7.1 est abandonné).
+- **Profil actif en session serveur** ; la première affectation active est proposée par défaut.
+- **Une fiche invisible est introuvable (404)**, jamais interdite (403), pour ne pas révéler son existence.
+- **Règles métier dans les services**, pas dans les contrôleurs ; `FicheWorkflow` est le seul à changer l'étape.
+- **Enregistrement explicite des sections**, chaque enregistrement étant tracé dans l'historique.
+- **Hypothèse D2** : une action corrective est vérifiée une seule fois, à 30 jours.
+- **Comptes et fiches de démonstration** réservés aux environnements `local` (et `testing` pour les comptes).
+- **Inscription publique interdite** : comptes créés par l'administrateur fonctionnel.
+- **Politique de mot de passe** : 8 caractères minimum, au moins une majuscule et un chiffre (contrôlé par le serveur, rappelé dans le formulaire de réinitialisation).
+- **Notifications métier** séparées des notifications Laravel.
+- **Thème centralisé** dans les variables CSS ; aucune ressource externe (polices système).
+
+## 9. Écarts avec les documents de référence
+
+| Sujet | Référence | Choix actuel |
+|---|---|---|
+| Préfixe d'API | TRD §7.1 : `/api/v1` | `/api` (décision du binôme) |
+| Autorisations | TRD §5.2 : Policies, Form Requests, Resources | Règles dans les services, validation dans les contrôleurs, une seule Resource |
+| Client API | UX §11 : `services/` + hooks, TanStack Query, React Hook Form, Zod | `services/` partiel ; certains composants appellent l'API directement ; dépendances non installées |
+| Police | UX §2.5 : Inter via `@fontsource/inter` | Polices système (dépendance à valider) |
+| Maquette | Courbes d'évolution « +12 % ce mois » | Non reprises : aucun historique d'indicateurs |
+| Messages d'erreur | UX §10.1 : français partout | Validation Laravel encore en anglais (`APP_LOCALE=en`) |
+
+## 10. Reste à faire
+
+Par ordre du plan d'implémentation :
+
+1. **Pièces jointes** (L10) : dépôt (type réel, 10 Mo, 20 fichiers), téléchargement authentifié ; l'onglet est affiché vide.
+2. **Relances** : bouton « Relancer » (une par 24 h et par cible, 429) et commande `a3:relances` planifiée (7 jours).
+3. **Mot de passe et SMTP** (L12) : bouton d'envoi de courriel d'essai.
+4. **Export PDF A3** (L13) : `PdfExporter`, Dompdf ; le bouton est affiché mais inactif.
+5. **Indicateurs complets de la Direction** (L9) : répartitions par unité, type et origine.
+6. **Points d'extension** : `AuthProvider` / `LdapAuthProvider`, `SapGateway` / `NullSapGateway` / `FakeSapGateway`.
+7. **Finitions** : messages Laravel en français, avertissement de session 2 minutes avant l'expiration, README d'installation, document des points d'extension.
+
+## 11. Points de vigilance
+
+- **Secret exposé** : l'ancien mot de passe PostgreSQL figure dans le commit `2219fc9`. Le changer, surtout si le dépôt a été poussé.
+- **`migrate:fresh` efface toute la base locale**, y compris les fiches saisies à la main, puis recrée les données de démonstration.
+- **Rien n'est commité** depuis le commit `2219fc9` : une grande partie du travail n'est suivie par aucun commit.
+- **Avant la livraison** : retirer ou désactiver les comptes à mot de passe partagé et `DemoFichesSeeder` hors démonstration.

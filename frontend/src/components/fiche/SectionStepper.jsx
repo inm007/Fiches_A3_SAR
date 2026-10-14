@@ -1,18 +1,29 @@
+import { SECTIONS } from '../../utils/constants.js'
 import './SectionStepper.css'
 
-const sections = [
-  'Identification', 'Contexte, enjeu et problème', 'Situation actuelle', 'Objectif',
-  'Analyse des causes racines', 'Plan de contre-mesures', 'Risques et MOC',
-  'Résultats après action', 'Gains économiques', 'Standardisation et pérennisation',
-  'Leçons apprises', 'Validation',
-]
+const completudeLabel = { complet: 'complète', partiel: 'partielle', vide: 'vide' }
 
-function SectionStepper() {
+function SectionStepper({ active, completude = {}, editables = [], onSelect }) {
   return (
     <nav aria-label="Sections de la fiche A3" className="section-stepper">
-      {sections.map((section, index) => (
-        <button key={section} type="button"><span>{index + 1}</span>{section}</button>
-      ))}
+      {SECTIONS.map((section, index) => {
+        const numero = index + 1
+        const etat = completude[numero] ?? 'vide'
+        return (
+          <button
+            aria-current={active === numero ? 'step' : undefined}
+            className={active === numero ? 'is-active' : undefined}
+            key={section}
+            title={`Section ${completudeLabel[etat]}${editables.includes(numero) ? '' : ' · lecture seule'}`}
+            type="button"
+            onClick={() => onSelect(numero)}
+          >
+            <i aria-hidden="true" className={`section-stepper__dot section-stepper__dot--${etat}`} />
+            {numero}. {section}
+            {!editables.includes(numero) && <small aria-label="lecture seule">🔒</small>}
+          </button>
+        )
+      })}
     </nav>
   )
 }

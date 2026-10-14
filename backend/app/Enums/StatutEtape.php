@@ -1,0 +1,55 @@
+<?php
+
+namespace App\Enums;
+
+/**
+ * Étapes de la fiche (PRD §5.1). Seul FicheWorkflow modifie l'étape d'une fiche.
+ */
+enum StatutEtape: string
+{
+    case Ouvert = 'OUVERT';
+    case EnCours = 'EN_COURS';
+    case EnValidationPlan = 'EN_VALIDATION_PLAN';
+    case RealisationActions = 'REALISATION_ACTIONS';
+    case MesureResultats = 'MESURE_RESULTATS';
+    case VerificationMaintien = 'VERIFICATION_MAINTIEN';
+    case EnValidationCloture = 'EN_VALIDATION_CLOTURE';
+    case EnAttente = 'EN_ATTENTE';
+    case Cloture = 'CLOTURE';
+
+    public function libelle(): string
+    {
+        return match ($this) {
+            self::Ouvert => 'Ouvert',
+            self::EnCours => 'En cours',
+            self::EnValidationPlan => 'En validation du plan',
+            self::RealisationActions => 'Réalisation des actions',
+            self::MesureResultats => 'Mesure des résultats',
+            self::VerificationMaintien => 'Vérification du maintien',
+            self::EnValidationCloture => 'En validation de clôture',
+            self::EnAttente => 'En attente',
+            self::Cloture => 'Clôturé',
+        };
+    }
+
+    /**
+     * Statut général de la fiche papier, utilisé dans les listes (PRD §5.1).
+     */
+    public function statutGeneral(): string
+    {
+        return match ($this) {
+            self::Ouvert => 'OUVERT',
+            self::EnAttente => 'EN_ATTENTE',
+            self::Cloture => 'CLOTURE',
+            default => 'EN_COURS',
+        };
+    }
+
+    /**
+     * Étape active : une mise en attente (T12) est possible depuis celle-ci.
+     */
+    public function estActive(): bool
+    {
+        return ! in_array($this, [self::EnAttente, self::Cloture], true);
+    }
+}

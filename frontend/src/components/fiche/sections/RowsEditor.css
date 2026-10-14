@@ -1,0 +1,76 @@
+.rows-editor {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
+.rows-editor__scroll {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.rows-editor table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.rows-editor th {
+  padding: 9px 10px;
+  color: var(--gray-700);
+  background: var(--gray-100);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.rows-editor td {
+  padding: 6px 8px;
+  border-top: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.rows-editor__input {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--white);
+  font: inherit;
+}
+
+.rows-editor__input[readonly],
+.rows-editor__input:disabled {
+  border-color: transparent;
+  color: var(--ink);
+  background: transparent;
+}
+
+.rows-editor__input:focus {
+  border-color: var(--info);
+  outline: 3px solid var(--focus-ring);
+}
+
+.rows-editor__empty {
+  padding: 18px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.rows-editor__remove {
+  width: 36px;
+  text-align: center;
+}
+
+.rows-editor__remove button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--error);
+  background: var(--white);
+  cursor: pointer;
+}

@@ -1,0 +1,41 @@
+.technique-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.technique-page__status {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.technique-page__card {
+  background: var(--bg-card);
+  padding: 24px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-card);
+  box-shadow: var(--shadow-card);
+}
+
+.technique-page__card h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.technique-page__hint {
+  color: var(--gray-500);
+  font-size: 12px;
+}
+
+.technique-page__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 640px;
+}
+
+.technique-page__form .sar-button {
+  align-self: flex-start;
+}

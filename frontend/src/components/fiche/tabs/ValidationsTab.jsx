@@ -1,2 +1,133 @@
-import FicheSectionPlaceholder from '../sections/FicheSectionPlaceholder.jsx'
-export default function ValidationsTab() { return <FicheSectionPlaceholder title="Validations" /> }
+import { useState } from 'react'
+import Alert from '../../common/Alert.jsx'
+import Button from '../../common/Button.jsx'
+import ConfirmDialog from '../../common/ConfirmDialog.jsx'
+import StatusBadge from '../../common/StatusBadge.jsx'
+import { Select, TextArea } from '../../common/FormControls.jsx'
+import { refreshCounters } from '../../../hooks/useCounters.js'
+import { describeError, ficheService } from '../../../services/ficheService.js'
+import { CATEGORIES_GAIN, DECISIONS, STATUTS_GAIN } from '../../../utils/constants.js'
+import { formatDate, formatFcfa, libelle } from '../../../utils/format.js'
+import { toast } from '../../../utils/toast.js'
+import './FicheTab.css'
+
+const tones = { EN_ATTENTE: 'warning', VALIDE: 'success', REFUSE: 'error', ANNULE: 'neutral' }
+const steps = { EN_ATTENTE: 'is-wait', VALIDE: 'is-ok', REFUSE: 'is-ko' }
+
+export default function ValidationsTab({ fiche, onChange, onError }) {
+  const [dialog, setDialog] = useState(null)
+  const [commentaire, setCommentaire] = useState('')
+  const [retour, setRetour] = useState('VERIFICATION_MAINTIEN')
+  const [busy, setBusy] = useState(false)
+  const enAttente = fiche.validations.filter((validation) => validation.decision === 'EN_ATTENTE')
+  const plusAncienne = enAttente.reduce((oldest, validation) => (validation.anciennete_jours > (oldest?.anciennete_jours ?? -1) ? validation : oldest), null)
+  const porte2 = fiche.validations.some((validation) => validation.porte === 2)
+
+  async function run(task, message) {
+    setBusy(true)
+    try {
+      onChange(await task())
+      toast(message)
+      refreshCounters()
+      setDialog(null)
+      setCommentaire('')
+    } catch (error) {
+      setDialog(null)
+      onError(describeError(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const decide = (validation, decision) => run(() => ficheService.decision(validation.id, {
+    decision,
+    commentaire: commentaire || null,
+    retour: validation.porte === 2 ? retour : null,
+  }), decision === 'VALIDE' ? 'Demande approuvée' : 'Refus enregistré — le pilote est notifié')
+
+  return (
+    <section className="fiche-tab">
+      <h2>Validations</h2>
+      {plusAncienne && (
+        <Alert severity="warning">
+          Demande « {plusAncienne.role?.libelle} » en attente depuis <b>{plusAncienne.anciennete_jours} jour(s)</b>. Aucun délai imposé.
+        </Alert>
+      )}
+
+      {fiche.droits.peut_decider_gains && (
+        <div>
+          <h3>Gains à valider</h3>
+          <table>
+            <thead><tr><th>Catégorie</th><th>Hypothèse</th><th>Montant annuel</th><th>Statut</th><th>Décision</th></tr></thead>
+            <tbody>
+              {fiche.gains.lignes.map((gain) => (
+                <tr key={gain.id}>
+                  <td>{libelle(CATEGORIES_GAIN, gain.categorie)}</td>
+                  <td>{gain.hypothese_calcul}</td>
+                  <td><b>{formatFcfa(gain.montant_annuel)}</b></td>
+                  <td>{STATUTS_GAIN[gain.statut]}</td>
+                  <td className="fiche-tab__buttons">
+                    <Button disabled={busy || gain.statut === 'VALIDE'} size="small" type="button" variant="success" onClick={() => run(() => ficheService.decisionGain(gain.id, 'VALIDE'), 'Gain validé')}>Valider</Button>
+                    <Button disabled={busy || gain.statut === 'REFUSE'} size="small" type="button" variant="danger" onClick={() => run(() => ficheService.decisionGain(gain.id, 'REFUSE'), 'Gain refusé')}>Refuser</Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <ol className="sar-timeline">
+        {fiche.validations.length === 0 && (
+          <li><b>Porte 1 — Production / Exploitation, puis les domaines cochés</b><span className="fiche-tab__muted">À la soumission du plan</span></li>
+        )}
+        {fiche.validations.map((validation) => (
+          <li className={steps[validation.decision]} key={validation.id}>
+            <span>
+              <b>Porte {validation.porte} — {validation.role?.libelle}</b>{' '}
+              <StatusBadge tone={tones[validation.decision]}>{DECISIONS[validation.decision]}</StatusBadge>
+            </span>
+            <span className="fiche-tab__muted">
+              {validation.valideur?.nom} · demandé le {formatDate(validation.demandee_le)}
+              {validation.decidee_le && ` · décidé le ${formatDate(validation.decidee_le)}`}
+              {validation.decision === 'EN_ATTENTE' && ` · ${validation.anciennete_jours} j`} · v{validation.version_fiche}
+            </span>
+            {validation.commentaire && <span>« {validation.commentaire} »</span>}
+            {validation.actionnable && (
+              <span className="fiche-tab__buttons">
+                <Button disabled={busy} size="small" type="button" variant="success" onClick={() => setDialog({ validation, decision: 'VALIDE' })}>Approuver</Button>
+                <Button disabled={busy} size="small" type="button" variant="danger" onClick={() => setDialog({ validation, decision: 'REFUSE' })}>Refuser</Button>
+              </span>
+            )}
+          </li>
+        ))}
+        {fiche.validations.length > 0 && !porte2 && (
+          <li><b>Porte 2 — Contrôle de gestion (si gains), puis Direction</b><span className="fiche-tab__muted">Après les mesures et les contrôles</span></li>
+        )}
+      </ol>
+
+      <ConfirmDialog
+        busy={busy}
+        confirmLabel={dialog?.decision === 'REFUSE' ? 'Confirmer le refus' : 'Approuver'}
+        disabled={dialog?.decision === 'REFUSE' && !commentaire.trim()}
+        open={Boolean(dialog)}
+        title={dialog?.decision === 'REFUSE' ? 'Refuser la demande' : 'Approuver la demande'}
+        variant={dialog?.decision === 'REFUSE' ? 'danger' : 'success'}
+        onCancel={() => setDialog(null)}
+        onConfirm={() => decide(dialog.validation, dialog.decision)}
+      >
+        {dialog?.decision === 'REFUSE' && <p className="fiche-tab__muted">Un commentaire est obligatoire (règle B6).</p>}
+        <TextArea label={dialog?.decision === 'REFUSE' ? 'Motif du refus' : 'Commentaire'} required={dialog?.decision === 'REFUSE'} value={commentaire} onChange={setCommentaire} />
+        {dialog?.decision === 'REFUSE' && dialog.validation.porte === 2 && (
+          <Select
+            label="Retour à l’étape"
+            options={[['VERIFICATION_MAINTIEN', 'Vérification du maintien'], ['MESURE_RESULTATS', 'Mesure des résultats']]}
+            required
+            value={retour}
+            onChange={setRetour}
+          />
+        )}
+      </ConfirmDialog>
+    </section>
+  )
+}

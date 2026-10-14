@@ -1,3 +1,188 @@
-.listes-page .page-placeholder__surface {
-  min-height: 460px;
+.listes-page {
+  display: grid;
+  gap: 20px;
+}
+
+.listes-page__header h1,
+.listes-page__content h2 {
+  margin: 0;
+}
+
+.listes-page__header p,
+.listes-page__content header p {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+}
+
+.listes-page__layout {
+  display: grid;
+  grid-template-columns: minmax(210px, 260px) minmax(0, 1fr);
+  gap: 20px;
+}
+
+.listes-page__nav,
+.listes-page__content {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+}
+
+.listes-page__nav {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.listes-page__nav h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.listes-page__nav button {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.listes-page__nav button:hover,
+.listes-page__nav button.is-active {
+  background: var(--brand-50);
+  color: var(--brand-600);
+}
+
+.listes-page__content {
+  display: grid;
+  align-content: start;
+  gap: 20px;
+}
+
+.listes-page__content > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.listes-page__table-wrap {
+  overflow-x: auto;
+}
+
+.listes-page__table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.listes-page__table-wrap th,
+.listes-page__table-wrap td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.listes-page__table-wrap th {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.listes-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.listes-page__actions .sar-button {
+  min-height: 32px;
+  padding: 0 9px;
+  font-size: 12px;
+}
+
+.listes-page__form {
+  display: grid;
+  gap: 16px;
+}
+
+.listes-page__form label {
+  display: grid;
+  gap: 7px;
+  font-weight: 600;
+}
+
+.listes-page__form input {
+  min-height: 42px;
+  padding: 8px 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 400;
+}
+
+.listes-page__form-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.listes-page__message {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 6px;
+}
+
+.listes-page__message--error {
+  color: var(--error);
+  background: var(--error-bg);
+}
+
+.listes-page__message--success {
+  color: var(--success);
+  background: var(--success-bg);
+}
+
+@media (max-width: 900px) {
+  .listes-page__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .listes-page__content > header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+/* Aligné sur la maquette « SAR · Fiches A3 — Démo » : cartes arrondies, en-têtes en capitales. */
+.listes-page__header h1 {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.listes-page__panel,
+.listes-page__table-wrap {
+  border-color: var(--border-card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.listes-page__table-wrap th {
+  color: var(--gray-700);
+  background: var(--gray-100);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.listes-page__table-wrap tbody tr:hover {
+  background: var(--brand-50);
+  box-shadow: inset 3px 0 0 var(--brand-500);
 }

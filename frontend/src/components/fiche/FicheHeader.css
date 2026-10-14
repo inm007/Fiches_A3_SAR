@@ -1,20 +1,103 @@
 .fiche-header {
+  position: sticky;
+  top: 64px;
+  z-index: 4;
+  display: grid;
+  gap: 10px;
+  padding: 20px;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+}
+
+.fiche-header__top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
-  padding: 20px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--white);
 }
 
 .fiche-header h1 {
-  margin: 6px 0 0;
-  font-size: 24px;
+  margin: 2px 0 0;
+  font-size: 20px;
+  line-height: 28px;
 }
 
-.fiche-header > div > span {
+.fiche-header__numero {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.fiche-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.fiche-header__badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.fiche-header__version {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.fiche-header__meta {
+  margin: 0;
   color: var(--text-muted);
   font-size: 13px;
+}
+
+.fiche-header__hold {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--st-attente);
+  background: var(--st-attente-bg);
+  font-size: 13px;
+}
+
+.fiche-header__progress {
+  display: flex;
+  gap: 4px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fiche-header__progress li {
+  flex: 1;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.fiche-header__progress li::before {
+  display: block;
+  height: 8px;
+  margin-bottom: 6px;
+  border-radius: 4px;
+  background: var(--gray-200);
+  content: '';
+}
+
+.fiche-header__progress li.is-done::before {
+  background: linear-gradient(90deg, #167a4a, #2da36a);
+}
+
+.fiche-header__progress li.is-current {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.fiche-header__progress li.is-current::before {
+  background: linear-gradient(90deg, #e60012, #ff4b5b);
+  box-shadow: 0 0 0 4px var(--brand-100);
 }

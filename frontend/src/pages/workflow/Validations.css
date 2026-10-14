@@ -1,3 +1,24 @@
-.validations-page .page-placeholder__surface {
-  min-height: 420px;
+.validations-page {
+  display: grid;
+  gap: 16px;
+}
+
+.validations-page__card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.validations-page__age {
+  font-weight: 600;
+}
+
+.validations-page__old {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.validations-page__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
 }

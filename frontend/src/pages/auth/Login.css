@@ -1,9 +1,4 @@
+/* La page de connexion reprend les styles communs d'AuthPage (.auth-form, .auth-field). */
 .login-page .auth-form {
-  display: grid;
-  gap: 16px;
-}
-
-.login-page .auth-form a {
-  color: var(--link);
-  font-size: 14px;
+  margin-top: 4px;
 }

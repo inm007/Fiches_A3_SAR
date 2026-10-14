@@ -1,44 +1,281 @@
 .topbar {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 5;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 64px;
-  padding: 0 32px;
+  min-height: 64px;
+  gap: 20px;
+  padding: 0 28px;
   border-bottom: 1px solid var(--border);
-  background: var(--white);
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 4px 16px rgb(26 26 31 / 4%);
+  backdrop-filter: blur(12px);
 }
 
 .topbar__breadcrumb,
 .topbar__profile {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 14px;
 }
 
 .topbar__breadcrumb {
+  min-width: 0;
+  gap: 12px;
   color: var(--text-muted);
+  font-size: 13px;
+}
+
+.topbar__home {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  color: var(--gray-500);
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+
+.topbar__home svg {
+  width: 18px;
+  height: 18px;
+}
+
+.topbar__home:hover {
+  border-color: var(--brand-100);
+  color: var(--brand-600);
+  background: var(--brand-50);
+}
+
+.topbar__crumb-separator {
+  width: 16px;
+  height: 16px;
+  color: var(--gray-400);
 }
 
 .topbar__breadcrumb strong {
+  min-width: 0;
+  overflow: hidden;
   color: var(--ink);
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .topbar__profile {
+  min-width: 0;
+  flex: 0 0 auto;
+  gap: 12px;
   color: var(--gray-700);
 }
 
 .topbar__avatar {
   display: grid;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
   place-items: center;
   border-radius: 50%;
   color: var(--brand-700);
   background: var(--brand-50);
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.topbar__user {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
+}
+
+.topbar__user-details {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.topbar__user-name {
+  display: block;
+  max-width: 150px;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar__user-role {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar__logout {
+  display: inline-flex;
+  min-height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--gray-500);
+  background: var(--white);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.topbar__logout svg {
+  width: 20px;
+  height: 20px;
+}
+
+.topbar__logout:hover,
+.topbar__logout:focus-visible {
+  border-color: var(--error-border);
+  color: var(--error);
+  background: var(--error-bg);
+  box-shadow: 0 0 0 3px rgb(198 40 40 / 8%);
+  outline: none;
+}
+
+.topbar__logout span {
+  white-space: nowrap;
+}
+
+.topbar__error {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 16px;
+  color: var(--error);
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .topbar {
+    gap: 10px;
+    padding: 0 14px;
+  }
+
+  .topbar__profile {
+    gap: 8px;
+  }
+
+  .topbar__user {
+    gap: 8px;
+    padding-left: 8px;
+  }
+
+  .topbar__user-name {
+    max-width: 112px;
+  }
+
+  .topbar__logout {
+    width: 38px;
+    padding: 0;
+  }
+
+  .topbar__logout span {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    min-height: 62px;
+  }
+
+  .topbar__breadcrumb {
+    gap: 6px;
+  }
+
+  .topbar__home {
+    width: 34px;
+    height: 34px;
+  }
+
+  .topbar__breadcrumb strong {
+    font-size: 13px;
+  }
+
+  .topbar__user-details,
+  .topbar__crumb-separator {
+    display: none;
+  }
+
+  .topbar__user {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .topbar__avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .topbar__profile {
+    gap: 6px;
+  }
+
+  .profile-switcher__label {
+    display: none;
+  }
+}
+
+.topbar__crumb-link {
+  color: var(--text-muted);
+}
+
+.topbar__crumb-link:hover {
+  color: var(--brand-500);
+}
+
+/* Recherche en pilule de la maquette */
+.topbar__search {
+  display: flex;
+  width: 340px;
+  align-items: center;
+  gap: 10px;
+  margin-right: auto;
+  margin-left: 24px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  color: var(--gray-500);
+  background: var(--gray-100);
+  font-size: 13px;
+}
+
+.topbar__search:focus-within {
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.topbar__search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.topbar__search kbd {
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--white);
+  font: 500 11px/18px inherit;
 }
