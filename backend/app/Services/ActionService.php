@@ -79,10 +79,10 @@ class ActionService
             $action = $controle->action()->firstOrFail();
             $fiche = $action->fiche()->firstOrFail();
 
-            if (! $profile->is('PILOTE') || $fiche->pilote_id !== $profile->userId()) {
+            if (! $profile->estPiloteDe($fiche)) {
                 throw RegleMetierException::interdit('Seul le pilote enregistre un contrôle d’efficacité.');
             }
-            if (! in_array($fiche->etape(), [StatutEtape::RealisationActions, StatutEtape::MesureResultats, StatutEtape::VerificationMaintien], true)) {
+            if (! in_array($fiche->etape(), StatutEtape::etapesDeSuivi(), true)) {
                 throw RegleMetierException::conflit('Les contrôles ne sont pas modifiables à l’étape « '.$fiche->etape()->libelle().' ».');
             }
             if ($controle->resultat !== null) {
@@ -129,14 +129,14 @@ class ActionService
 
     private function exigerDroit(ActionA3 $action, FicheA3 $fiche, ActiveProfile $profile): void
     {
-        $estPilote = $profile->is('PILOTE') && $fiche->pilote_id === $profile->userId();
+        $estPilote = $profile->estPiloteDe($fiche);
         $estResponsable = $profile->is('AGENT', 'PILOTE') && $action->responsable_id === $profile->userId();
         if (! $estPilote && ! $estResponsable) {
             throw RegleMetierException::interdit('Seuls le pilote et le responsable de l’action la mettent à jour.');
         }
 
         $etapes = $action->action_origine_id !== null
-            ? [StatutEtape::RealisationActions, StatutEtape::MesureResultats, StatutEtape::VerificationMaintien]
+            ? StatutEtape::etapesDeSuivi()
             : [StatutEtape::RealisationActions];
 
         if (! in_array($fiche->etape(), $etapes, true)) {

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Affectation;
+use App\Models\FicheA3;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -43,9 +44,7 @@ class ActiveProfile
             ->with('role:id,code,libelle')
             ->whereKey($assignmentId)
             ->where('user_id', $user->id)
-            ->where('actif', true)
-            ->where(fn ($query) => $query->whereNull('date_debut')->orWhere('date_debut', '<=', now()))
-            ->where(fn ($query) => $query->whereNull('date_fin')->orWhere('date_fin', '>=', now()))
+            ->enCours()
             ->first();
 
         return $this->assignment;
@@ -72,6 +71,14 @@ class ActiveProfile
     public function is(string ...$roleCodes): bool
     {
         return in_array($this->roleCode(), $roleCodes, true);
+    }
+
+    /**
+     * Le profil actif est-il le pilote désigné de la fiche ?
+     */
+    public function estPiloteDe(FicheA3 $fiche): bool
+    {
+        return $this->is('PILOTE') && $fiche->pilote_id === $this->userId();
     }
 
     public function userId(): ?int

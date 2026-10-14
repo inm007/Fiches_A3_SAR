@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\Domaine;
+use App\Enums\StatutAction;
 use App\Enums\StatutEtape;
 use App\Exceptions\RegleMetierException;
 use App\Models\ActionA3;
@@ -16,7 +17,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 
 /**
  * Enregistrement explicite d'une section par le pilote (PRD §4.2, §4.4).
@@ -24,14 +24,6 @@ use Illuminate\Validation\Rule;
  */
 class FicheSectionService
 {
-    public const array IMPACTS = ['HSE', 'PRODUCTION', 'QUALITE', 'ENERGIE', 'SURETE'];
-
-    public const array CATEGORIES_GAIN = ['PRODUCTION_RECUPEREE', 'ENERGIE_ECONOMISEE', 'MAINTENANCE_EVITEE', 'NON_QUALITE_EVITEE', 'AUTRES'];
-
-    public const array TYPES_PERENNISATION = ['SOP', 'PARAMETRES', 'FORMATION', 'PLAN_MAINTENANCE', 'KPI_TABLEAU_DE_BORD'];
-
-    public const array RUBRIQUES_LECONS = ['A_FONCTIONNE', 'N_A_PAS_FONCTIONNE', 'STANDARD_A_REPLIQUER', 'RETOUR_EXPERIENCE', 'PROJET_SUIVANT'];
-
     public function __construct(
         private readonly Calculs $calculs,
         private readonly HistoryLogger $history,
@@ -44,7 +36,7 @@ class FicheSectionService
      */
     public static function etapesEditables(): array
     {
-        $suivi = [StatutEtape::RealisationActions, StatutEtape::MesureResultats, StatutEtape::VerificationMaintien];
+        $suivi = StatutEtape::etapesDeSuivi();
         $resultats = [StatutEtape::MesureResultats, StatutEtape::VerificationMaintien];
 
         return [
@@ -68,7 +60,7 @@ class FicheSectionService
      */
     public function sectionsEditables(FicheA3 $fiche, ActiveProfile $profile): array
     {
-        if (! $profile->is('PILOTE') || $fiche->pilote_id !== $profile->userId()) {
+        if (! $profile->estPiloteDe($fiche)) {
             return [];
         }
 
@@ -76,131 +68,6 @@ class FicheSectionService
             ->filter(fn (array $etapes) => in_array($fiche->etape(), $etapes, true))
             ->keys()
             ->all();
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public static function rules(int $section): array
-    {
-        $optionalText = ['nullable', 'string', 'max:5000'];
-
-        return match ($section) {
-            1 => [
-                'titre' => ['required', 'string', 'max:255'],
-                'unite_id' => ['required', 'integer', Rule::exists('unites', 'id')->where('actif', true)],
-                'equipement_id' => ['nullable', 'integer', Rule::exists('equipements', 'id')->where('actif', true)],
-                'numero_avis_sap' => ['nullable', 'string', 'max:100'],
-                'numero_ordre_sap' => ['nullable', 'string', 'max:100'],
-                'sponsor_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('actif', true)],
-                'equipe' => ['nullable', 'array', 'max:20'],
-                'equipe.*' => ['string', 'max:150'],
-                'date_lancement' => ['nullable', 'date'],
-                'date_cible' => ['nullable', 'date', 'after_or_equal:date_lancement'],
-                'type_amelioration' => ['nullable', 'string', 'max:50'],
-                'origine_id' => ['required', 'integer', 'exists:valeurs_listes,id'],
-                'origine_precision' => ['nullable', 'string', 'max:255'],
-            ],
-            2 => [
-                'contexte' => $optionalText,
-                'enonce_probleme' => ['required', 'string', 'max:5000'],
-                'frequence_id' => ['nullable', 'integer', 'exists:valeurs_listes,id'],
-                'impacts' => ['nullable', 'array'],
-                ...collect(self::IMPACTS)->mapWithKeys(fn (string $type) => ["impacts.{$type}" => $optionalText])->all(),
-                'impact_financier_estime' => ['nullable', 'integer', 'min:0'],
-            ],
-            3 => [
-                'indicateurs' => ['present', 'array', 'max:30'],
-                'indicateurs.*.id' => ['nullable', 'integer'],
-                'indicateurs.*.libelle' => ['required', 'string', 'max:255'],
-                'indicateurs.*.unite_mesure' => ['required', 'string', 'max:50'],
-                'indicateurs.*.sens' => ['required', Rule::in(['hausse', 'baisse'])],
-                'indicateurs.*.source' => ['nullable', 'string', 'max:255'],
-                'indicateurs.*.periode' => ['nullable', 'string', 'max:255'],
-                'indicateurs.*.reference' => ['nullable', 'numeric'],
-                'indicateurs.*.cible' => ['nullable', 'numeric'],
-                'indicateurs.*.actuelle' => ['nullable', 'numeric'],
-            ],
-            4 => [
-                'objectif_smart' => $optionalText,
-                'perimetre' => $optionalText,
-                'resultats_attendus' => $optionalText,
-                'indicateur_principal_id' => ['nullable', 'integer'],
-                'indicateurs_a_ne_pas_degrader' => ['nullable', 'array'],
-                'indicateurs_a_ne_pas_degrader.*' => ['integer'],
-            ],
-            5 => [
-                'methode_analyse' => ['nullable', 'string', 'max:50'],
-                'methode_precision' => ['nullable', 'string', 'max:255'],
-                'causes' => ['present', 'array', 'max:50'],
-                'causes.*.id' => ['nullable', 'integer'],
-                'causes.*.categorie' => ['required', 'string', 'max:50'],
-                'causes.*.libelle' => ['required', 'string', 'max:2000'],
-                'causes.*.niveau' => ['required', 'integer', 'between:1,10'],
-                'causes.*.racine' => ['boolean'],
-                'causes.*.preuve' => ['nullable', 'string', 'max:2000'],
-            ],
-            6 => [
-                'actions' => ['present', 'array', 'max:100'],
-                'actions.*.id' => ['nullable', 'integer'],
-                'actions.*.cause_id' => ['required', 'integer'],
-                'actions.*.description' => ['required', 'string', 'max:2000'],
-                'actions.*.type_action' => ['required', 'string', 'max:50'],
-                'actions.*.responsable_id' => ['required', 'integer', Rule::exists('users', 'id')->where('actif', true)],
-                'actions.*.echeance' => ['required', 'date'],
-                'actions.*.cout_estime' => ['nullable', 'integer', 'min:0'],
-                'actions.*.risque_id' => ['nullable', 'integer'],
-            ],
-            7 => [
-                'domaines' => ['present', 'array'],
-                'domaines.*.domaine' => ['required', Rule::enum(Domaine::class)],
-                'domaines.*.valideur_role_code' => ['nullable', Rule::in(Domaine::rolesValideurs())],
-                'risques' => ['present', 'array', 'max:50'],
-                'risques.*.id' => ['nullable', 'integer'],
-                'risques.*.domaine' => ['required', Rule::enum(Domaine::class)],
-                'risques.*.description' => ['required', 'string', 'max:2000'],
-                'risques.*.moc_requis' => ['boolean'],
-                'risques.*.moc_reference' => ['nullable', 'string', 'max:255'],
-                'risques.*.moc_statut' => ['nullable', Rule::in(['A_OUVRIR', 'OUVERT', 'CLOTURE'])],
-                'risques.*.moc_preuve' => ['nullable', 'string', 'max:255'],
-                'risques.*.mesure_maitrise' => ['nullable', 'string', 'max:2000'],
-                'risques.*.responsable_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('actif', true)],
-            ],
-            8 => [
-                'mesures' => ['present', 'array'],
-                'mesures.*.indicateur_id' => ['required', 'integer'],
-                'mesures.*.valeur' => ['nullable', 'numeric'],
-                'mesures.*.date_mesure' => ['nullable', 'date'],
-                'mesures.*.periode_verification' => ['nullable', 'string', 'max:255'],
-                'objectif_atteint' => ['nullable', Rule::in(['OUI', 'PARTIELLEMENT', 'NON'])],
-                'ecart_objectif' => $optionalText,
-            ],
-            9 => [
-                'gains' => ['present', 'array', 'max:30'],
-                'gains.*.id' => ['nullable', 'integer'],
-                'gains.*.categorie' => ['required', Rule::in(self::CATEGORIES_GAIN)],
-                'gains.*.hypothese_calcul' => ['required', 'string', 'max:2000'],
-                'gains.*.quantite' => ['required', 'numeric', 'min:0'],
-                'gains.*.unite' => ['required', 'string', 'max:50'],
-                'gains.*.cout_unitaire' => ['required', 'integer', 'min:0'],
-                'cout_mise_en_oeuvre_b' => ['nullable', 'integer', 'min:0'],
-                'sans_gain_chiffre' => ['boolean'],
-            ],
-            10 => [
-                'perennisation' => ['present', 'array', 'max:30'],
-                'perennisation.*.id' => ['nullable', 'integer'],
-                'perennisation.*.type' => ['required', Rule::in(self::TYPES_PERENNISATION)],
-                'perennisation.*.responsable_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('actif', true)],
-                'perennisation.*.date' => ['nullable', 'date'],
-                'perennisation.*.statut' => ['required', Rule::in(['A_FAIRE', 'EN_COURS', 'REALISE'])],
-                'perennisation.*.preuve' => ['nullable', 'string', 'max:255'],
-            ],
-            11 => [
-                'lecons' => ['present', 'array'],
-                ...collect(self::RUBRIQUES_LECONS)->mapWithKeys(fn (string $rubrique) => ["lecons.{$rubrique}" => $optionalText])->all(),
-            ],
-            default => [],
-        };
     }
 
     /**
@@ -287,7 +154,7 @@ class FicheSectionService
 
         $fiche->fill(collect($data)->only(['contexte', 'enonce_probleme', 'frequence_id', 'impact_financier_estime'])->all());
 
-        foreach (self::IMPACTS as $type) {
+        foreach (FicheSectionRules::IMPACTS as $type) {
             $description = trim((string) ($data['impacts'][$type] ?? ''));
             $impact = $fiche->impacts()->where('type_impact', $type)->first();
 
@@ -382,7 +249,7 @@ class FicheSectionService
             }
 
             /** @var ActionA3 $action */
-            $action = $existing ?? new ActionA3(['fiche_id' => $fiche->id, 'statut' => 'A_FAIRE']);
+            $action = $existing ?? new ActionA3(['fiche_id' => $fiche->id, 'statut' => StatutAction::AFaire->value]);
             $action->fill([
                 ...collect($item)->only(['cause_id', 'description', 'type_action', 'responsable_id', 'echeance', 'risque_id'])->all(),
                 'cout_estime' => (int) ($item['cout_estime'] ?? 0),
@@ -505,7 +372,7 @@ class FicheSectionService
      */
     private function section11(FicheA3 $fiche, array $data): void
     {
-        foreach (self::RUBRIQUES_LECONS as $rubrique) {
+        foreach (FicheSectionRules::RUBRIQUES_LECONS as $rubrique) {
             $texte = trim((string) ($data['lecons'][$rubrique] ?? ''));
             if ($texte === '') {
                 $fiche->lecons()->where('rubrique', $rubrique)->delete();

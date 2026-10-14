@@ -1,6 +1,12 @@
 <?php
 
-use App\Http\Controllers\AdminController;
+use App\Http\Controllers\Admin\AffectationController;
+use App\Http\Controllers\Admin\EquipementController;
+use App\Http\Controllers\Admin\FicheAdminController;
+use App\Http\Controllers\Admin\ListeController;
+use App\Http\Controllers\Admin\ParametreController;
+use App\Http\Controllers\Admin\UniteController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommentaireController;
 use App\Http\Controllers\FicheController;
@@ -19,33 +25,39 @@ Route::post('/auth/deconnexion', [AuthController::class, 'logout'])->middleware(
 Route::get('/auth/moi', [AuthController::class, 'me'])->middleware('auth:sanctum');
 Route::post('/auth/profil-actif', [AuthController::class, 'switchProfile'])->middleware('auth:sanctum');
 
+// Administration fonctionnelle : un contrôleur par écran.
 Route::prefix('admin')
     ->middleware(['auth:sanctum', EnsureActiveRole::class.':ADMIN_FONCTIONNEL'])
-    ->controller(AdminController::class)
     ->group(function (): void {
-        Route::get('/roles', 'roles');
-        Route::get('/fiches', 'fiches');
-        Route::patch('/fiches/{fiche}', 'updateFicheAdministration');
-        Route::get('/users', 'users');
-        Route::post('/users', 'createUser');
-        Route::patch('/users/{user}', 'updateUser');
-        Route::post('/users/{user}/password-link', 'sendPasswordLink');
-        Route::get('/assignments', 'assignments');
-        Route::post('/assignments', 'createAssignment');
-        Route::patch('/assignments/{affectation}', 'updateAssignment');
-        Route::get('/units', 'units');
-        Route::post('/units', 'createUnit');
-        Route::patch('/units/{unite}', 'updateUnit');
-        Route::get('/equipment', 'equipment');
-        Route::post('/equipment', 'createEquipment');
-        Route::patch('/equipment/{equipement}', 'updateEquipment');
-        Route::get('/lists', 'lists');
-        Route::get('/lists/{liste}/values', 'listValues');
-        Route::put('/lists/{liste}/values/order', 'reorderListValues');
-        Route::post('/lists/{liste}/values', 'createListValue');
-        Route::patch('/lists/{liste}/values/{valeur}', 'updateListValue');
-        Route::get('/settings', 'settings');
-        Route::put('/settings', 'updateSettings');
+        Route::get('/users', [UserController::class, 'index']);
+        Route::post('/users', [UserController::class, 'store']);
+        Route::patch('/users/{user}', [UserController::class, 'update']);
+        Route::post('/users/{user}/password-link', [UserController::class, 'sendPasswordLink']);
+
+        Route::get('/roles', [AffectationController::class, 'roles']);
+        Route::get('/assignments', [AffectationController::class, 'index']);
+        Route::post('/assignments', [AffectationController::class, 'store']);
+        Route::patch('/assignments/{affectation}', [AffectationController::class, 'update']);
+
+        Route::get('/units', [UniteController::class, 'index']);
+        Route::post('/units', [UniteController::class, 'store']);
+        Route::patch('/units/{unite}', [UniteController::class, 'update']);
+
+        Route::get('/equipment', [EquipementController::class, 'index']);
+        Route::post('/equipment', [EquipementController::class, 'store']);
+        Route::patch('/equipment/{equipement}', [EquipementController::class, 'update']);
+
+        Route::get('/lists', [ListeController::class, 'index']);
+        Route::get('/lists/{liste}/values', [ListeController::class, 'valeurs']);
+        Route::post('/lists/{liste}/values', [ListeController::class, 'storeValeur']);
+        Route::put('/lists/{liste}/values/order', [ListeController::class, 'reordonner']);
+        Route::patch('/lists/{liste}/values/{valeur}', [ListeController::class, 'updateValeur']);
+
+        Route::get('/settings', [ParametreController::class, 'index']);
+        Route::put('/settings', [ParametreController::class, 'update']);
+
+        Route::get('/fiches', [FicheAdminController::class, 'index']);
+        Route::patch('/fiches/{fiche}', [FicheAdminController::class, 'update']);
     });
 
 Route::prefix('technique')

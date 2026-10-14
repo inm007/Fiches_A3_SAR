@@ -236,7 +236,7 @@ class DemoFichesSeeder extends Seeder
         $this->jour($realisation - 93);
         $controle = $this->profil('controle.demo', 'CONTROLE_GESTION', null);
         foreach ($fiche->gains()->get() as $gain) {
-            $this->workflow->deciderGain($gain, 'VALIDE', $controle);
+            $this->circuit->deciderGain($gain, 'VALIDE', $controle);
         }
         $this->deciderActives($fiche, 2, 'VALIDE', 'Gains vérifiés et cohérents avec les données SAP.');
         $this->jour($realisation - 95);

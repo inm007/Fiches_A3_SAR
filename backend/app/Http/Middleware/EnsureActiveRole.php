@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Affectation;
+use App\Services\ActiveProfile;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,24 +22,7 @@ class EnsureActiveRole
 
     public function handle(Request $request, Closure $next, string ...$roleCodes): Response
     {
-        $user = $request->user();
-        $assignmentId = $request->hasSession()
-            ? $request->session()->get('auth.active_assignment_id')
-            : null;
-
-        $isAllowed = $user
-            && $user->actif
-            && $assignmentId
-            && Affectation::query()
-                ->whereKey($assignmentId)
-                ->where('user_id', $user->id)
-                ->where('actif', true)
-                ->where(fn ($query) => $query->whereNull('date_debut')->orWhere('date_debut', '<=', now()))
-                ->where(fn ($query) => $query->whereNull('date_fin')->orWhere('date_fin', '>=', now()))
-                ->whereHas('role', fn ($query) => $query->whereIn('code', $roleCodes))
-                ->exists();
-
-        if (! $isAllowed) {
+        if (! (new ActiveProfile($request))->is(...$roleCodes)) {
             $message = count($roleCodes) === 1
                 ? (self::MESSAGES[$roleCodes[0]] ?? 'Accès interdit pour le profil actif.')
                 : 'Accès interdit pour le profil actif.';

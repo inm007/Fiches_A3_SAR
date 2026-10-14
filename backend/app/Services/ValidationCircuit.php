@@ -4,11 +4,14 @@ namespace App\Services;
 
 use App\Enums\Domaine;
 use App\Enums\StatutEtape;
+use App\Exceptions\RegleMetierException;
 use App\Models\Affectation;
 use App\Models\FicheA3;
+use App\Models\Gain;
 use App\Models\Role;
 use App\Models\Validation;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Crée et résout les demandes des portes 1 et 2 (PRD §7). Ne modifie jamais l'étape :
@@ -19,6 +22,8 @@ class ValidationCircuit
     public const string CONTROLE_GESTION = 'CONTROLE_GESTION';
 
     public const string DIRECTION = 'DIRECTION';
+
+    public function __construct(private readonly HistoryLogger $history) {}
 
     /**
      * Rôles sollicités à la porte 1 : Production / Exploitation d'abord (ordre 1),
@@ -59,11 +64,9 @@ class ValidationCircuit
     public function titulaire(string $roleCode, FicheA3 $fiche): ?int
     {
         $base = Affectation::query()
-            ->where('actif', true)
+            ->enCours()
             ->whereHas('role', fn ($query) => $query->where('code', $roleCode))
             ->whereHas('user', fn ($query) => $query->where('actif', true))
-            ->where(fn ($query) => $query->whereNull('date_debut')->orWhere('date_debut', '<=', now()))
-            ->where(fn ($query) => $query->whereNull('date_fin')->orWhere('date_fin', '>=', now()))
             ->when($fiche->pilote_id !== null, fn ($query) => $query->where('user_id', '!=', $fiche->pilote_id))
             ->orderBy('id');
 
@@ -237,5 +240,40 @@ class ValidationCircuit
             ->push(Domaine::Autres->value)
             ->values()
             ->all();
+    }
+
+    /**
+     * Décision du Contrôle de gestion sur une ligne de gain, pendant sa demande de porte 2.
+     */
+    public function deciderGain(Gain $gain, string $decision, ActiveProfile $profile): Gain
+    {
+        return DB::transaction(function () use ($gain, $decision, $profile): Gain {
+            $fiche = FicheA3::query()->whereKey($gain->fiche_id)->lockForUpdate()->firstOrFail();
+
+            if (! $profile->is(self::CONTROLE_GESTION)) {
+                throw RegleMetierException::interdit('Seul le Contrôle de gestion valide les gains.');
+            }
+
+            $demande = Validation::query()
+                ->where('fiche_id', $fiche->id)
+                ->where('porte', 2)
+                ->where('valideur_id', $profile->userId())
+                ->where('decision', 'EN_ATTENTE')
+                ->first();
+
+            if ($demande === null || ! $this->estActionnable($demande, $fiche)) {
+                throw RegleMetierException::conflit('Aucune demande de validation des gains n’est active sur cette fiche.');
+            }
+
+            $ancien = $gain->statut;
+            $gain->update([
+                'statut' => $decision,
+                'valide_par_id' => $profile->userId(),
+                'date_validation' => now(),
+            ]);
+            $this->history->log($fiche, $profile->userId(), 'DECISION_GAIN', 'gain_'.$gain->id, $ancien, $decision);
+
+            return $gain->refresh();
+        });
     }
 }

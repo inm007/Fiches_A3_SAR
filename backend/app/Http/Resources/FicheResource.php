@@ -235,7 +235,7 @@ class FicheResource extends JsonResource
     private function droits(FicheA3 $fiche, ActiveProfile $profile): array
     {
         $etape = $fiche->etape();
-        $estPilote = $profile->is('PILOTE') && $fiche->pilote_id === $profile->userId();
+        $estPilote = $profile->estPiloteDe($fiche);
         $peutBloquer = $estPilote || $profile->is('DIRECTION');
 
         $transitions = [];
@@ -266,7 +266,7 @@ class FicheResource extends JsonResource
             'peut_changer_confidentialite' => $estPilote || $profile->is('ADMIN_FONCTIONNEL'),
             'peut_commenter' => $profile->is('AGENT', 'PILOTE', 'CONTROLE_GESTION', 'DIRECTION', ...Domaine::rolesValideurs()),
             'peut_voir_historique' => $profile->is('PILOTE', 'DIRECTION', 'ADMIN_FONCTIONNEL'),
-            'peut_enregistrer_controles' => $estPilote && in_array($etape, [StatutEtape::RealisationActions, StatutEtape::MesureResultats, StatutEtape::VerificationMaintien], true),
+            'peut_enregistrer_controles' => $estPilote && in_array($etape, StatutEtape::etapesDeSuivi(), true),
             'peut_decider_gains' => $profile->is(ValidationCircuit::CONTROLE_GESTION) && $fiche->validations->contains(
                 fn (Validation $validation) => $validation->porte === 2 && $validation->valideur_id === $userId && app(ValidationCircuit::class)->estActionnable($validation, $fiche)
             ),

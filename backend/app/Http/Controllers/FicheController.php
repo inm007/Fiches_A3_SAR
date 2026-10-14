@@ -12,6 +12,7 @@ use App\Models\FicheA3;
 use App\Models\Role;
 use App\Models\ValeurListe;
 use App\Services\ActiveProfile;
+use App\Services\FicheSectionRules;
 use App\Services\FicheSectionService;
 use App\Services\FicheVisibility;
 use App\Services\FicheWorkflow;
@@ -20,6 +21,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class FicheController extends Controller
 {
@@ -83,7 +85,7 @@ class FicheController extends Controller
                 'date_cible' => $fiche->date_cible?->toDateString(),
                 'confidentialite' => $fiche->confidentialite,
                 'anciennete_jours' => (int) $fiche->created_at->startOfDay()->diffInDays(today()),
-                'en_retard' => $fiche->date_cible !== null && $fiche->date_cible->isBefore(today()) && $fiche->statut_etape !== 'CLOTURE',
+                'en_retard' => $fiche->date_cible !== null && $fiche->date_cible->isBefore(today()) && $fiche->statut_etape !== StatutEtape::Cloture->value,
             ]),
             'meta' => [
                 'page' => $page->currentPage(),
@@ -111,13 +113,13 @@ class FicheController extends Controller
 
         $origine = ValeurListe::query()->whereKey($data['origine_id'])->whereHas('liste', fn ($q) => $q->where('code', 'origine'))->first();
         if ($origine === null) {
-            return $this->fieldError('origine_id', 'Choisissez une origine de la liste.');
+            throw ValidationException::withMessages(['origine_id' => 'Choisissez une origine de la liste.']);
         }
         if ($origine->code === 'AUTRE' && blank($data['origine_precision'] ?? null)) {
-            return $this->fieldError('origine_precision', 'Précisez l’origine « Autre ».');
+            throw ValidationException::withMessages(['origine_precision' => 'Précisez l’origine « Autre ».']);
         }
         if (($data['equipement_id'] ?? null) !== null && ! Equipement::whereKey($data['equipement_id'])->where('unite_id', $data['unite_id'])->exists()) {
-            return $this->fieldError('equipement_id', 'L’équipement doit appartenir à l’unité choisie.');
+            throw ValidationException::withMessages(['equipement_id' => 'L’équipement doit appartenir à l’unité choisie.']);
         }
 
         $fiche = $workflow->declarer($data, $profile);
@@ -135,7 +137,7 @@ class FicheController extends Controller
         $this->visible($fiche, $profile);
         abort_unless($section >= 1 && $section <= 11, 404);
 
-        $data = $request->validate(FicheSectionService::rules($section));
+        $data = $request->validate(FicheSectionRules::pour($section));
 
         return new FicheResource($sections->enregistrer($fiche, $section, $data, $profile));
     }
@@ -151,7 +153,7 @@ class FicheController extends Controller
             'motif' => ['nullable', 'string', 'max:500'],
         ]);
 
-        if (! $profile->is('PILOTE') || $fiche->pilote_id !== $profile->userId()) {
+        if (! $profile->estPiloteDe($fiche)) {
             throw RegleMetierException::interdit('Seul le pilote de la fiche change sa confidentialité.');
         }
 
@@ -216,7 +218,7 @@ class FicheController extends Controller
     {
         return Affectation::query()
             ->with('user:id,nom,prenom,actif')
-            ->where('actif', true)
+            ->enCours()
             ->whereHas('role', fn ($q) => $q->whereIn('code', $roles))
             ->whereHas('user', fn ($q) => $q->where('actif', true))
             ->when($uniteId !== null, fn ($q) => $q->where(fn ($scope) => $scope
@@ -229,10 +231,5 @@ class FicheController extends Controller
             ->map(fn ($user) => ['id' => $user->id, 'nom' => trim($user->prenom.' '.$user->nom)])
             ->values()
             ->all();
-    }
-
-    private function fieldError(string $field, string $message): JsonResponse
-    {
-        return response()->json(['message' => $message, 'errors' => [$field => [$message]]], 422);
     }
 }

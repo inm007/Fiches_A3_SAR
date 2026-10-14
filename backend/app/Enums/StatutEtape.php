@@ -48,6 +48,17 @@ enum StatutEtape: string
     /**
      * Étape active : une mise en attente (T12) est possible depuis celle-ci.
      */
+    /**
+     * Étapes de suivi après la validation du plan : actions, contrôles, gains et pérennisation
+     * y sont modifiables.
+     *
+     * @return array<int, self>
+     */
+    public static function etapesDeSuivi(): array
+    {
+        return [self::RealisationActions, self::MesureResultats, self::VerificationMaintien];
+    }
+
     public function estActive(): bool
     {
         return ! in_array($this, [self::EnAttente, self::Cloture], true);

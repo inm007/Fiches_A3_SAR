@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\StatutAction;
 use App\Models\ActionA3;
 use App\Models\Controle;
 use App\Models\FicheA3;
@@ -41,7 +42,7 @@ class ControleEfficaciteService
         $manques = [];
         $actions = $fiche->actions()
             ->whereNull('action_origine_id')
-            ->where('statut', '!=', 'ANNULE')
+            ->where('statut', '!=', StatutAction::Annule->value)
             ->with('controles')
             ->get();
 
@@ -62,7 +63,7 @@ class ControleEfficaciteService
     {
         $libelle = '« '.str($action->description)->limit(60).' »';
 
-        if ($action->statut !== 'REALISE') {
+        if ($action->statut !== StatutAction::Realise->value) {
             return ["Action {$libelle} : elle doit être réalisée avant ses contrôles."];
         }
 
@@ -86,7 +87,7 @@ class ControleEfficaciteService
                     continue;
                 }
 
-                if ($corrective->statut === 'ANNULE') {
+                if ($corrective->statut === StatutAction::Annule->value) {
                     $manques[] = "Action {$libelle} : l’action corrective du contrôle {$nom} est annulée.";
 
                     continue;

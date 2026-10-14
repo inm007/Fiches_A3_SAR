@@ -29,6 +29,16 @@ enum StatutAction: string
         return in_array($this, [self::Realise, self::Annule], true);
     }
 
+    /**
+     * Statuts d'une action terminée (ni à faire, ni en cours, ni bloquée).
+     *
+     * @return array<int, string>
+     */
+    public static function terminees(): array
+    {
+        return [self::Realise->value, self::Annule->value];
+    }
+
     public function exigeMotif(): bool
     {
         return in_array($this, [self::Annule, self::Bloque], true);

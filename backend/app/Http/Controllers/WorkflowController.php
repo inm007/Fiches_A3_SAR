@@ -107,11 +107,11 @@ class WorkflowController extends Controller
         return new FicheResource($fiche->refresh());
     }
 
-    public function gain(Request $request, Gain $gain, ActiveProfile $profile, FicheWorkflow $workflow): FicheResource
+    public function gain(Request $request, Gain $gain, ActiveProfile $profile, ValidationCircuit $circuit): FicheResource
     {
         $this->visible($gain->fiche, $profile);
         $data = $request->validate(['decision' => ['required', Rule::in(['VALIDE', 'REFUSE'])]]);
 
-        return new FicheResource($workflow->deciderGain($gain, $data['decision'], $profile)->fiche()->firstOrFail());
+        return new FicheResource($circuit->deciderGain($gain, $data['decision'], $profile)->fiche()->firstOrFail());
     }
 }

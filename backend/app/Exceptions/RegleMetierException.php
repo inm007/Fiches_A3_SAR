@@ -6,8 +6,11 @@ use Illuminate\Http\JsonResponse;
 use RuntimeException;
 
 /**
- * Garde métier non satisfaite (422, liste des manques) ou conflit d'état (409),
- * conformément au TRD §7.3 et §10.
+ * Garde métier non satisfaite (422, liste des manques), conflit d'état (409) ou opération
+ * interdite (403), conformément au TRD §7.3 et §10.
+ *
+ * Convention du backend : un champ de formulaire invalide passe par la validation Laravel
+ * (ValidationException, erreurs par champ) ; toute autre règle métier passe par cette exception.
  */
 class RegleMetierException extends RuntimeException
 {

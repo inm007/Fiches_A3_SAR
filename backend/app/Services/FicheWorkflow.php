@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
+use App\Enums\StatutAction;
 use App\Enums\StatutEtape;
 use App\Exceptions\RegleMetierException;
 use App\Models\CompteurFiche;
 use App\Models\FicheA3;
-use App\Models\Gain;
 use App\Models\ValeurListe;
 use App\Models\Validation;
 use Illuminate\Support\Facades\DB;
@@ -39,7 +39,7 @@ class FicheWorkflow
         return DB::transaction(function () use ($data, $profile): FicheA3 {
             $fiche = FicheA3::create([
                 ...$data,
-                'numero_a3' => $this->prochainNumero((int) now()->year),
+                'numero_a3' => CompteurFiche::prochainNumero((int) now()->year),
                 'declarant_id' => $profile->userId(),
                 'statut_etape' => StatutEtape::Ouvert->value,
                 'statut_general' => StatutEtape::Ouvert->statutGeneral(),
@@ -168,7 +168,7 @@ class FicheWorkflow
 
         $actions = $fiche->actions()->get(['description', 'statut']);
         $manques = $actions->isEmpty() ? ['La fiche ne comporte aucune action.'] : [];
-        foreach ($actions->whereNotIn('statut', ['REALISE', 'ANNULE']) as $action) {
+        foreach ($actions->whereNotIn('statut', StatutAction::terminees()) as $action) {
             $manques[] = 'Action « '.str($action->description)->limit(60).' » : ni réalisée ni annulée.';
         }
 
@@ -416,14 +416,14 @@ class FicheWorkflow
 
     private function exigerPilote(FicheA3 $fiche, ActiveProfile $profile): void
     {
-        if (! $profile->is('PILOTE') || $fiche->pilote_id !== $profile->userId()) {
+        if (! $profile->estPiloteDe($fiche)) {
             throw RegleMetierException::interdit('Seul le pilote désigné de la fiche, sur son profil Pilote, effectue cette opération.');
         }
     }
 
     private function exigerPiloteOuDirection(FicheA3 $fiche, ActiveProfile $profile): void
     {
-        $estPilote = $profile->is('PILOTE') && $fiche->pilote_id === $profile->userId();
+        $estPilote = $profile->estPiloteDe($fiche);
         if (! $estPilote && ! $profile->is('DIRECTION')) {
             throw RegleMetierException::interdit('Seuls le pilote et la Direction mettent en attente ou lèvent le blocage.');
         }
@@ -445,52 +445,5 @@ class FicheWorkflow
             ->where('code', 'AUTRE')
             ->whereHas('liste', fn ($query) => $query->where('code', $liste))
             ->exists();
-    }
-
-    private function prochainNumero(int $annee): string
-    {
-        CompteurFiche::query()->insertOrIgnore(['annee' => $annee, 'derniere_valeur' => 0]);
-
-        /** @var CompteurFiche $compteur */
-        $compteur = CompteurFiche::query()->where('annee', $annee)->lockForUpdate()->firstOrFail();
-        $valeur = $compteur->derniere_valeur + 1;
-        CompteurFiche::query()->where('annee', $annee)->update(['derniere_valeur' => $valeur]);
-
-        return sprintf('A3-%d-%03d', $annee, $valeur);
-    }
-
-    /**
-     * Décision du Contrôle de gestion sur une ligne de gain, pendant sa demande de porte 2.
-     */
-    public function deciderGain(Gain $gain, string $decision, ActiveProfile $profile): Gain
-    {
-        return DB::transaction(function () use ($gain, $decision, $profile): Gain {
-            $fiche = FicheA3::query()->whereKey($gain->fiche_id)->lockForUpdate()->firstOrFail();
-
-            if (! $profile->is(ValidationCircuit::CONTROLE_GESTION)) {
-                throw RegleMetierException::interdit('Seul le Contrôle de gestion valide les gains.');
-            }
-
-            $demande = Validation::query()
-                ->where('fiche_id', $fiche->id)
-                ->where('porte', 2)
-                ->where('valideur_id', $profile->userId())
-                ->where('decision', 'EN_ATTENTE')
-                ->first();
-
-            if ($demande === null || ! $this->circuit->estActionnable($demande, $fiche)) {
-                throw RegleMetierException::conflit('Aucune demande de validation des gains n’est active sur cette fiche.');
-            }
-
-            $ancien = $gain->statut;
-            $gain->update([
-                'statut' => $decision,
-                'valide_par_id' => $profile->userId(),
-                'date_validation' => now(),
-            ]);
-            $this->history->log($fiche, $profile->userId(), 'DECISION_GAIN', 'gain_'.$gain->id, $ancien, $decision);
-
-            return $gain->refresh();
-        });
     }
 }

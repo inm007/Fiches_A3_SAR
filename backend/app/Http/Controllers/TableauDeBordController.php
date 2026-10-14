@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\StatutAction;
 use App\Enums\StatutEtape;
 use App\Models\ActionA3;
 use App\Models\Affectation;
@@ -31,7 +32,7 @@ class TableauDeBordController extends Controller
         $annee = (int) now()->year;
 
         $parEtape = $visibles()->selectRaw('statut_etape, count(*) as total')->groupBy('statut_etape')->pluck('total', 'statut_etape');
-        $actionsOuvertes = ActionA3::query()->whereIn('fiche_id', $visibleIds)->whereNotIn('statut', ['REALISE', 'ANNULE']);
+        $actionsOuvertes = ActionA3::query()->whereIn('fiche_id', $visibleIds)->whereNotIn('statut', StatutAction::terminees());
 
         $validations = Validation::query()
             ->with('fiche:id,numero_a3,titre,statut_etape,pilote_id,sans_gain_chiffre')
@@ -44,15 +45,15 @@ class TableauDeBordController extends Controller
             ->values();
 
         $creesCetteAnnee = $visibles()->whereYear('created_at', $annee);
-        $cloturees = $visibles()->where('statut_etape', 'CLOTURE')->whereNotNull('date_cloture')->get(['created_at', 'date_cloture']);
+        $cloturees = $visibles()->where('statut_etape', StatutEtape::Cloture->value)->whereNotNull('date_cloture')->get(['created_at', 'date_cloture']);
 
         return response()->json(['data' => [
             'role' => $profile->roleCode(),
             'par_etape' => collect(StatutEtape::cases())->mapWithKeys(fn (StatutEtape $etape) => [$etape->value => (int) ($parEtape[$etape->value] ?? 0)]),
             'fiches_total' => (int) $parEtape->sum(),
-            'fiches_ouvertes' => (int) $parEtape->except(['CLOTURE'])->sum(),
-            'fiches_en_retard' => $visibles()->where('statut_etape', '!=', 'CLOTURE')->whereDate('date_cible', '<', today())->count(),
-            'fiches_sans_pilote' => $visibles()->whereNull('pilote_id')->where('statut_etape', 'OUVERT')->count(),
+            'fiches_ouvertes' => (int) $parEtape->except([StatutEtape::Cloture->value])->sum(),
+            'fiches_en_retard' => $visibles()->where('statut_etape', '!=', StatutEtape::Cloture->value)->whereDate('date_cible', '<', today())->count(),
+            'fiches_sans_pilote' => $visibles()->whereNull('pilote_id')->where('statut_etape', StatutEtape::Ouvert->value)->count(),
             'mes_fiches' => $visibles()->where(fn (Builder $q) => $q->where('pilote_id', $userId)->orWhere('declarant_id', $userId))->count(),
             'actions_en_retard' => (clone $actionsOuvertes)->whereDate('echeance', '<', today())->count(),
             'mes_actions_a_faire' => (clone $actionsOuvertes)->where('responsable_id', $userId)->count(),
@@ -65,12 +66,12 @@ class TableauDeBordController extends Controller
                 ->where('decidee_le', '>=', now()->subDays(30))->count(),
             'controles_disponibles' => Controle::query()->whereNull('resultat')->whereDate('date_echeance', '<=', today())
                 ->whereHas('action.fiche', fn (Builder $q) => $q->where('pilote_id', $userId))->count(),
-            'gains_a_valider' => $visibles()->where('statut_etape', 'EN_VALIDATION_CLOTURE')->whereHas('gains', fn (Builder $q) => $q->where('statut', 'PROPOSE'))->count(),
+            'gains_a_valider' => $visibles()->where('statut_etape', StatutEtape::EnValidationCloture->value)->whereHas('gains', fn (Builder $q) => $q->where('statut', 'PROPOSE'))->count(),
             'gains_valides_annee' => (int) Gain::query()->whereIn('fiche_id', $visibleIds)->where('statut', 'VALIDE')
                 ->whereYear('date_validation', $annee)->sum('montant_annuel'),
             'gain_net_annuel_valide' => $this->gainNetValide($visibles(), $annee, $calculs),
             'taux_cloture' => ($total = (clone $creesCetteAnnee)->count()) > 0
-                ? round((clone $creesCetteAnnee)->where('statut_etape', 'CLOTURE')->count() / $total * 100, 1)
+                ? round((clone $creesCetteAnnee)->where('statut_etape', StatutEtape::Cloture->value)->count() / $total * 100, 1)
                 : null,
             'delai_moyen_cloture_jours' => $cloturees->isEmpty() ? null : (int) round($cloturees->avg(fn (FicheA3 $fiche) => $fiche->created_at->startOfDay()->diffInDays($fiche->date_cloture))),
             'affectations_actives' => $profile->is('ADMIN_FONCTIONNEL') ? Affectation::where('actif', true)->count() : null,
@@ -115,7 +116,7 @@ class TableauDeBordController extends Controller
         $actions = ActionA3::query()
             ->with('fiche:id,numero_a3')
             ->whereIn('fiche_id', $visibles()->select('id'))
-            ->whereNotIn('statut', ['REALISE', 'ANNULE'])
+            ->whereNotIn('statut', StatutAction::terminees())
             ->whereDate('echeance', '<', today())
             ->where(fn (Builder $q) => $q->where('responsable_id', $userId)->orWhereHas('fiche', fn (Builder $f) => $f->where('pilote_id', $userId)))
             ->orderBy('echeance')
@@ -146,7 +147,7 @@ class TableauDeBordController extends Controller
             ]);
 
         $sansPilote = $profile->is('ADMIN_FONCTIONNEL')
-            ? $visibles()->whereNull('pilote_id')->where('statut_etape', 'OUVERT')->orderBy('created_at')->limit(5)->get(['id', 'numero_a3', 'created_at'])
+            ? $visibles()->whereNull('pilote_id')->where('statut_etape', StatutEtape::Ouvert->value)->orderBy('created_at')->limit(5)->get(['id', 'numero_a3', 'created_at'])
                 ->map(fn (FicheA3 $fiche) => [
                     'fiche_id' => $fiche->id,
                     'numero_a3' => $fiche->numero_a3,

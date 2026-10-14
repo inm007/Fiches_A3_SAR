@@ -72,7 +72,7 @@ Mot de passe de tous les comptes de démonstration : `Azerty123` (liste en §6).
 |---|---|
 | `Enums/` | `StatutEtape` (9 étapes + statut général), `StatutAction`, `Domaine` (avec le rôle valideur de chaque domaine) |
 | `Services/` | Règles métier (tableau ci-dessous) |
-| `Http/Controllers/` | `AuthController`, `AdminController`, `TechniqueController`, `FicheController`, `WorkflowController`, `CommentaireController`, `ReferentielController`, `NotificationController`, `TableauDeBordController` ; trait `ResolvesVisibleFiche` |
+| `Http/Controllers/` | `AuthController`, `Admin/*` (un contrôleur par écran d'administration), `TechniqueController`, `FicheController`, `WorkflowController`, `CommentaireController`, `ReferentielController`, `NotificationController`, `TableauDeBordController` ; trait `ResolvesVisibleFiche` |
 | `Http/Middleware/` | `EnsureActiveRole:<ROLE>` (rôle de l'affectation active) |
 | `Http/Resources/` | `FicheResource` (12 sections, calculs, complétude, droits du profil actif) |
 | `Exceptions/` | `RegleMetierException` (403, 409, 422 avec liste `manques`) |
@@ -85,6 +85,7 @@ Mot de passe de tous les comptes de démonstration : `Azerty123` (liste en §6).
 | `FicheWorkflow` | Seul code qui change l'étape : T1–T13, transaction + `lockForUpdate`, 409 / 422 |
 | `ValidationCircuit` | Portes 1 et 2, titulaires (unité puis global, jamais le pilote), B7, empreinte des signatures |
 | `FicheSectionService` | Enregistrement des sections 1 à 11 par le pilote, selon l'étape, historique champ par champ |
+| `FicheSectionRules` | Format attendu des champs de chaque section (validation Laravel) |
 | `ActionService` | Statuts d'action, B1 (MOC), motifs, blocage et reprise, actions correctives |
 | `ControleEfficaciteService` | Contrôles J+30/60/90, contrôle correctif à 30 jours, B4 |
 | `Calculs` | Formules PRD §6.2 ; `null` = « Non calculable » |
@@ -182,6 +183,17 @@ Refonte autour de la fiche A3 elle-même (`AuthPage`, `A3Sheet`, `Login`) :
 - à droite, formulaire sobre : identifiant, mot de passe avec bouton d'affichage, lien « Mot de passe oublié ? » sur la ligne du libellé, bouton pleine largeur inactif tant que les champs sont vides, messages avec icône (identifiants incorrects, trop de tentatives avec délai, session expirée) ;
 - même gabarit pour « Mot de passe oublié » (avec retour à la connexion) et « Réinitialisation » ; aucune ressource externe.
 
+### Étape 3 quater — Simplification du backend ✅
+
+- Fichiers d'exemple Laravel retirés (page d'accueil, Vite et Tailwind du backend, tests d'exemple).
+- Scope `Affectation::enCours()` : une seule définition d'une affectation valable aujourd'hui (6 copies supprimées) ; le middleware `EnsureActiveRole` s'appuie sur `ActiveProfile`. Corrige au passage la liste des titulaires de `FicheController`, qui ignorait les dates.
+- `ActiveProfile::estPiloteDe($fiche)` remplace 8 copies du test « pilote désigné ».
+- Statuts tirés des enums : `StatutAction::terminees()`, `StatutEtape::etapesDeSuivi()`.
+- `FicheWorkflow` ne contient plus que les transitions : numérotation dans `CompteurFiche::prochainNumero()`, décision sur un gain dans `ValidationCircuit::deciderGain()`.
+- Une seule convention d'erreur : champ invalide → validation Laravel ; règle métier → `RegleMetierException`.
+- `AdminController` (700 lignes) découpé en un contrôleur par écran dans `Http/Controllers/Admin/` : `UserController`, `AffectationController`, `UniteController`, `EquipementController`, `ListeController`, `ParametreController`, `FicheAdminController`, sur une base commune `AdminController` (journal d'administration). Les 23 routes `/api/admin/*` sont inchangées.
+- Règles de validation des 11 sections sorties de `FicheSectionService` (614 → 480 lignes) dans `FicheSectionRules` : la forme des champs d'un côté, les règles métier de l'autre.
+
 ### Étape 4 — Finitions ⏳
 
 Voir §10.
@@ -229,7 +241,7 @@ Recréées par `php artisan migrate:fresh --seed` (environnement `local`).
 
 ## 7. Tests
 
-88 tests, 1 102 assertions, sur PostgreSQL, isolés par transactions (aucune table créée ni supprimée par les tests).
+86 tests, 1 109 assertions, sur PostgreSQL, isolés par transactions (aucune table créée ni supprimée par les tests).
 
 | Fichier | Couverture |
 |---|---|

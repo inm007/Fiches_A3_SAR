@@ -253,9 +253,7 @@ class AuthController extends Controller
     {
         return $user->affectations()
             ->with(['role:id,code,libelle', 'unite:id,code,libelle'])
-            ->where('actif', true)
-            ->where(fn ($query) => $query->whereNull('date_debut')->orWhere('date_debut', '<=', now()))
-            ->where(fn ($query) => $query->whereNull('date_fin')->orWhere('date_fin', '>=', now()))
+            ->enCours()
             ->orderBy('id')
             ->get();
     }
