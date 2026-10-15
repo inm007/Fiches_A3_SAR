@@ -3,18 +3,11 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/useAuth.js'
 import { ApiError } from '../../auth/api.js'
 import Alert from '../../components/ui/Alert.jsx'
-import Button from '../../components/ui/Button.jsx'
 import AuthPage from '../../components/layout/AuthPage.jsx'
+import { BRAND_LINES as brandLines } from '../../components/layout/brand.js'
+import Button from '../../components/ui/Button.jsx'
+import Icon from '../../components/ui/Icon.jsx'
 import './Login.css'
-
-const eyeOpen = 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zm10-3a3 3 0 100 6 3 3 0 000-6z'
-const eyeClosed = 'M3 3l18 18M10.6 5.1A10 10 0 0112 5c6.5 0 10 7 10 7a17 17 0 01-3.2 4.2M6.6 6.6C3.7 8.4 2 12 2 12s3.5 7 10 7a9.6 9.6 0 005.4-1.6M9.9 9.9a3 3 0 004.2 4.2'
-
-const brandLines = [
-  'De la déclaration à la clôture,',
-  'chaque fiche A3 est suivie, validée et tracée,',
-  'jusqu’à la preuve des résultats.',
-]
 
 function Login() {
   const { login, user, activeProfile, sessionExpired } = useAuth()
@@ -173,10 +166,7 @@ function Login() {
         <div className="auth-field">
           <label className="auth-field__label" htmlFor="identifiant">Identifiant</label>
           <div className="auth-field__control login-page__input-control">
-            <svg aria-hidden="true" className="sar-icon" height="18" viewBox="0 0 24 24" width="18">
-              <circle cx="12" cy="8" r="4" />
-              <path d="M4 21a8 8 0 0116 0" />
-            </svg>
+            <Icon name="user" size={18} />
             <input
               aria-describedby={fieldDescription}
               aria-invalid={invalid || undefined}
@@ -199,10 +189,7 @@ function Login() {
             <Link to="/mot-de-passe-oublie">Mot de passe oublié ?</Link>
           </div>
           <div className="auth-field__control login-page__input-control">
-            <svg aria-hidden="true" className="sar-icon" height="18" viewBox="0 0 24 24" width="18">
-              <rect height="11" rx="2" width="16" x="4" y="10" />
-              <path d="M8 10V7a4 4 0 118 0v3" />
-            </svg>
+            <Icon name="lock" size={18} />
             <input
               aria-describedby={fieldDescription}
               aria-invalid={invalid || undefined}
@@ -222,17 +209,18 @@ function Login() {
               type="button"
               onClick={() => setShowPassword((visible) => !visible)}
             >
-              <svg aria-hidden="true" className="sar-icon" height="18" viewBox="0 0 24 24" width="18"><path d={showPassword ? eyeClosed : eyeOpen} /></svg>
+              <Icon name={showPassword ? 'eye-off' : 'eye'} size={18} />
             </button>
           </div>
         </div>
         <Button
           className={submitting ? 'is-loading' : ''}
-          disabled={submitting || locked || !identifiant.trim() || !password}
+          disabled={locked || !identifiant.trim() || !password}
+          loading={submitting}
+          loadingLabel="Connexion…"
           type="submit"
         >
-          {submitting && <span aria-hidden="true" className="login-page__spinner" />}
-          {submitting ? 'Connexion…' : 'Se connecter'}
+          Se connecter
         </Button>
       </form>
     </AuthPage>

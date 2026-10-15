@@ -308,15 +308,6 @@ body:has(.login-page) #root {
   opacity: 0.78;
 }
 
-.login-page__spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgb(255 255 255 / 50%);
-  border-top-color: var(--white);
-  border-radius: 50%;
-  animation: login-spin 700ms linear infinite;
-}
-
 .login-page__message {
   margin: 0 0 16px;
   animation: login-message-in 180ms ease-out both;
@@ -365,12 +356,6 @@ body:has(.login-page) #root {
 @keyframes login-cursor-blink {
   50% {
     opacity: 0;
-  }
-}
-
-@keyframes login-spin {
-  to {
-    transform: rotate(360deg);
   }
 }
 
@@ -495,11 +480,7 @@ body:has(.login-page) #root {
   .login-page .auth-page__intro,
   .login-page .auth-card,
   .login-page__message,
-  .login-page__spinner {
-    animation: none;
-  }
-
-  .login-page__typewriter-line.has-cursor::after {
+    .login-page__typewriter-line.has-cursor::after {
     animation: none;
   }
 

@@ -190,29 +190,6 @@
   font-weight: 600;
 }
 
-.auth-feedback,
-.reset-password-page__feedback {
-  margin: 0;
-  padding: 12px 14px;
-  border: 1px solid;
-  border-radius: var(--radius-lg);
-  font-size: var(--text-md);
-}
-
-.auth-feedback--success,
-.reset-password-page__feedback--success {
-  border-color: var(--success-border);
-  color: var(--success);
-  background: var(--success-bg);
-}
-
-.auth-feedback--error,
-.reset-password-page__feedback--error {
-  border-color: var(--error-border);
-  color: var(--error);
-  background: var(--error-bg);
-}
-
 .auth-card a {
   color: var(--brand-500);
 }
