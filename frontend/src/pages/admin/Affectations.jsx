@@ -38,9 +38,9 @@ const columns = [
   {
     key: 'unite',
     label: 'Unité',
-    width: '18%',
+    width: '230px',
     value: (assignment) => assignment.unite?.libelle ?? 'Global',
-    render: (assignment) => <span className="data-table__cell-text" title={assignment.unite?.libelle ?? 'Global'}>{assignment.unite?.libelle ?? 'Global'}</span>,
+    render: (assignment) => <span className="data-table__cell-text data-table__unit-name" title={assignment.unite?.libelle ?? 'Global'}>{assignment.unite?.libelle ?? 'Global'}</span>,
   },
   {
     key: 'date_debut',

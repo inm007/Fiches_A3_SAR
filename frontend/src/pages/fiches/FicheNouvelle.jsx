@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Alert from '../../components/common/Alert.jsx'
 import Button from '../../components/common/Button.jsx'
+import PageBanner from '../../components/common/PageBanner.jsx'
 import { Checkbox, Select, TextArea, TextInput } from '../../components/common/FormControls.jsx'
 import { listOptions } from '../../components/fiche/sections/options.js'
 import { ficheService } from '../../services/ficheService.js'
@@ -52,7 +53,7 @@ function FicheNouvelle() {
 
   return (
     <section className="fiche-nouvelle-page">
-      <h1>Déclarer une fiche</h1>
+      <PageBanner title="Déclarer une fiche" />
       <form className="fiche-nouvelle-page__card" noValidate onSubmit={submit}>
         <Alert severity="info">Déclaration en une étape : le pilote désigné complète ensuite les 12 sections.</Alert>
         {message && <Alert severity="error">{message}</Alert>}

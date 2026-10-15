@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Alert from '../../components/common/Alert.jsx'
 import Button from '../../components/common/Button.jsx'
+import PageBanner from '../../components/common/PageBanner.jsx'
 import EmptyState from '../../components/common/EmptyState.jsx'
 import ListPagination from '../../components/common/ListPagination.jsx'
 import Skeleton from '../../components/common/Skeleton.jsx'
@@ -90,13 +91,15 @@ function Notifications() {
 
   return (
     <section className="notifications-page">
-      <header className="sar-page-head">
-        <h1>Notifications</h1>
-        <div className="notifications-page__header-actions">
+      <PageBanner
+        actions={(
+          <div className="notifications-page__header-actions">
           <Button disabled={exporting || !result?.meta.total} type="button" variant="export" onClick={exportAll}>{exporting ? 'Préparation…' : 'Exporter Excel'}</Button>
           <Button disabled={!hasUnread || markingAll} type="button" variant="success" onClick={markAll}>{markingAll ? 'Mise à jour…' : 'Tout marquer comme lu'}</Button>
-        </div>
-      </header>
+          </div>
+        )}
+        title="Notifications"
+      />
       {error && <Alert severity="error">{error}</Alert>}
       {!result && !error && <Skeleton />}
       {result && (

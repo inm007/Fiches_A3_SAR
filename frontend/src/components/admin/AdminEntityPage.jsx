@@ -6,6 +6,7 @@ import DataTable from '../common/DataTable.jsx'
 import FilterBar from '../common/FilterBar.jsx'
 import Icon from '../common/Icon.jsx'
 import Modal from '../common/Modal.jsx'
+import PageBanner from '../common/PageBanner.jsx'
 import RowActions from '../common/RowActions.jsx'
 import ListPagination from '../common/ListPagination.jsx'
 import { downloadExcel, matchesSearch, normalizeSearchText } from '../../utils/listTools.js'
@@ -251,13 +252,7 @@ function AdminEntityPage({
 
   return (
     <section className={`admin-entity${compactTable ? ' admin-entity--compact' : ''}`}>
-      <header className="admin-entity__header">
-        <div>
-          <h1>{title}</h1>
-          <p>{description}</p>
-        </div>
-        <Button onClick={openCreate}>Ajouter</Button>
-      </header>
+      <PageBanner actions={<Button onClick={openCreate}>Ajouter</Button>} description={description} title={title} />
 
       {error && <p className="admin-entity__message admin-entity__message--error" role="alert">{error}</p>}
       {success && <p className="admin-entity__message admin-entity__message--success" role="status">{success}</p>}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { apiRequest } from '../../auth/api.js'
 import Button from '../../components/common/Button.jsx'
+import PageBanner from '../../components/common/PageBanner.jsx'
 import './ParametresFonctionnels.css'
 
 const defaults = {
@@ -51,10 +52,7 @@ function ParametresFonctionnels() {
 
   return (
     <section className="parametres-fonctionnels-page">
-      <header>
-        <h1>Paramètres fonctionnels</h1>
-        <p>Réglez les rappels automatiques et les limites des pièces jointes.</p>
-      </header>
+      <PageBanner description="Réglez les rappels automatiques et les limites des pièces jointes." title="Paramètres fonctionnels" />
       {error && <p className="parametres-fonctionnels-page__message parametres-fonctionnels-page__message--error" role="alert">{error}</p>}
       {notice && <p className="parametres-fonctionnels-page__message parametres-fonctionnels-page__message--success" role="status">{notice}</p>}
       <form className="parametres-fonctionnels-page__form" onSubmit={save}>

@@ -4,6 +4,7 @@ import Alert from '../components/common/Alert.jsx'
 import Button from '../components/common/Button.jsx'
 import DataTable from '../components/common/DataTable.jsx'
 import FormField from '../components/common/FormField.jsx'
+import PageBanner from '../components/common/PageBanner.jsx'
 import ListPagination from '../components/common/ListPagination.jsx'
 import { downloadExcel } from '../utils/listTools.js'
 import './Technique.css'
@@ -140,10 +141,7 @@ function Technique() {
 
   return (
     <section className="technique-page">
-      <header>
-        <h1>État technique</h1>
-        <p>Authentification, courriel, SAP et journal d’administration.</p>
-      </header>
+      <PageBanner description="Authentification, courriel, SAP et journal d’administration." title="État technique" />
 
       {error && <Alert severity="error">{error}</Alert>}
       {notice && <Alert severity="success">{notice}</Alert>}

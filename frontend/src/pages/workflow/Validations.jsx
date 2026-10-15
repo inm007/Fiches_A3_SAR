@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Alert from '../../components/common/Alert.jsx'
 import Button from '../../components/common/Button.jsx'
+import PageBanner from '../../components/common/PageBanner.jsx'
 import ConfirmDialog from '../../components/common/ConfirmDialog.jsx'
 import EmptyState from '../../components/common/EmptyState.jsx'
 import ListPagination from '../../components/common/ListPagination.jsx'
@@ -72,7 +73,7 @@ function Validations() {
 
   return (
     <section className="validations-page">
-      <header className="sar-page-head"><h1>Validations à traiter</h1></header>
+      <PageBanner title="Validations à traiter" />
       {error && (
         <Alert severity="error">
           {error.message}

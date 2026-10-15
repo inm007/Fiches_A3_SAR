@@ -1,4 +1,4 @@
-import Button from './Button.jsx'
+import IconButton from './IconButton.jsx'
 import './ListPagination.css'
 
 function ListPagination({ page, pageSize, total, onPageChange, onPageSizeChange, pageSizes = [10, 25, 50, 100] }) {
@@ -8,16 +8,19 @@ function ListPagination({ page, pageSize, total, onPageChange, onPageSizeChange,
 
   return (
     <footer className="list-pagination">
-      <span className="list-pagination__count">{first}–{last} sur {total}</span>
-      <label>
-        Lignes
+      <label className="list-pagination__size">
+        <span>Nombre par page</span>
         <select value={pageSize} onChange={(event) => onPageSizeChange(Number(event.target.value))}>
           {pageSizes.map((size) => <option key={size} value={size}>{size}</option>)}
         </select>
       </label>
-      <Button disabled={page <= 1} type="button" variant="secondary" onClick={() => onPageChange(page - 1)}>Précédent</Button>
-      <span aria-live="polite">Page {Math.min(page, pageCount)} / {pageCount}</span>
-      <Button disabled={page >= pageCount} type="button" variant="secondary" onClick={() => onPageChange(page + 1)}>Suivant</Button>
+      <span aria-live="polite" className="list-pagination__count">{first}–{last} / {total}</span>
+      <nav aria-label="Pagination" className="list-pagination__controls">
+        <IconButton disabled={page <= 1} icon="page-first" label="Première page" onClick={() => onPageChange(1)} />
+        <IconButton disabled={page <= 1} icon="page-previous" label="Page précédente" onClick={() => onPageChange(page - 1)} />
+        <IconButton disabled={page >= pageCount} icon="page-next" label="Page suivante" onClick={() => onPageChange(page + 1)} />
+        <IconButton disabled={page >= pageCount} icon="page-last" label="Dernière page" onClick={() => onPageChange(pageCount)} />
+      </nav>
     </footer>
   )
 }

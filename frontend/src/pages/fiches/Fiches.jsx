@@ -8,6 +8,7 @@ import EmptyState from '../../components/common/EmptyState.jsx'
 import FilterBar from '../../components/common/FilterBar.jsx'
 import Icon from '../../components/common/Icon.jsx'
 import ListPagination from '../../components/common/ListPagination.jsx'
+import PageBanner from '../../components/common/PageBanner.jsx'
 import EtapeBadge, { ConfidentialiteBadge } from '../../components/fiche/EtapeBadge.jsx'
 import { ficheService } from '../../services/ficheService.js'
 import { ETAPES } from '../../utils/constants.js'
@@ -86,7 +87,7 @@ function Registre() {
     {
       key: 'numero_a3',
       label: 'N° A3',
-      width: '140px',
+      width: '210px',
       header: <button type="button" onClick={() => toggleSort('numero_a3')}>N° A3{sort.tri === 'numero_a3' && (sort.ordre === 'asc' ? ' ▲' : ' ▼')}</button>,
       render: (fiche) => <Link to={`/fiches/${fiche.id}`} onClick={(event) => event.stopPropagation()}>{fiche.numero_a3}</Link>,
     },
@@ -102,7 +103,7 @@ function Registre() {
       label: 'Unité',
       width: '140px',
       titleValue: (fiche) => fiche.unite,
-      render: (fiche) => <span className="data-table__cell-text" title={fiche.unite}>{fiche.unite}</span>,
+      render: (fiche) => <span className="data-table__cell-text data-table__unit-name" title={fiche.unite}>{fiche.unite}</span>,
     },
     {
       key: 'pilote',
@@ -147,10 +148,10 @@ function Registre() {
 
   return (
     <section className="fiches-page">
-      <header className="sar-page-head">
-        <h1>Fiches</h1>
-        {canDeclare && <Button type="button" onClick={() => navigate('/fiches/nouvelle')}><Icon name="plus" />Nouvelle fiche</Button>}
-      </header>
+      <PageBanner
+        actions={canDeclare && <Button type="button" onClick={() => navigate('/fiches/nouvelle')}><Icon name="plus" />Nouvelle fiche</Button>}
+        title="Fiches"
+      />
       <div className="sar-card fiches-page__card">
         <FilterBar className="fiches-page__filterbar">
           <div className="fiches-page__filterbar-primary">

@@ -9,6 +9,7 @@ import RowActions from '../../components/common/RowActions.jsx'
 import Badge from '../../components/common/Badge.jsx'
 import ListPagination from '../../components/common/ListPagination.jsx'
 import Modal from '../../components/common/Modal.jsx'
+import PageBanner from '../../components/common/PageBanner.jsx'
 import { downloadExcel, matchesSearch } from '../../utils/listTools.js'
 import { toast } from '../../utils/toast.js'
 import './Listes.css'
@@ -193,12 +194,11 @@ function Listes() {
 
   return (
     <section className="listes-page">
-      <header className="listes-page__header">
-        <div>
-          <h1>Listes de choix</h1>
-          <p>Gérez les valeurs de référence utilisées dans les fiches. Les valeurs historiques sont conservées.</p>
-        </div>
-      </header>
+      <PageBanner
+        actions={<Button disabled={!selectedId} onClick={startCreate}>Ajouter une valeur</Button>}
+        description="Gérez les valeurs de référence utilisées dans les fiches. Les valeurs historiques sont conservées."
+        title="Listes de choix"
+      />
       {error && <p className="listes-page__message listes-page__message--error" role="alert">{error}</p>}
       {notice && <p className="listes-page__message listes-page__message--success" role="status">{notice}</p>}
       <div className="listes-page__layout">
@@ -222,7 +222,6 @@ function Listes() {
               <h2>{lists.find((list) => String(list.id) === selectedId)?.libelle ?? 'Valeurs'}</h2>
               <p>{lists.find((list) => String(list.id) === selectedId)?.description}</p>
             </div>
-            <Button disabled={!selectedId} onClick={startCreate}>Ajouter une valeur</Button>
           </header>
           <FilterBar className="listes-page__filterbar">
             <div className="listes-page__filterbar-primary">

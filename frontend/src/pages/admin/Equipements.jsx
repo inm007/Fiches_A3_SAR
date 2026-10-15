@@ -15,9 +15,9 @@ const columns = [
   {
     key: 'unite',
     label: 'Unité',
-    width: '20%',
+    width: '210px',
     value: (equipment) => equipment.unite?.libelle ?? '—',
-    render: (equipment) => <span className="data-table__cell-text" title={equipment.unite?.libelle ?? '—'}>{equipment.unite?.libelle ?? '—'}</span>,
+    render: (equipment) => <span className="data-table__cell-text data-table__unit-name" title={equipment.unite?.libelle ?? '—'}>{equipment.unite?.libelle ?? '—'}</span>,
   },
   { key: 'code', label: 'Code', width: '17%', filterable: false, titleValue: (equipment) => equipment.code },
   {

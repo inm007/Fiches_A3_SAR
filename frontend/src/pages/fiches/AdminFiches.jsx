@@ -8,6 +8,7 @@ import FilterBar from '../../components/common/FilterBar.jsx'
 import Icon from '../../components/common/Icon.jsx'
 import ListPagination from '../../components/common/ListPagination.jsx'
 import Modal from '../../components/common/Modal.jsx'
+import PageBanner from '../../components/common/PageBanner.jsx'
 import EtapeBadge, { ConfidentialiteBadge } from '../../components/fiche/EtapeBadge.jsx'
 import { downloadExcel, matchesSearch } from '../../utils/listTools.js'
 import { toast } from '../../utils/toast.js'
@@ -121,12 +122,11 @@ function AdminFiches() {
 
   return (
     <section className="admin-fiches">
-      <header className="admin-fiches__header">
-        <div>
-          <h1>Registre des fiches A3</h1>
-          <p>Consultation des fiches, désignation du pilote et gestion de la confidentialité. Le contenu métier reste en lecture seule.</p>
-        </div>
-      </header>
+      <PageBanner
+        className="admin-fiches__banner"
+        description="Consultation des fiches, désignation du pilote et gestion de la confidentialité. Le contenu métier reste en lecture seule."
+        title="Registre des fiches A3"
+      />
       {error && <p className="admin-fiches__message admin-fiches__message--error" role="alert">{error}</p>}
       <FilterBar className="admin-fiches__filterbar">
         <div className="admin-fiches__filterbar-primary">
@@ -196,9 +196,9 @@ function AdminFiches() {
           {
             key: 'unite',
             label: 'Unité',
-            width: '14%',
+            width: '19%',
             value: (fiche) => fiche.unite?.libelle ?? '—',
-            render: (fiche) => <span className="data-table__cell-text" title={fiche.unite?.libelle ?? '—'}>{fiche.unite?.libelle ?? '—'}</span>,
+            render: (fiche) => <span className="data-table__cell-text data-table__unit-name" title={fiche.unite?.libelle ?? '—'}>{fiche.unite?.libelle ?? '—'}</span>,
           },
           {
             key: 'pilote',

@@ -63,7 +63,7 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  height: 40px;
+  height: 36px;
   color: var(--gray-700);
   background: var(--gray-50);
   font-size: 11px;
@@ -118,12 +118,25 @@
   white-space: nowrap;
 }
 
+.data-table--compact .data-table__unit-name {
+  display: -webkit-box;
+  overflow: hidden;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
 .data-table--compact .data-table__actions-column {
   width: 168px;
 }
 
 .data-table__actions-cell {
   overflow: visible !important;
+  padding-right: 6px !important;
+  padding-left: 6px !important;
 }
 
 .data-table__empty {
@@ -226,6 +239,12 @@
 
   .data-table--compact .data-table__cell-text {
     white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .data-table--compact .data-table__unit-name {
+    display: block;
+    max-height: 2.5em;
     overflow-wrap: anywhere;
   }
 
