@@ -32,9 +32,20 @@ function ForgotPassword() {
 
   return (
     <AuthPage
+      brandAriaLabel="De la déclaration à la clôture, chaque fiche A3 est suivie, validée et tracée, jusqu’à la preuve des résultats."
+      brandTitle={(
+        <>
+          <span aria-hidden="true" className="login-page__typewriter">
+            <span className="login-page__typewriter-line">De la déclaration à la clôture,</span>
+            <span className="login-page__typewriter-line">chaque fiche A3 est suivie, validée et tracée,</span>
+            <span className="login-page__typewriter-line is-highlighted">jusqu’à la preuve des résultats.</span>
+          </span>
+          <span aria-hidden="true" className="login-page__mobile-slogan">Jusqu’à la preuve des résultats.</span>
+        </>
+      )}
       description="Saisissez votre identifiant ou votre courriel : un lien de réinitialisation vous sera envoyé."
       footer={<Link to="/connexion">← Retour à la connexion</Link>}
-      pageClass="forgot-password-page"
+      pageClass="forgot-password-page login-page"
       title="Mot de passe oublié"
     >
       {notice && <p className="auth-feedback auth-feedback--success" role="status">{notice}</p>}
