@@ -64,13 +64,3 @@
   width: 36px;
   text-align: center;
 }
-
-.rows-editor__remove button {
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-  color: var(--error);
-  background: var(--white);
-  cursor: pointer;
-}

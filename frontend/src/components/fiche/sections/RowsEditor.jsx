@@ -1,10 +1,15 @@
+import { createContext, useContext } from 'react'
 import Button from '../../ui/Button.jsx'
+import IconButton from '../../ui/IconButton.jsx'
 import './RowsEditor.css'
 
 /**
  * Tableau éditable d'une section. Chaque colonne fournit son rendu de cellule ;
  * la suppression d'une ligne n'est effective qu'à l'enregistrement de la section.
  */
+// Libellé de colonne transmis aux cellules : chaque champ du tableau a un nom accessible.
+const CellLabel = createContext(undefined)
+
 function RowsEditor({ rows, columns, onChange, newRow, readOnly, addLabel = 'Ajouter une ligne', emptyLabel = 'Aucune ligne.', canRemove = () => true }) {
   const setRow = (index) => (field, value) => onChange(rows.map((row, current) => (current === index ? { ...row, [field]: value } : row)))
   const removeRow = (index) => onChange(rows.filter((_, current) => current !== index))
@@ -25,11 +30,15 @@ function RowsEditor({ rows, columns, onChange, newRow, readOnly, addLabel = 'Ajo
             )}
             {rows.map((row, index) => (
               <tr key={row.id ?? `new-${index}`}>
-                {columns.map((column) => <td key={column.key}>{column.render(row, setRow(index), index)}</td>)}
+                {columns.map((column) => (
+                  <td key={column.key}>
+                    <CellLabel.Provider value={`${column.label}, ligne ${index + 1}`}>{column.render(row, setRow(index), index)}</CellLabel.Provider>
+                  </td>
+                ))}
                 {!readOnly && (
                   <td className="rows-editor__remove">
                     {canRemove(row) && (
-                      <button aria-label="Retirer la ligne" title="Retirer la ligne" type="button" onClick={() => removeRow(index)}>×</button>
+                      <IconButton icon="x" label="Retirer la ligne" onClick={() => removeRow(index)} />
                     )}
                   </td>
                 )}
@@ -38,18 +47,20 @@ function RowsEditor({ rows, columns, onChange, newRow, readOnly, addLabel = 'Ajo
           </tbody>
         </table>
       </div>
-      {!readOnly && <Button type="button" variant="secondary" onClick={() => onChange([...rows, newRow()])}>+ {addLabel}</Button>}
+      {!readOnly && <Button icon="plus" type="button" variant="secondary" onClick={() => onChange([...rows, newRow()])}>{addLabel}</Button>}
     </div>
   )
 }
 
 export function CellInput({ value, onChange, readOnly, type = 'text', ...props }) {
-  return <input className="rows-editor__input" readOnly={readOnly} type={type} value={value ?? ''} onChange={(event) => onChange(event.target.value)} {...props} />
+  const label = useContext(CellLabel)
+  return <input aria-label={label} className="rows-editor__input" readOnly={readOnly} type={type} value={value ?? ''} onChange={(event) => onChange(event.target.value)} {...props} />
 }
 
 export function CellSelect({ value, onChange, readOnly, options, placeholder = '—' }) {
+  const label = useContext(CellLabel)
   return (
-    <select className="rows-editor__input" disabled={readOnly} value={value ?? ''} onChange={(event) => onChange(event.target.value)}>
+    <select aria-label={label} className="rows-editor__input" disabled={readOnly} value={value ?? ''} onChange={(event) => onChange(event.target.value)}>
       <option value="">{placeholder}</option>
       {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
     </select>
