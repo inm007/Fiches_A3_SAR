@@ -65,3 +65,20 @@ export async function apiRequest(path, options = {}) {
   return data
 }
 
+export async function apiDownload(path) {
+  const response = await fetch(`/api${path}`, {
+    credentials: 'include',
+    headers: { Accept: 'application/octet-stream, application/json' },
+  })
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null)
+    if (response.status === 401) {
+      window.dispatchEvent(new Event('sar:session-expired'))
+    }
+    throw new ApiError(data?.message || 'Le téléchargement a échoué.', response.status, data)
+  }
+
+  window.dispatchEvent(new Event('sar:api-activity'))
+  return response.blob()
+}

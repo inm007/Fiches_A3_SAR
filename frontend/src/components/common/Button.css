@@ -5,61 +5,90 @@
   justify-content: center;
   gap: 8px;
   padding: 0 14px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--button-secondary-border);
   border-radius: 8px;
-  color: var(--ink);
+  color: var(--ink-strong);
   background: var(--white);
-  box-shadow: 0 1px 2px rgb(26 26 31 / 6%);
+  box-shadow: none;
   cursor: pointer;
   font-weight: 500;
-  transition: 0.15s;
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
   white-space: nowrap;
 }
 
-.sar-button:hover {
-  background: var(--gray-100);
+.sar-button:hover,
+.sar-button--secondary:hover,
+.sar-button--export:hover,
+.sar-button--edit:hover {
+  border-color: var(--button-secondary-border);
+  color: var(--ink-strong);
+  background: var(--button-secondary-hover);
 }
 
-.sar-button:active {
-  transform: scale(0.97);
+.sar-button:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .sar-button--primary {
   border-color: var(--brand-500);
   color: var(--white);
   background: var(--brand-500);
-  box-shadow: 0 4px 12px rgb(230 0 18 / 28%);
 }
 
 .sar-button--primary:hover {
   border-color: var(--brand-600);
+  color: var(--white);
   background: var(--brand-600);
-  box-shadow: 0 6px 16px rgb(230 0 18 / 34%);
 }
 
-.sar-button--secondary {
+.sar-button--primary:active:not(:disabled) {
+  border-color: var(--brand-700);
+  color: var(--white);
+  background: var(--brand-700);
+}
+
+.sar-button--secondary,
+.sar-button--export,
+.sar-button--edit {
+  border-color: var(--button-secondary-border);
+  color: var(--ink-strong);
   background: var(--white);
 }
 
 .sar-button--success {
-  border-color: var(--success);
-  color: var(--white);
-  background: var(--success);
+  border-color: transparent;
+  color: var(--button-success-text);
+  background: var(--button-success-bg);
 }
 
 .sar-button--success:hover {
-  background: var(--success);
-  filter: brightness(0.92);
+  border-color: var(--button-success-text);
+  color: var(--button-success-text);
+  background: var(--button-success-hover);
 }
 
 .sar-button--danger {
-  border-color: var(--error);
-  color: var(--error);
-  background: var(--white);
+  border-color: transparent;
+  color: var(--button-danger-text);
+  background: var(--button-danger-bg);
 }
 
 .sar-button--danger:hover {
-  background: var(--error-bg);
+  border-color: var(--error-border);
+  color: var(--button-danger-text);
+  background: var(--button-danger-hover);
+}
+
+.sar-button--danger-solid {
+  border-color: var(--button-danger-solid);
+  color: var(--white);
+  background: var(--button-danger-solid);
+}
+
+.sar-button--danger-solid:hover {
+  border-color: var(--button-danger-solid-hover);
+  color: var(--white);
+  background: var(--button-danger-solid-hover);
 }
 
 .sar-button--small {
@@ -69,12 +98,22 @@
 }
 
 .sar-button:focus-visible {
-  outline: 3px solid var(--focus-ring);
+  outline: 2px solid var(--brand-500);
   outline-offset: 2px;
 }
 
 .sar-button:disabled {
+  border-color: var(--button-disabled-bg);
+  color: var(--button-disabled-text);
+  background: var(--button-disabled-bg);
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 1;
   transform: none;
+}
+
+.sar-button--primary:disabled,
+.sar-button--danger-solid:disabled {
+  border-color: var(--button-disabled-bg);
+  color: var(--button-disabled-text);
+  background: var(--button-disabled-bg);
 }

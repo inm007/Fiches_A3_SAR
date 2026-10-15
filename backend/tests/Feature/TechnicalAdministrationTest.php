@@ -39,12 +39,43 @@ class TechnicalAdministrationTest extends TestCase
             ->assertJsonStructure(['data' => ['smtp' => ['SMTP_HOST', 'SMTP_PASSWORD_SET'], 'logs']]);
     }
 
+    public function test_technical_logs_can_be_searched_filtered_and_paginated(): void
+    {
+        $user = $this->actingAsActiveRole('ADMIN_TECHNIQUE');
+        JournalAdministration::create([
+            'auteur_id' => $user->id,
+            'operation' => 'TEST_RECHERCHE',
+            'objet' => 'objet:unique',
+            'detail' => ['valeur' => 'visible'],
+            'created_at' => now(),
+        ]);
+        JournalAdministration::create([
+            'auteur_id' => $user->id,
+            'operation' => 'TEST_AUTRE',
+            'objet' => 'objet:autre',
+            'detail' => [],
+            'created_at' => now()->subMinute(),
+        ]);
+
+        $this->getJson('/api/technique/logs?q=unique TEST_RECHERCHE&per_page=1')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.operation', 'TEST_RECHERCHE')
+            ->assertJsonPath('data.0.auteur', trim($user->prenom.' '.$user->nom));
+
+        $this->getJson('/api/technique/logs?operation=TEST_AUTRE')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.objet', 'objet:autre');
+    }
+
     public function test_other_profiles_cannot_reach_the_technical_api(): void
     {
         foreach (['AGENT', 'ADMIN_FONCTIONNEL', 'DIRECTION'] as $roleCode) {
             $this->actingAsActiveRole($roleCode);
 
             $this->getJson('/api/technique')->assertForbidden();
+            $this->getJson('/api/technique/logs')->assertForbidden();
             $this->putJson('/api/technique/settings', ['cle' => 'SMTP_HOST', 'valeur' => 'smtp.test'])
                 ->assertForbidden();
         }

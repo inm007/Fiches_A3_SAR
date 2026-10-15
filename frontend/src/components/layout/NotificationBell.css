@@ -1,10 +1,12 @@
 .notification-bell {
   position: relative;
+  flex: 0 0 auto;
 }
 
 .notification-bell__button {
   position: relative;
   display: grid;
+  flex: 0 0 auto;
   padding: 8px;
   border: 0;
   border-radius: 50%;

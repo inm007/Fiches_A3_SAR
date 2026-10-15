@@ -4,14 +4,17 @@ import Alert from '../../components/common/Alert.jsx'
 import Button from '../../components/common/Button.jsx'
 import ConfirmDialog from '../../components/common/ConfirmDialog.jsx'
 import EmptyState from '../../components/common/EmptyState.jsx'
+import ListPagination from '../../components/common/ListPagination.jsx'
 import { TextArea } from '../../components/common/FormControls.jsx'
 import Skeleton from '../../components/common/Skeleton.jsx'
 import { refreshCounters } from '../../hooks/useCounters.js'
 import { describeError, ficheService } from '../../services/ficheService.js'
 import { toast } from '../../utils/toast.js'
+import { downloadExcel, matchesSearch } from '../../utils/listTools.js'
 import './Validations.css'
 
 const SEUIL_ANCIENNETE = 7
+const PAGE_SIZE = 25
 
 /**
  * Demandes qui attendent le profil actif, les plus anciennes en premier (UX §9.1).
@@ -24,9 +27,14 @@ function Validations() {
   const [refus, setRefus] = useState(null)
   const [commentaire, setCommentaire] = useState('')
   const [busy, setBusy] = useState(false)
+  const [query, setQuery] = useState('')
+  const [porteFilter, setPorteFilter] = useState('')
+  const [ancienneteFilter, setAncienneteFilter] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(PAGE_SIZE)
 
   const load = useCallback(() => ficheService.validations()
-    .then(setDemandes)
+    .then((result) => { setDemandes(result); setPage(1) })
     .catch((loadError) => setError(describeError(loadError))), [])
 
   useEffect(() => { load() }, [load])
@@ -49,6 +57,19 @@ function Validations() {
     }
   }
 
+  const filteredDemandes = (demandes ?? []).filter((demande) => (
+    matchesSearch([
+      demande.fiche.numero_a3,
+      demande.fiche.titre,
+      demande.role,
+      `porte ${demande.porte}`,
+      demande.anciennete_jours,
+    ], query)
+    && (!porteFilter || String(demande.porte) === porteFilter)
+    && (!ancienneteFilter || (ancienneteFilter === 'ancienne' ? demande.anciennete_jours >= SEUIL_ANCIENNETE : demande.anciennete_jours < SEUIL_ANCIENNETE))
+  ))
+  const visibleDemandes = filteredDemandes.slice((page - 1) * pageSize, page * pageSize)
+
   return (
     <section className="validations-page">
       <header className="sar-page-head"><h1>Validations à traiter</h1></header>
@@ -62,17 +83,32 @@ function Validations() {
       {demandes?.length === 0 && <EmptyState description="Les demandes qui vous sont adressées sur ce profil apparaîtront ici." title="Aucune demande en attente" />}
       {demandes?.length > 0 && (
         <div className="sar-card validations-page__card">
+          <div className="validations-page__toolbar sar-list-toolbar">
+            <label className="sar-list-toolbar__search">Rechercher<input placeholder="N°, titre, rôle…" onChange={(event) => { setQuery(event.target.value); setPage(1) }} type="search" value={query} /></label>
+            <label>Porte<select onChange={(event) => { setPorteFilter(event.target.value); setPage(1) }} value={porteFilter}><option value="">Toutes</option><option value="1">Porte 1</option><option value="2">Porte 2</option></select></label>
+            <label>Ancienneté<select onChange={(event) => { setAncienneteFilter(event.target.value); setPage(1) }} value={ancienneteFilter}><option value="">Toutes</option><option value="ancienne">7 jours et plus</option><option value="recente">Moins de 7 jours</option></select></label>
+            {(query || porteFilter || ancienneteFilter) && <Button type="button" variant="secondary" onClick={() => { setQuery(''); setPorteFilter(''); setAncienneteFilter(''); setPage(1) }}>Réinitialiser</Button>}
+            <span className="sar-list-toolbar__count">{filteredDemandes.length} demande{filteredDemandes.length > 1 ? 's' : ''}</span>
+            <Button disabled={!filteredDemandes.length} type="button" variant="export" onClick={() => downloadExcel('validations-a-traiter.xlsx', [
+              { label: 'N° A3', value: (demande) => demande.fiche.numero_a3 },
+              { label: 'Titre', value: (demande) => demande.fiche.titre },
+              { label: 'Porte', value: (demande) => demande.porte },
+              { label: 'Rôle demandé', value: (demande) => demande.role },
+              { label: 'Demandée le', value: (demande) => demande.demandee_le },
+              { label: 'Ancienneté (jours)', value: (demande) => demande.anciennete_jours },
+            ], filteredDemandes)}>Exporter Excel</Button>
+          </div>
           <table className="sar-table">
             <thead><tr><th>N° A3</th><th>Titre</th><th>Porte</th><th>Rôle demandé</th><th>Ancienneté</th><th /></tr></thead>
             <tbody>
-              {demandes.map((demande) => (
+              {visibleDemandes.map((demande) => (
                 <tr key={demande.id}>
                   <td><b>{demande.fiche.numero_a3}</b></td>
                   <td>{demande.fiche.titre}</td>
                   <td>Porte {demande.porte}</td>
                   <td>{demande.role}</td>
                   <td className={demande.anciennete_jours >= SEUIL_ANCIENNETE ? 'validations-page__old' : 'validations-page__age'}>{demande.anciennete_jours} j</td>
-                  <td className="validations-page__actions">
+                  <td className="validations-page__actions sar-list-actions">
                     <Button size="small" type="button" variant="secondary" onClick={() => navigate(`/fiches/${demande.fiche.id}`)}>Ouvrir</Button>
                     <Button disabled={busy} size="small" type="button" variant="success" onClick={() => decide(demande, 'VALIDE')}>Approuver</Button>
                     <Button disabled={busy} size="small" type="button" variant="danger" onClick={() => setRefus(demande)}>Refuser</Button>
@@ -81,6 +117,16 @@ function Validations() {
               ))}
             </tbody>
           </table>
+          {filteredDemandes.length === 0 && <EmptyState title="Aucune demande ne correspond à ces critères." />}
+          {filteredDemandes.length > 0 && (
+            <ListPagination
+              page={page}
+              pageSize={pageSize}
+              total={filteredDemandes.length}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
+            />
+          )}
         </div>
       )}
       <ConfirmDialog

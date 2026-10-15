@@ -96,7 +96,7 @@ export default function ActionsTab({ fiche, onChange, onError }) {
         disabled={dialog?.statut !== 'REALISE' && !motif.trim()}
         open={Boolean(dialog)}
         title={dialog ? `${stepLabels[dialog.statut]} l’action` : ''}
-        variant={dialog?.statut === 'REALISE' ? 'primary' : 'danger'}
+        variant={dialog?.statut === 'REALISE' ? 'primary' : 'danger-solid'}
         onCancel={() => setDialog(null)}
         onConfirm={() => apply(dialog.action, dialog.statut, dialog.statut === 'REALISE' ? { date_realisation: date || null } : { motif })}
       >

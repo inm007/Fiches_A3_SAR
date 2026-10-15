@@ -11,6 +11,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommentaireController;
 use App\Http\Controllers\FicheController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PieceJointeController;
 use App\Http\Controllers\ReferentielController;
 use App\Http\Controllers\TableauDeBordController;
 use App\Http\Controllers\TechniqueController;
@@ -65,6 +66,7 @@ Route::prefix('technique')
     ->controller(TechniqueController::class)
     ->group(function (): void {
         Route::get('/', 'index');
+        Route::get('/logs', 'logs');
         Route::put('/settings', 'updateSetting');
     });
 
@@ -80,8 +82,11 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/fiches/{fiche}/historique', [FicheController::class, 'historique']);
     Route::get('/fiches/{fiche}/options', [FicheController::class, 'options']);
     Route::post('/fiches/{fiche}/transitions', [WorkflowController::class, 'transition']);
+    Route::get('/fiches/{fiche}/pieces-jointes', [PieceJointeController::class, 'index']);
+    Route::post('/fiches/{fiche}/pieces-jointes', [PieceJointeController::class, 'store']);
     Route::get('/fiches/{fiche}/commentaires', [CommentaireController::class, 'index']);
     Route::post('/fiches/{fiche}/commentaires', [CommentaireController::class, 'store']);
+    Route::get('/pieces-jointes/{pieceJointe}/telechargement', [PieceJointeController::class, 'download']);
 
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::get('/notifications/non-lues', [NotificationController::class, 'nonLues']);

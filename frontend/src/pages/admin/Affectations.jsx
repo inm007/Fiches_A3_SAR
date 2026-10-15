@@ -1,4 +1,6 @@
 import AdminEntityPage from '../../components/admin/AdminEntityPage.jsx'
+import Badge from '../../components/common/Badge.jsx'
+import { formatDate } from '../../utils/format.js'
 import './Affectations.css'
 
 const related = [
@@ -16,6 +18,55 @@ const fields = [
 ]
 
 const columns = [
+  {
+    key: 'user',
+    label: 'Utilisateur',
+    width: '24%',
+    value: (assignment) => assignment.user ? `${assignment.user.prenom} ${assignment.user.nom}` : '—',
+    render: (assignment) => {
+      const name = assignment.user ? `${assignment.user.prenom} ${assignment.user.nom}` : '—'
+      return <span className="data-table__cell-text" title={name}>{name}</span>
+    },
+  },
+  {
+    key: 'role',
+    label: 'Rôle',
+    width: '17%',
+    value: (assignment) => assignment.role?.libelle ?? '—',
+    render: (assignment) => <span className="data-table__cell-text" title={assignment.role?.libelle ?? '—'}>{assignment.role?.libelle ?? '—'}</span>,
+  },
+  {
+    key: 'unite',
+    label: 'Unité',
+    width: '18%',
+    value: (assignment) => assignment.unite?.libelle ?? 'Global',
+    render: (assignment) => <span className="data-table__cell-text" title={assignment.unite?.libelle ?? 'Global'}>{assignment.unite?.libelle ?? 'Global'}</span>,
+  },
+  {
+    key: 'date_debut',
+    label: 'Début',
+    width: '13%',
+    value: (assignment) => assignment.date_debut ? formatDate(assignment.date_debut) : '—',
+    render: (assignment) => formatDate(assignment.date_debut),
+  },
+  {
+    key: 'date_fin',
+    label: 'Fin',
+    width: '13%',
+    filterable: false,
+    value: (assignment) => assignment.date_fin ? formatDate(assignment.date_fin) : '—',
+    render: (assignment) => formatDate(assignment.date_fin),
+  },
+  {
+    key: 'actif',
+    label: 'État',
+    width: '15%',
+    value: (assignment) => assignment.actif ? 'Actif' : 'Inactif',
+    render: (assignment) => <Badge tone={assignment.actif ? 'success' : 'muted'}>{assignment.actif ? 'Actif' : 'Inactif'}</Badge>,
+  },
+]
+
+const exportColumns = [
   { key: 'user', label: 'Utilisateur', value: (assignment) => assignment.user ? `${assignment.user.prenom} ${assignment.user.nom}` : '—' },
   { key: 'role', label: 'Rôle', value: (assignment) => assignment.role?.libelle },
   { key: 'unite', label: 'Unité', value: (assignment) => assignment.unite?.libelle ?? 'Global' },
@@ -31,9 +82,11 @@ function Affectations() {
         columns={columns}
         description="Gérez les rôles et périmètres des comptes. Un utilisateur peut cumuler plusieurs affectations."
         endpoint="/admin/assignments"
+        exportColumns={exportColumns}
         fields={fields}
         related={related}
         title="Affectations"
+        compactTable
       />
     </div>
   )

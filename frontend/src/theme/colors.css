@@ -1,15 +1,43 @@
 /* ==========================================================================
    SAR · Palette de couleurs (variables CSS uniquement)
-   Tirée du logo SAR : rouge #E60012 sur fond blanc
+   Palette fonctionnelle de l’interface SAR
    ========================================================================== */
 
 :root {
+  /* ---------- Fondations de l'interface ---------- */
+  --ink-strong: #14161A;
+  --radius-control: 14px;
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --shadow-soft: 0 2px 8px rgb(20 22 26 / 5%), 0 14px 32px rgb(20 22 26 / 6%);
+  --shadow-raised: 0 8px 18px rgb(20 22 26 / 10%), 0 20px 44px rgb(20 22 26 / 8%);
+  --duration-fast: 150ms;
+  --duration-normal: 220ms;
+
   /* ---------- Marque ---------- */
   --brand-50:  #FDECEE;
   --brand-100: #FAD1D5;
-  --brand-500: #E60012;
-  --brand-600: #B8000E;
-  --brand-700: #8F000B;
+  --brand-500: #E3000F;
+  --brand-600: #B0000F;
+  --brand-700: #8F000C;
+
+  /* ---------- Actions interactives ---------- */
+  --button-secondary-border: #D5DAE1;
+  --button-secondary-hover: #F4F5F7;
+  --button-icon: #5B6575;
+  --button-neutral-bg: #EEF0F3;
+  --button-danger-text: #B42318;
+  --button-danger-bg: #FDECEE;
+  --button-danger-hover: #FAD4D8;
+  --button-danger-solid: #B42318;
+  --button-danger-solid-hover: #941D15;
+  --button-success-text: #1F7A4D;
+  --button-success-bg: #E6F4EC;
+  --button-success-hover: #D4EBDD;
+  --button-disabled-bg: #E5E7EB;
+  --button-disabled-text: #9AA3AF;
 
   /* ---------- Neutres ---------- */
   --white:    #FFFFFF;
@@ -35,10 +63,10 @@
   --link-hover:    var(--brand-600);
 
   /* ---------- Messages système ---------- */
-  --success:        #167A4A;
-  --success-bg:     #E8F6EF;
-  --success-border: #A8DCC3;
-  --success-solid:  #167A4A;
+  --success:        #1F7A4D;
+  --success-bg:     #E6F4EC;
+  --success-border: #B8DEC9;
+  --success-solid:  #1F7A4D;
 
   --error:          #C62828;
   --error-bg:       #FDECEC;
@@ -63,7 +91,7 @@
   --st-mesure:        #0369A1;  --st-mesure-bg:        #E1F1FA;
   --st-maintien:      #4338CA;  --st-maintien-bg:      #ECEBFD;
   --st-attente:       #C2410C;  --st-attente-bg:       #FFEDE3;
-  --st-cloture:      #167A4A;  --st-cloture-bg:       #E8F6EF;
+  --st-cloture:      var(--button-success-text);  --st-cloture-bg: var(--button-success-bg);
 
   /* ---------- Statuts des actions ---------- */
   --action-a-faire:      var(--gray-500);  --action-a-faire-bg:   var(--gray-100);
@@ -84,8 +112,14 @@
   --chart-5: #6D28D9;
   --chart-6: #0E7490;
   --chart-7: #A8A8B3;
+  --chart-phase-opening: #7C8DA6;
+  --chart-phase-planning: #5B9BD5;
+  --chart-phase-realization: #3B6EA8;
+  --chart-phase-verification: #2A9D8F;
+  --chart-phase-closure: #4F8A6B;
+  --chart-phase-waiting: #B8BFC9;
 
   /* ---------- Divers ---------- */
-  --focus-ring: rgba(37, 99, 235, 0.35);
+  --focus-ring: rgb(227 0 15 / 25%);
   --overlay:    rgba(26, 26, 31, 0.5);
 }

@@ -8,8 +8,11 @@ function ToastHost() {
   useEffect(() => {
     const show = (event) => {
       const id = `${Date.now()}-${Math.random()}`
-      setToasts((current) => [...current, { id, message: event.detail }])
-      window.setTimeout(() => setToasts((current) => current.filter((item) => item.id !== id)), 3200)
+      const { message, durationMs } = typeof event.detail === 'string'
+        ? { message: event.detail, durationMs: 3200 }
+        : event.detail
+      setToasts((current) => [...current, { id, message }])
+      window.setTimeout(() => setToasts((current) => current.filter((item) => item.id !== id)), durationMs)
     }
     window.addEventListener('sar:toast', show)
     return () => window.removeEventListener('sar:toast', show)

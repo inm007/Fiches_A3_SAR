@@ -1,0 +1,103 @@
+.sar-list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+}
+
+.sar-list-toolbar > label {
+  display: grid;
+  min-width: 150px;
+  flex: 0 1 190px;
+  gap: 5px;
+  color: var(--gray-700);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sar-list-toolbar > .sar-list-toolbar__search {
+  min-width: min(100%, 250px);
+  flex: 1 1 280px;
+}
+
+.sar-list-toolbar input,
+.sar-list-toolbar select {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--white);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.sar-list-toolbar input:focus,
+.sar-list-toolbar select:focus {
+  border-color: var(--brand-500);
+  outline: 0;
+  box-shadow: 0 0 0 3px rgb(230 0 18 / 10%);
+}
+
+.sar-list-toolbar__count {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  margin: 0 auto 0 0;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--gray-700);
+  background: var(--gray-50);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sar-list-toolbar > .sar-list-toolbar__count {
+  margin-left: 0;
+}
+
+.sar-list-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.sar-list-actions .sar-button {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+@media (max-width: 700px) {
+  .sar-list-toolbar {
+    align-items: stretch;
+    padding: 12px;
+  }
+
+  .sar-list-toolbar > label,
+  .sar-list-toolbar > .sar-list-toolbar__search {
+    min-width: 100%;
+    flex-basis: 100%;
+  }
+
+  .sar-list-toolbar__count {
+    margin-right: 0;
+  }
+
+  .sar-list-toolbar > .sar-button {
+    flex: 1 1 auto;
+  }
+}

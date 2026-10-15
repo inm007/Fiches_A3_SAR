@@ -1,0 +1,159 @@
+.fiche-print {
+  display: none;
+}
+
+@page {
+  size: A3 landscape;
+  margin: 9mm;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .fiche-print,
+  .fiche-print * {
+    visibility: visible !important;
+  }
+
+  .fiche-print {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    color: #1a1a1f;
+    background: #fff;
+    font-family: Arial, sans-serif;
+    font-size: 8pt;
+    line-height: 1.3;
+  }
+
+  .fiche-print__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12mm;
+    padding-bottom: 5mm;
+    border-bottom: 2px solid #e60012;
+  }
+
+  .fiche-print__header p {
+    margin: 0 0 2mm;
+    color: #8f000b;
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .fiche-print__header h1 {
+    margin: 0 0 2mm;
+    font-size: 19pt;
+    line-height: 1.15;
+  }
+
+  .fiche-print__status {
+    display: grid;
+    gap: 2mm;
+    min-width: 34mm;
+    text-align: right;
+  }
+
+  .fiche-print__status b {
+    color: #b8000e;
+    font-size: 10pt;
+  }
+
+  .fiche-print__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    gap: 4mm;
+    padding-top: 4mm;
+  }
+
+  .fiche-print__section {
+    break-inside: avoid;
+    padding: 3mm;
+    border: 0.3mm solid #d2d2d8;
+    border-radius: 1.5mm;
+  }
+
+  .fiche-print__section h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 2mm;
+    margin: 0 0 2.5mm;
+    padding-bottom: 1.5mm;
+    border-bottom: 0.4mm solid #e5e5e8;
+    font-size: 10pt;
+  }
+
+  .fiche-print__section h2 span {
+    color: #e60012;
+    font-family: Consolas, monospace;
+    font-size: 9pt;
+  }
+
+  .fiche-print__fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5mm 3mm;
+    margin: 0;
+  }
+
+  .fiche-print__fields > div {
+    min-width: 0;
+    break-inside: avoid;
+  }
+
+  .fiche-print__fields dt {
+    color: #6b6b76;
+    font-size: 7pt;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .fiche-print__fields dd {
+    margin: 0.5mm 0 0;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+
+  .fiche-print__section table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 7pt;
+  }
+
+  .fiche-print__section th,
+  .fiche-print__section td {
+    padding: 1.2mm;
+    border: 0.25mm solid #e5e5e8;
+    text-align: left;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+
+  .fiche-print__section th {
+    color: #3a3a44;
+    background: #f0f0f2 !important;
+    print-color-adjust: exact;
+  }
+
+  .fiche-print__empty {
+    margin: 0;
+    color: #6b6b76;
+    font-style: italic;
+  }
+
+  .fiche-print__footer {
+    margin-top: 4mm;
+    padding-top: 2mm;
+    border-top: 0.3mm solid #d2d2d8;
+    color: #6b6b76;
+    font-size: 7pt;
+    text-align: right;
+  }
+}

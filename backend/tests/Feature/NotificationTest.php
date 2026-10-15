@@ -36,12 +36,23 @@ class NotificationTest extends TestCase
 
         $mine = NotificationInterne::create(['user_id' => $user->id, 'fiche_id' => $fiche->id, 'type' => 'TEST', 'message' => 'Pour moi']);
         NotificationInterne::create(['user_id' => $user->id, 'fiche_id' => $fiche->id, 'type' => 'TEST', 'message' => 'Encore pour moi']);
+        NotificationInterne::create(['user_id' => $user->id, 'fiche_id' => $fiche->id, 'type' => 'TEST', 'message' => 'Déjà lue', 'lu_le' => now()]);
         $theirs = NotificationInterne::create(['user_id' => $other->id, 'fiche_id' => $fiche->id, 'type' => 'TEST', 'message' => 'Pas pour moi']);
 
         $this->actingAs($user)->withSession(['auth.active_assignment_id' => $affectation->id]);
 
         $this->getJson('/api/notifications/non-lues')->assertOk()->assertJsonPath('data.count', 2);
-        $this->getJson('/api/notifications')->assertOk()->assertJsonPath('meta.total', 2)->assertJsonPath('data.0.fiche.numero_a3', $fiche->numero_a3);
+        $this->getJson('/api/notifications')->assertOk()->assertJsonPath('meta.total', 3)->assertJsonPath('meta.unread_total', 2)->assertJsonPath('data.0.fiche.numero_a3', $fiche->numero_a3);
+        $this->getJson('/api/notifications?etat=lu')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('meta.unread_total', 2);
+        $this->getJson('/api/notifications?q=Encore '.$fiche->numero_a3.'&etat=non_lu&per_page=1')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('meta.page', 1)
+            ->assertJsonPath('meta.last_page', 1)
+            ->assertJsonPath('data.0.message', 'Encore pour moi');
         $this->postJson("/api/notifications/{$theirs->id}/lu")->assertNotFound();
         $this->postJson("/api/notifications/{$mine->id}/lu")->assertOk();
         $this->getJson('/api/notifications/non-lues')->assertJsonPath('data.count', 1);

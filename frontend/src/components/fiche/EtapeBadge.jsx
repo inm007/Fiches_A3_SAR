@@ -4,7 +4,18 @@ import { ETAPES } from '../../utils/constants.js'
 
 function EtapeBadge({ etape }) {
   const config = ETAPES[etape] ?? { label: etape, tone: 'neutral' }
-  return <StatusBadge tone={config.tone}>{config.label}</StatusBadge>
+  const phase = {
+    OUVERT: 'opening',
+    EN_COURS: 'planning',
+    EN_VALIDATION_PLAN: 'planning',
+    REALISATION_ACTIONS: 'realization',
+    MESURE_RESULTATS: 'verification',
+    VERIFICATION_MAINTIEN: 'verification',
+    EN_VALIDATION_CLOTURE: 'verification',
+    EN_ATTENTE: 'waiting',
+    CLOTURE: 'closure',
+  }[etape]
+  return <StatusBadge tone={phase ? `phase-${phase}` : config.tone}>{config.label}</StatusBadge>
 }
 
 export function ConfidentialiteBadge({ value }) {

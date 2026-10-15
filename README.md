@@ -34,10 +34,15 @@ Ouvrir http://127.0.0.1:5173 et se connecter avec un compte de démonstration, m
 
 La base de démonstration contient 15 fiches, une par étape du parcours.
 
+## Pièces jointes
+
+Le pilote désigné peut ajouter des fichiers à sa fiche. Un agent peut en ajouter uniquement à une action dont il est responsable. Les profils autorisés à consulter la fiche peuvent télécharger les pièces jointes ; les fichiers sont conservés sur le disque privé du serveur, sans URL publique.
+
+Formats acceptés : PDF, PNG, JPEG, DOCX, XLSX et PPTX. La taille maximale par fichier et le nombre maximal de fichiers par fiche se règlent dans **Administration fonctionnelle → Paramètres fonctionnels** (10 Mo et 20 fichiers par défaut).
+
 ## Vérifier
 
 ```bash
 cd backend && php artisan test --compact
 cd frontend && npm run lint && npm run build
 ```
-

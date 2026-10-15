@@ -265,6 +265,7 @@ class FicheResource extends JsonResource
             'peut_designer_pilote' => $profile->is('ADMIN_FONCTIONNEL') && $etape === StatutEtape::Ouvert,
             'peut_changer_confidentialite' => $estPilote || $profile->is('ADMIN_FONCTIONNEL'),
             'peut_commenter' => $profile->is('AGENT', 'PILOTE', 'CONTROLE_GESTION', 'DIRECTION', ...Domaine::rolesValideurs()),
+            'peut_ajouter_piece_jointe' => $estPilote || ($profile->is('AGENT') && $fiche->actions->contains('responsable_id', $userId)),
             'peut_voir_historique' => $profile->is('PILOTE', 'DIRECTION', 'ADMIN_FONCTIONNEL'),
             'peut_enregistrer_controles' => $estPilote && in_array($etape, StatutEtape::etapesDeSuivi(), true),
             'peut_decider_gains' => $profile->is(ValidationCircuit::CONTROLE_GESTION) && $fiche->validations->contains(

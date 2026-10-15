@@ -1,7 +1,7 @@
 import Button from './Button.jsx'
 import './ConfirmDialog.css'
 
-function ConfirmDialog({ open = false, title, children, onCancel, onConfirm, confirmLabel = 'Confirmer', variant = 'danger', busy = false, disabled = false }) {
+function ConfirmDialog({ open = false, title, children, onCancel, onConfirm, confirmLabel = 'Confirmer', variant = 'danger-solid', busy = false, disabled = false }) {
   if (!open) return null
   return (
     <div className="dialog-backdrop">

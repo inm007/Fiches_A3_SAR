@@ -4,6 +4,8 @@ import Alert from '../components/common/Alert.jsx'
 import Button from '../components/common/Button.jsx'
 import DataTable from '../components/common/DataTable.jsx'
 import FormField from '../components/common/FormField.jsx'
+import ListPagination from '../components/common/ListPagination.jsx'
+import { downloadExcel } from '../utils/listTools.js'
 import './Technique.css'
 
 const smtpFields = [
@@ -27,6 +29,13 @@ function formatDate(value) {
 
 function Technique() {
   const [data, setData] = useState(null)
+  const [logsResult, setLogsResult] = useState(null)
+  const [logQuery, setLogQuery] = useState('')
+  const [logOperation, setLogOperation] = useState('')
+  const [logPage, setLogPage] = useState(1)
+  const [logPageSize, setLogPageSize] = useState(25)
+  const [logsError, setLogsError] = useState('')
+  const [exportingLogs, setExportingLogs] = useState(false)
   const [form, setForm] = useState({})
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(true)
@@ -45,6 +54,49 @@ function Technique() {
       .catch((loadError) => setError(loadError.message))
       .finally(() => setLoading(false))
   }, [applyOverview])
+
+  useEffect(() => {
+    let active = true
+    const timer = window.setTimeout(() => {
+      const params = new URLSearchParams({ page: String(logPage), per_page: String(logPageSize) })
+      if (logQuery.trim()) params.set('q', logQuery.trim())
+      if (logOperation) params.set('operation', logOperation)
+      apiRequest(`/technique/logs?${params}`)
+        .then((result) => { if (active) { setLogsResult(result); setLogsError('') } })
+        .catch((loadError) => { if (active) setLogsError(loadError.message) })
+    }, logQuery ? 250 : 0)
+    return () => { active = false; window.clearTimeout(timer) }
+  }, [logOperation, logPage, logPageSize, logQuery])
+
+  async function exportLogs() {
+    setExportingLogs(true)
+    setLogsError('')
+    try {
+      const rows = []
+      let page = 1
+      let lastPage = 1
+      do {
+        const params = new URLSearchParams({ page: String(page), per_page: '100' })
+        if (logQuery.trim()) params.set('q', logQuery.trim())
+        if (logOperation) params.set('operation', logOperation)
+        const result = await apiRequest(`/technique/logs?${params}`)
+        rows.push(...result.data)
+        lastPage = result.meta.last_page
+        page += 1
+      } while (page <= lastPage)
+      downloadExcel('journal-administration.xlsx', [
+        { label: 'Date', value: (log) => formatDate(log.created_at) },
+        { label: 'Auteur', value: (log) => log.auteur },
+        { label: 'Opération', value: (log) => log.operation },
+        { label: 'Objet', value: (log) => log.objet },
+        { label: 'Détail', value: (log) => log.detail ? JSON.stringify(log.detail) : '' },
+      ], rows)
+    } catch (exportError) {
+      setLogsError(`L’export a échoué : ${exportError.message}`)
+    } finally {
+      setExportingLogs(false)
+    }
+  }
 
   async function saveSmtp(event) {
     event.preventDefault()
@@ -77,9 +129,10 @@ function Technique() {
   if (loading) return <div className="technique-page">Chargement…</div>
   if (!data) return <div className="technique-page"><Alert severity="error">{error || 'Impossible de charger l’état technique.'}</Alert></div>
 
-  const logRows = (data.logs || []).map((log) => ({
+  const logRows = (logsResult?.data || []).map((log) => ({
     id: log.id,
     date: formatDate(log.created_at),
+    auteur: log.auteur,
     operation: log.operation,
     objet: log.objet,
     detail: log.detail ? JSON.stringify(log.detail) : '—',
@@ -137,7 +190,26 @@ function Technique() {
 
       <div className="technique-page__card">
         <h2>Journal d’administration</h2>
-        <DataTable columns={logColumns} rows={logRows} emptyMessage="Aucun événement enregistré." />
+        {logsError && <Alert severity="error">{logsError}</Alert>}
+        <div className="technique-page__log-tools sar-list-toolbar">
+          <label className="sar-list-toolbar__search">Rechercher<input onChange={(event) => { setLogQuery(event.target.value); setLogPage(1) }} placeholder="Opération, objet ou auteur…" type="search" value={logQuery} /></label>
+          <label>Opération<select onChange={(event) => { setLogOperation(event.target.value); setLogPage(1) }} value={logOperation}>
+            <option value="">Toutes</option>
+            {(logsResult?.meta.operations ?? []).map((operation) => <option key={operation} value={operation}>{operation}</option>)}
+          </select></label>
+          <span className="sar-list-toolbar__count">{logsResult?.meta.total ?? 0} événement{logsResult?.meta.total !== 1 ? 's' : ''}</span>
+          <Button disabled={exportingLogs || !logsResult?.meta.total} type="button" variant="export" onClick={exportLogs}>{exportingLogs ? 'Préparation…' : 'Exporter Excel'}</Button>
+        </div>
+        <DataTable columns={[{ key: 'date', label: 'Date' }, { key: 'auteur', label: 'Auteur' }, ...logColumns.slice(1)]} rows={logRows} emptyMessage="Aucun événement enregistré." />
+        {logsResult?.meta.total > 0 && (
+          <ListPagination
+            page={logsResult.meta.page}
+            pageSize={logPageSize}
+            total={logsResult.meta.total}
+            onPageChange={setLogPage}
+            onPageSizeChange={(size) => { setLogPageSize(size); setLogPage(1) }}
+          />
+        )}
       </div>
     </section>
   )

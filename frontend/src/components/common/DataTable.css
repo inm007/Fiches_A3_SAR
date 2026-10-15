@@ -33,3 +33,209 @@
 .data-table tbody tr:last-child td {
   border-bottom: 0;
 }
+
+.data-table__scroll--compact {
+  max-width: 100%;
+  overflow: auto;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+}
+
+.data-table--compact {
+  min-width: 720px;
+  table-layout: fixed;
+}
+
+.data-table--compact th,
+.data-table--compact td {
+  height: 56px;
+  padding: 8px 12px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.data-table--compact th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 40px;
+  color: var(--gray-700);
+  background: var(--gray-50);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.data-table--compact th button {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.data-table--compact th button:hover {
+  color: var(--brand-700);
+}
+
+.data-table--compact th button:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+}
+
+.data-table--compact tbody tr {
+  transition: background-color var(--duration-fast);
+}
+
+.data-table--compact tbody tr.data-table__row--clickable {
+  cursor: pointer;
+}
+
+.data-table--compact tbody tr:hover {
+  background: var(--gray-50);
+}
+
+.data-table--compact tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.data-table--compact .data-table__cell-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.data-table--compact .data-table__actions-column {
+  width: 168px;
+}
+
+.data-table__actions-cell {
+  overflow: visible !important;
+}
+
+.data-table__empty {
+  display: grid;
+  min-height: 180px;
+  justify-items: center;
+  align-content: center;
+  gap: 8px;
+  padding: 24px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.data-table__empty strong {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.data-table__empty-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--gray-500);
+  background: var(--gray-100);
+  font-size: 23px;
+}
+
+.data-table__skeleton-row td {
+  height: 56px;
+}
+
+@media (max-width: 1099px) {
+  .data-table--compact .data-table__secondary-column {
+    display: none;
+  }
+}
+
+@media (max-width: 799px) {
+  .data-table__scroll--compact {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .data-table--compact {
+    display: block;
+    min-width: 0;
+  }
+
+  .data-table--compact thead {
+    display: none;
+  }
+
+  .data-table--compact tbody {
+    display: grid;
+    gap: 8px;
+  }
+
+  .data-table--compact tbody tr {
+    display: grid;
+    gap: 0;
+    padding: 8px 12px;
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-card);
+    background: var(--white);
+    box-shadow: var(--shadow-card);
+  }
+
+  .data-table--compact tbody tr.data-table__row--clickable {
+    cursor: pointer;
+  }
+
+  .data-table--compact tbody td {
+    display: grid;
+    height: auto;
+    min-height: 36px;
+    grid-template-columns: minmax(92px, 34%) minmax(0, 1fr);
+    gap: 8px;
+    padding: 6px 0;
+    overflow: visible;
+    text-align: left;
+    white-space: normal;
+  }
+
+  .data-table--compact tbody td::before {
+    overflow: hidden;
+    color: var(--text-muted);
+    content: attr(data-label);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+  }
+
+  .data-table--compact tbody td.data-table__secondary-column {
+    display: none;
+  }
+
+  .data-table--compact .data-table__cell-text {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .data-table--compact .data-table__actions-cell {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .data-table--compact .data-table__actions-cell::before {
+    margin-right: auto;
+    align-self: center;
+  }
+}

@@ -32,7 +32,17 @@ class TableauDeBordController extends Controller
         $annee = (int) now()->year;
 
         $parEtape = $visibles()->selectRaw('statut_etape, count(*) as total')->groupBy('statut_etape')->pluck('total', 'statut_etape');
+        $actionsParStatut = ActionA3::query()
+            ->whereIn('fiche_id', $visibleIds)
+            ->selectRaw('statut, count(*) as total')
+            ->groupBy('statut')
+            ->pluck('total', 'statut');
         $actionsOuvertes = ActionA3::query()->whereIn('fiche_id', $visibleIds)->whereNotIn('statut', StatutAction::terminees());
+        $debutPeriode = now()->startOfMonth()->subMonths(5);
+        $fichesParMois = $visibles()
+            ->where('created_at', '>=', $debutPeriode)
+            ->get(['created_at'])
+            ->countBy(fn (FicheA3 $fiche) => $fiche->created_at->format('Y-m'));
 
         $validations = Validation::query()
             ->with('fiche:id,numero_a3,titre,statut_etape,pilote_id,sans_gain_chiffre')
@@ -50,6 +60,13 @@ class TableauDeBordController extends Controller
         return response()->json(['data' => [
             'role' => $profile->roleCode(),
             'par_etape' => collect(StatutEtape::cases())->mapWithKeys(fn (StatutEtape $etape) => [$etape->value => (int) ($parEtape[$etape->value] ?? 0)]),
+            'actions_par_statut' => collect(StatutAction::cases())->mapWithKeys(fn (StatutAction $statut) => [$statut->value => (int) ($actionsParStatut[$statut->value] ?? 0)]),
+            'fiches_creees_par_mois' => collect(range(0, 5))->map(function (int $offset) use ($debutPeriode, $fichesParMois) {
+                $mois = $debutPeriode->copy()->addMonths($offset);
+                $cle = $mois->format('Y-m');
+
+                return ['mois' => $cle, 'total' => (int) ($fichesParMois[$cle] ?? 0)];
+            })->values(),
             'fiches_total' => (int) $parEtape->sum(),
             'fiches_ouvertes' => (int) $parEtape->except([StatutEtape::Cloture->value])->sum(),
             'fiches_en_retard' => $visibles()->where('statut_etape', '!=', StatutEtape::Cloture->value)->whereDate('date_cible', '<', today())->count(),

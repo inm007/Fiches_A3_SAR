@@ -76,7 +76,7 @@ function WorkflowActions({ fiche, options, onChange, onError }) {
         disabled={!motif.trim()}
         open={dialog?.type === 'transition'}
         title={dialog?.code ? TRANSITIONS[dialog.code].label : ''}
-        variant={dialog?.code === 'T12' ? 'danger' : 'primary'}
+        variant={dialog?.code === 'T12' ? 'danger-solid' : 'primary'}
         onCancel={() => setDialog(null)}
         onConfirm={() => transition(dialog.code)}
       >

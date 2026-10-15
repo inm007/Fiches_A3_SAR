@@ -1,4 +1,5 @@
 @import './theme/colors.css';
+@import './components/common/ListToolbar.css';
 
 /* Socle visuel repris de la maquette « SAR · Fiches A3 — Démo » : cartes arrondies,
    ombres douces, en-têtes de tableau en capitales, pastilles à point, animations courtes. */
@@ -68,6 +69,11 @@ input,
 select,
 textarea {
   outline-color: var(--brand-500);
+}
+
+:is(button, a):focus-visible {
+  outline: 2px solid var(--brand-500) !important;
+  outline-offset: 2px !important;
 }
 
 ::selection {

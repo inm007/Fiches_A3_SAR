@@ -24,7 +24,7 @@ class AuthSessionTest extends TestCase
 
         config(['session.driver' => 'array']);
         config(['cache.default' => 'array']);
-        config(['sanctum.stateful' => array_merge(config('sanctum.stateful'), ['localhost:5173'])]);
+        config(['sanctum.stateful' => array_merge(config('sanctum.stateful'), ['localhost:5173', 'localhost:5174'])]);
         $this->withHeaders([
             'Origin' => 'http://localhost:5173',
             'Referer' => 'http://localhost:5173/',
@@ -49,6 +49,25 @@ class AuthSessionTest extends TestCase
         $this->assertNotNull($user->fresh()->derniere_connexion);
         Auth::forgetGuards();
         $this->getJson('/api/auth/moi')->assertOk()->assertJsonPath('profil_actif.role_code', 'AGENT');
+    }
+
+    public function test_frontend_on_port_5174_can_use_the_authenticated_session(): void
+    {
+        [$user] = $this->createAssignedUser('AGENT');
+        $this->withHeaders([
+            'Origin' => 'http://localhost:5174',
+            'Referer' => 'http://localhost:5174/',
+        ]);
+
+        $this->postJson('/api/auth/connexion', [
+            'identifiant' => $user->identifiant,
+            'password' => 'password',
+        ])->assertOk();
+
+        Auth::forgetGuards();
+        $this->getJson('/api/auth/moi')
+            ->assertOk()
+            ->assertJsonPath('profil_actif.role_code', 'AGENT');
     }
 
     public function test_technical_administrator_is_sent_to_the_technical_home(): void

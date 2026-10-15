@@ -1,4 +1,4 @@
-import { apiRequest } from '../auth/api.js'
+import { apiDownload, apiRequest } from '../auth/api.js'
 
 // Seul point d'accès de la fiche à l'API Laravel.
 
@@ -18,6 +18,14 @@ export const ficheService = {
   designerPilote: (id, piloteId) => send(`/admin/fiches/${id}`, 'PATCH', { pilote_id: piloteId }),
   confidentialiteAdmin: (id, confidentialite) => send(`/admin/fiches/${id}`, 'PATCH', { confidentialite }),
   historique: (id) => apiRequest(`/fiches/${id}/historique`).then((result) => result.data),
+  piecesJointes: (id) => apiRequest(`/fiches/${id}/pieces-jointes`),
+  ajouterPieceJointe: (id, fichier, actionId) => {
+    const body = new FormData()
+    body.append('fichier', fichier)
+    if (actionId) body.append('action_id', actionId)
+    return apiRequest(`/fiches/${id}/pieces-jointes`, { method: 'POST', body })
+  },
+  telechargerPieceJointe: (id) => apiDownload(`/pieces-jointes/${id}/telechargement`),
   commentaires: (id) => apiRequest(`/fiches/${id}/commentaires`).then((result) => result.data),
   commenter: (id, texte) => send(`/fiches/${id}/commentaires`, 'POST', { texte }).then((result) => result.data),
   actionStatut: (actionId, data) => send(`/actions/${actionId}/statut`, 'POST', data).then((result) => result.data),

@@ -56,9 +56,18 @@ class FicheController extends Controller
 
         $query = $this->visibility->apply(FicheA3::query(), $profile)
             ->with(['unite:id,code,libelle', 'pilote:id,nom,prenom'])
-            ->when($filters['q'] ?? null, fn (Builder $q, string $term) => $q->where(fn (Builder $search) => $search
-                ->where('numero_a3', 'ilike', '%'.$term.'%')
-                ->orWhere('titre', 'ilike', '%'.$term.'%')))
+            ->when($filters['q'] ?? null, function (Builder $q, string $term): void {
+                foreach (preg_split('/\s+/u', trim($term), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $word) {
+                    $needle = '%'.$word.'%';
+                    $q->where(fn (Builder $search) => $search
+                        ->where('numero_a3', 'ilike', $needle)
+                        ->orWhere('titre', 'ilike', $needle)
+                        ->orWhereHas('unite', fn (Builder $unit) => $unit->where('libelle', 'ilike', $needle)->orWhere('code', 'ilike', $needle))
+                        ->orWhereHas('pilote', fn (Builder $pilot) => $pilot
+                            ->where('prenom', 'ilike', $needle)
+                            ->orWhere('nom', 'ilike', $needle)));
+                }
+            })
             ->when($filters['date_debut'] ?? null, fn (Builder $q, string $date) => $q->whereDate('created_at', '>=', $date))
             ->when($filters['date_fin'] ?? null, fn (Builder $q, string $date) => $q->whereDate('created_at', '<=', $date))
             ->when($filters['sans_pilote'] ?? false, fn (Builder $q) => $q->whereNull('pilote_id'));

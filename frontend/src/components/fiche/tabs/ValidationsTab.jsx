@@ -112,7 +112,7 @@ export default function ValidationsTab({ fiche, onChange, onError }) {
         disabled={dialog?.decision === 'REFUSE' && !commentaire.trim()}
         open={Boolean(dialog)}
         title={dialog?.decision === 'REFUSE' ? 'Refuser la demande' : 'Approuver la demande'}
-        variant={dialog?.decision === 'REFUSE' ? 'danger' : 'success'}
+        variant={dialog?.decision === 'REFUSE' ? 'danger-solid' : 'primary'}
         onCancel={() => setDialog(null)}
         onConfirm={() => decide(dialog.validation, dialog.decision)}
       >

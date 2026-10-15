@@ -25,7 +25,7 @@ const routeNames = {
 function Topbar() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  const { user, logout, activeProfile } = useAuth()
+  const { logout, activeProfile } = useAuth()
   const [logoutError, setLogoutError] = useState('')
   const [crumb, setCrumb] = useState(null)
   const [search, setSearch] = useState('')
@@ -57,7 +57,7 @@ function Topbar() {
 
   return (
     <header className="topbar">
-      <nav aria-label="Fil d’Ariane" className="topbar__breadcrumb">
+      <nav aria-label="Fil d’Ariane" className={`topbar__breadcrumb${pathname === '/tableau-de-bord' ? ' topbar__breadcrumb--dashboard' : ''}`}>
         <Link aria-label="Accueil" className="topbar__home" to={activeProfile?.redirect_to || '/tableau-de-bord'}>
           <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
             <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1V10Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
@@ -84,18 +84,7 @@ function Topbar() {
       <div className="topbar__profile">
         <ProfileSwitcher />
         {activeProfile?.role_code !== 'ADMIN_TECHNIQUE' && <NotificationBell />}
-        <div className="topbar__user">
-          <span aria-hidden="true" className="topbar__avatar">
-            {`${user?.prenom?.[0] || ''}${user?.nom?.[0] || ''}`.toLocaleUpperCase()}
-          </span>
-          <span className="topbar__user-details">
-            <strong className="topbar__user-name" title={`${user?.prenom || ''} ${user?.nom || ''}`.trim()}>
-              {user?.prenom} {user?.nom}
-            </strong>
-            <span className="topbar__user-role">{activeProfile?.role}</span>
-          </span>
-        </div>
-        <button aria-label="Déconnexion" className="topbar__logout" onClick={handleLogout} title="Déconnexion" type="button">
+        <button aria-label="Se déconnecter" className="topbar__logout" onClick={handleLogout} title="Se déconnecter" type="button">
           <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
             <path d="M10 17l5-5-5-5m5 5H3m9-9h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
           </svg>

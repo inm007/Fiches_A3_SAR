@@ -8,6 +8,7 @@ import MissingConditionsPanel from '../../components/fiche/MissingConditionsPane
 import SectionEditor from '../../components/fiche/SectionEditor.jsx'
 import SectionStepper from '../../components/fiche/SectionStepper.jsx'
 import WorkflowActions from '../../components/fiche/WorkflowActions.jsx'
+import FichePrintView from '../../components/fiche/FichePrintView.jsx'
 import ActionsTab from '../../components/fiche/tabs/ActionsTab.jsx'
 import CommentairesTab from '../../components/fiche/tabs/CommentairesTab.jsx'
 import ControlesTab from '../../components/fiche/tabs/ControlesTab.jsx'
@@ -70,6 +71,12 @@ function FicheDetail() {
   const onError = useCallback((described) => setPanel(described), [])
 
   const confirmLeave = () => !dirty || window.confirm('Des modifications ne sont pas enregistrées. Les abandonner ?')
+  function exportPdf() {
+    const previousTitle = document.title
+    document.title = `${fiche.numero_a3} - ${fiche.titre}`
+    window.print()
+    window.setTimeout(() => { document.title = previousTitle }, 1000)
+  }
   const goToSection = (numero) => {
     if (numero < 1 || numero > 12 || !confirmLeave()) return
     setDirty(false)
@@ -108,7 +115,7 @@ function FicheDetail() {
   return (
     <div className="fiche-detail-page">
       <FicheHeader fiche={fiche}>
-        <Button disabled title="L’export PDF A3 arrive avec le lot L13." type="button" variant="secondary"><Icon name="pdf" />Exporter en PDF A3</Button>
+        <Button type="button" variant="secondary" onClick={exportPdf}><Icon name="pdf" />Exporter en PDF A3</Button>
         <WorkflowActions fiche={fiche} options={options} onChange={onChange} onError={onError} />
       </FicheHeader>
       <MissingConditionsPanel error={panel} onClose={() => setPanel(null)} onReload={reload} />
@@ -133,6 +140,7 @@ function FicheDetail() {
       ) : (
         <TabComponent fiche={fiche} options={options} onChange={onChange} onError={onError} />
       )}
+      <FichePrintView fiche={fiche} refs={refs} />
     </div>
   )
 }

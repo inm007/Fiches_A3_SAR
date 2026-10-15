@@ -35,3 +35,7 @@
   justify-content: flex-end;
   gap: 10px;
 }
+
+.confirm-dialog footer .sar-button:first-child {
+  margin-right: auto;
+}
