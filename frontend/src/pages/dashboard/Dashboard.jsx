@@ -7,7 +7,7 @@ import Button from '../../components/ui/Button.jsx'
 import Icon from '../../components/ui/Icon.jsx'
 import Skeleton from '../../components/ui/Skeleton.jsx'
 import { ETAPES } from '../../utils/constants.js'
-import { formatFcfa } from '../../utils/format.js'
+import { formatFcfa, plural } from '../../utils/format.js'
 import { downloadExcel, matchesSearch } from '../../utils/listTools.js'
 import './Dashboard.css'
 
@@ -176,23 +176,20 @@ function Dashboard() {
 
   return (
     <section className="dashboard-page">
-      {canDeclare && (
-        <header className="sar-page-head dashboard-page__actions">
-          <Button type="button" onClick={() => navigate('/fiches/nouvelle')}><Icon name="plus" />Nouvelle fiche</Button>
-        </header>
-      )}
-
       {error && <Alert severity="error">{error}</Alert>}
 
       <div className={`dashboard-page__hero${compactPriorities ? ' dashboard-page__hero--compact' : ''}`}>
         <div>
           <div className="dashboard-page__eyebrow">Vos priorités du jour</div>
-          <h2>{compactPriorities ? 'Aucun retard ni validation en attente' : `${aTraiter.length} élément(s) attendent votre action`}</h2>
+          <h2>{compactPriorities ? 'Aucun retard ni validation en attente' : `${plural(aTraiter.length, 'élément')} ${aTraiter.length > 1 ? 'attendent' : 'attend'} votre action`}</h2>
           <div className="dashboard-page__hero-text">
-            {data ? `${retards} action(s) en retard dans les priorités affichées · ${data.validations_a_traiter} validation(s) à traiter` : 'Chargement des indicateurs…'}
+            {data ? `${plural(retards, 'action')} en retard dans les priorités affichées · ${plural(data.validations_a_traiter, 'validation')} à traiter` : 'Chargement des indicateurs…'}
           </div>
         </div>
-        <Button type="button" variant="secondary" onClick={() => navigate('/fiches')}>Voir les fiches <Icon name="arrow" /></Button>
+        <div className="dashboard-page__hero-actions">
+          {canDeclare && <Button icon="plus" type="button" onClick={() => navigate('/fiches/nouvelle')}>Nouvelle fiche</Button>}
+          <Button type="button" variant="secondary" onClick={() => navigate('/fiches')}>Voir les fiches <Icon name="arrow" /></Button>
+        </div>
       </div>
 
       <div className="dashboard-page__kpis">
@@ -255,7 +252,7 @@ function Dashboard() {
                 const height = count > 0 ? Math.max(count / maxMonthlyFiches * 100, 8) : 0
 
                 return (
-                  <div className="dashboard-page__monthly-column" key={month.mois} title={`${monthLabel(month.mois)} : ${count} fiche(s)`}>
+                  <div className="dashboard-page__monthly-column" key={month.mois} title={`${monthLabel(month.mois)} : ${plural(count, 'fiche')}`}>
                     <strong>{count}</strong>
                     <span className="dashboard-page__monthly-track"><i style={{ height: `${height}%` }} /></span>
                     <span>{monthLabel(month.mois)}</span>
@@ -275,7 +272,7 @@ function Dashboard() {
               {actionStatuses.filter((item) => item.count > 0).map((item) => (
                 <li key={item.code}>
                   <span className="dashboard-page__todo-chart-label">{item.label}</span>
-                  <span aria-label={`${item.count} action(s)`} className="dashboard-page__todo-chart-track" role="img">
+                  <span aria-label={plural(item.count, 'action')} className="dashboard-page__todo-chart-track" role="img">
                     <i style={{ width: `${item.count / maxActionCount * 100}%`, background: item.color }} />
                   </span>
                   <strong>{item.count}</strong>

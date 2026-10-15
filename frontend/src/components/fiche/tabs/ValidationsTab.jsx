@@ -7,7 +7,7 @@ import { Select, TextArea } from '../../ui/FormControls.jsx'
 import { refreshCounters } from '../../../hooks/useCounters.js'
 import { describeError, ficheService } from '../../../services/ficheService.js'
 import { CATEGORIES_GAIN, DECISIONS, STATUTS_GAIN } from '../../../utils/constants.js'
-import { formatDate, formatFcfa, libelle } from '../../../utils/format.js'
+import { formatDate, formatFcfa, libelle, plural } from '../../../utils/format.js'
 import { toast } from '../../../utils/toast.js'
 import './FicheTab.css'
 
@@ -50,7 +50,7 @@ export default function ValidationsTab({ fiche, onChange, onError }) {
       <h2>Validations</h2>
       {plusAncienne && (
         <Alert severity="warning">
-          Demande « {plusAncienne.role?.libelle} » en attente depuis <b>{plusAncienne.anciennete_jours} jour(s)</b>. Aucun délai imposé.
+          Demande « {plusAncienne.role?.libelle} » en attente depuis <b>{plural(plusAncienne.anciennete_jours, 'jour')}</b>. Aucun délai imposé.
         </Alert>
       )}
 

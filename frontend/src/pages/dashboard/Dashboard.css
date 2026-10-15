@@ -4,8 +4,10 @@
   overflow-x: clip;
 }
 
-.dashboard-page__actions {
-  justify-content: flex-end;
+.dashboard-page__hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
 }
 
 /* Bandeau sombre « priorités du jour » de la maquette */
