@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../../../auth/useAuth.js'
 import Button from '../../ui/Button.jsx'
+import EmptyState from '../../ui/EmptyState.jsx'
+import FileInput from '../../ui/FileInput.jsx'
+import { Select } from '../../ui/FormControls.jsx'
+import Skeleton from '../../ui/Skeleton.jsx'
 import { describeError, ficheService } from '../../../services/ficheService.js'
 import { formatDate } from '../../../utils/format.js'
 import { toast } from '../../../utils/toast.js'
@@ -102,37 +106,24 @@ export default function PiecesJointesTab({ fiche, onError }) {
 
       {fiche.droits.peut_ajouter_piece_jointe && (
         <form className="pieces-jointes__upload" ref={formRef} onSubmit={upload}>
-          <label>
-            Fichier
-            <input
-              accept={ACCEPTED_FILES}
-              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-              required
-              type="file"
-            />
-          </label>
-          <label>
-            {isAgent ? 'Action dont vous êtes responsable' : 'Associer à une action (facultatif)'}
-            <select
-              onChange={(event) => setActionId(event.target.value)}
-              required={isAgent}
-              value={actionId}
-            >
-              <option value="">{isAgent ? 'Choisir une action' : 'Fichier associé à la fiche'}</option>
-              {uploadableActions.map((action) => (
-                <option key={action.id} value={action.id}>{action.description}</option>
-              ))}
-            </select>
-          </label>
-          <Button disabled={busy || !file || (isAgent && !actionId)} type="submit">
-            {busy ? 'Envoi en cours…' : 'Ajouter le fichier'}
+          <FileInput accept={ACCEPTED_FILES} file={file} label="Fichier" required onChange={setFile} />
+          <Select
+            label={isAgent ? 'Action dont vous êtes responsable' : 'Associer à une action (facultatif)'}
+            options={uploadableActions.map((action) => [action.id, action.description])}
+            placeholder={isAgent ? 'Choisir une action' : 'Fichier associé à la fiche'}
+            required={isAgent}
+            value={actionId}
+            onChange={setActionId}
+          />
+          <Button disabled={!file || (isAgent && !actionId)} icon="plus" loading={busy} loadingLabel="Envoi en cours…" type="submit">
+            Ajouter le fichier
           </Button>
         </form>
       )}
 
-      {loading ? <p className="fiche-tab__muted">Chargement des pièces jointes…</p> : (
+      {loading ? <Skeleton lines={3} height={22} /> : (
         <div className="pieces-jointes__list">
-          {attachments.length === 0 && <p className="fiche-tab__muted">Aucune pièce jointe pour cette fiche.</p>}
+          {attachments.length === 0 && <EmptyState icon="file" title="Aucune pièce jointe pour cette fiche" />}
           {attachments.map((attachment) => (
             <article className="pieces-jointes__item" key={attachment.id}>
               <div>
@@ -142,7 +133,7 @@ export default function PiecesJointesTab({ fiche, onError }) {
                   {attachment.action && <> · Action : {attachment.action}</>}
                 </p>
               </div>
-              <Button type="button" variant="secondary" onClick={() => download(attachment)}>
+              <Button icon="download" type="button" variant="secondary" onClick={() => download(attachment)}>
                 Télécharger
               </Button>
             </article>
