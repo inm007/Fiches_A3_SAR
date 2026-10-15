@@ -80,7 +80,7 @@ function Validations() {
           {error.manques.length > 0 && <ul>{error.manques.map((manque) => <li key={manque}>{manque}</li>)}</ul>}
         </Alert>
       )}
-      {!demandes && !error && <Skeleton />}
+      {!demandes && !error && <Skeleton lines={5} height={22} />}
       {demandes?.length === 0 && <EmptyState description="Les demandes qui vous sont adressées sur ce profil apparaîtront ici." title="Aucune demande en attente" />}
       {demandes?.length > 0 && (
         <div className="sar-card validations-page__card">

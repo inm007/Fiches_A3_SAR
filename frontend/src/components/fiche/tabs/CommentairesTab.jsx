@@ -4,6 +4,7 @@ import { TextArea } from '../../ui/FormControls.jsx'
 import { describeError, ficheService } from '../../../services/ficheService.js'
 import { formatDateTime } from '../../../utils/format.js'
 import { toast } from '../../../utils/toast.js'
+import Skeleton from '../../ui/Skeleton.jsx'
 import './FicheTab.css'
 
 export default function CommentairesTab({ fiche, onError }) {
@@ -38,7 +39,7 @@ export default function CommentairesTab({ fiche, onError }) {
   return (
     <section className="fiche-tab">
       <h2>Commentaires</h2>
-      {loading && <p className="fiche-tab__muted">Chargement…</p>}
+      {loading && <Skeleton lines={3} />}
       {!loading && commentaires.length === 0 && <p className="fiche-tab__muted">Aucun commentaire.</p>}
       {commentaires.map((commentaire) => (
         <article className="fiche-tab__comment" key={commentaire.id}>

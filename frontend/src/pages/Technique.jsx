@@ -7,6 +7,7 @@ import FormField from '../components/ui/FormField.jsx'
 import PageBanner from '../components/shared/PageBanner.jsx'
 import ListPagination from '../components/ui/ListPagination.jsx'
 import { downloadExcel } from '../utils/listTools.js'
+import PageLoader from '../components/shared/PageLoader.jsx'
 import './Technique.css'
 
 const smtpFields = [
@@ -127,7 +128,7 @@ function Technique() {
     }
   }
 
-  if (loading) return <div className="technique-page">Chargement…</div>
+  if (loading) return <PageLoader label="Chargement de l’état technique…" />
   if (!data) return <div className="technique-page"><Alert severity="error">{error || 'Impossible de charger l’état technique.'}</Alert></div>
 
   const logRows = (logsResult?.data || []).map((log) => ({

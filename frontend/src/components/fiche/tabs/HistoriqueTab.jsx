@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { describeError, ficheService } from '../../../services/ficheService.js'
 import { ETAPES } from '../../../utils/constants.js'
 import { formatDateTime } from '../../../utils/format.js'
+import Skeleton from '../../ui/Skeleton.jsx'
 import './FicheTab.css'
 
 const typeLabels = {
@@ -45,7 +46,7 @@ export default function HistoriqueTab({ fiche, onError }) {
     <section className="fiche-tab">
       <h2>Historique</h2>
       <p className="fiche-tab__help">Journal immuable : aucun utilisateur ne peut le modifier ou le supprimer.</p>
-      {evenements === null && <p className="fiche-tab__muted">Chargement…</p>}
+      {evenements === null && <Skeleton lines={4} />}
       {evenements?.length === 0 && <p className="fiche-tab__muted">Aucun événement.</p>}
       <ol className="sar-timeline">
         {(evenements ?? []).map((evenement) => (

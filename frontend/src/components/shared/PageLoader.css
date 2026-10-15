@@ -1,0 +1,18 @@
+.page-loader {
+  display: grid;
+  min-height: 40vh;
+  align-content: center;
+  justify-items: center;
+  gap: var(--space-15);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.page-loader .sar-spinner {
+  color: var(--brand-500);
+}
+
+.page-loader--full {
+  min-height: 100vh;
+  background: var(--bg-page);
+}

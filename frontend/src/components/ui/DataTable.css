@@ -139,33 +139,6 @@
   padding-left: 6px !important;
 }
 
-.data-table__empty {
-  display: grid;
-  min-height: 180px;
-  justify-items: center;
-  align-content: center;
-  gap: 8px;
-  padding: 24px;
-  color: var(--text-muted);
-  text-align: center;
-}
-
-.data-table__empty strong {
-  color: var(--text);
-  font-size: var(--text-lg);
-}
-
-.data-table__empty-icon {
-  display: grid;
-  width: 36px;
-  height: 36px;
-  place-items: center;
-  border-radius: 50%;
-  color: var(--gray-500);
-  background: var(--gray-100);
-  font-size: var(--text-2xl);
-}
-
 .data-table__skeleton-row td {
   height: 56px;
 }

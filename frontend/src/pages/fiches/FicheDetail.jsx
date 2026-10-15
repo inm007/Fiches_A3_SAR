@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import Alert from '../../components/ui/Alert.jsx'
-import Skeleton from '../../components/ui/Skeleton.jsx'
 import FicheHeader from '../../components/fiche/FicheHeader.jsx'
+import ErrorPage from '../../components/shared/ErrorPage.jsx'
 import Tabs from '../../components/ui/Tabs.jsx'
 import MissingConditionsPanel from '../../components/fiche/MissingConditionsPanel.jsx'
 import SectionEditor from '../../components/fiche/SectionEditor.jsx'
@@ -19,6 +19,7 @@ import Button from '../../components/ui/Button.jsx'
 import Icon from '../../components/ui/Icon.jsx'
 import { ficheService } from '../../services/ficheService.js'
 import { setCrumb } from '../../utils/crumb.js'
+import PageLoader from '../../components/shared/PageLoader.jsx'
 import './FicheDetail.css'
 
 const tabComponents = {
@@ -88,14 +89,17 @@ function FicheDetail() {
     setTab(key)
   }
 
-  if (status === 'loading') return <div className="fiche-detail-page"><Skeleton /><Skeleton /></div>
+  if (status === 'loading') return <PageLoader label="Chargement de la fiche…" />
   if (status === 'not-found') {
     return (
-      <div className="fiche-detail-page">
-        <h1>Page introuvable</h1>
-        <p>Cette fiche n’existe pas ou vous n’y avez pas accès.</p>
-        <Link to="/fiches">Retour au registre</Link>
-      </div>
+      <ErrorPage
+        code={404}
+        description="Cette fiche n’existe pas ou votre profil actif n’y a pas accès."
+        homeLabel="Retour au registre"
+        homeTo="/fiches"
+        icon="file"
+        title="Fiche introuvable"
+      />
     )
   }
   if (status === 'error') return <div className="fiche-detail-page"><Alert severity="error">Impossible de charger la fiche. Réessayez plus tard.</Alert></div>

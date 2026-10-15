@@ -13,3 +13,8 @@
 @media (prefers-reduced-motion: reduce) {
   .sar-skeleton { animation: none; }
 }
+
+.sar-skeleton-lines {
+  display: grid;
+  gap: var(--space-1);
+}

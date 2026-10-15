@@ -101,7 +101,7 @@ function Notifications() {
         title="Notifications"
       />
       {error && <Alert severity="error">{error}</Alert>}
-      {!result && !error && <Skeleton />}
+      {!result && !error && <Skeleton lines={5} height={22} />}
       {result && (
         <div className="notifications-page__filters sar-list-toolbar">
           <label className="sar-list-toolbar__search">Recherche<input onChange={(event) => { setQuery(event.target.value); setPage(1) }} placeholder="Message ou numéro de fiche…" type="search" value={query} /></label>

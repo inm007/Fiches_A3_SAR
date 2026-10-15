@@ -6,6 +6,8 @@ function DataTable({
   columns = [],
   rows = [],
   emptyMessage = 'Aucun résultat.',
+  emptyDescription,
+  emptyAction,
   loading = false,
   actions,
   context,
@@ -15,18 +17,18 @@ function DataTable({
   const compact = variant === 'compact'
   const classes = ['data-table__scroll', compact ? 'data-table__scroll--compact' : ''].filter(Boolean).join(' ')
 
-  if (compact && !loading && !rows.length) {
+  if (!loading && !rows.length) {
     return (
-      <div className={classes}>
-        <div className="data-table__empty" role="status">
-          <span aria-hidden="true" className="data-table__empty-icon">⌕</span>
-          <strong>{emptyMessage}</strong>
-          <span>Modifiez les critères de recherche ou ajoutez un élément.</span>
-        </div>
+      <div className={compact ? classes : undefined}>
+        <EmptyState
+          action={emptyAction}
+          description={emptyDescription ?? (compact ? 'Modifiez les critères de recherche ou ajoutez un élément.' : undefined)}
+          icon="search"
+          title={emptyMessage}
+        />
       </div>
     )
   }
-  if (!compact && !loading && !rows.length) return <EmptyState title={emptyMessage} />
 
   return (
     <div aria-busy={loading} className={classes}>
