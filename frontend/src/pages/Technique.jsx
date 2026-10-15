@@ -199,7 +199,7 @@ function Technique() {
       <Card title="Journal d’administration">
         <div className="technique-page__logs">
           {logsError && <Alert severity="error">{logsError}</Alert>}
-          <ListToolbar>
+          <ListToolbar plain>
             <SearchField placeholder="Opération, objet ou auteur…" value={logQuery} onChange={(value) => { setLogQuery(value); setLogPage(1) }} />
             <FilterSelect
               label="Opération"

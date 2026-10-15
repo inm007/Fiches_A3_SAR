@@ -8,9 +8,9 @@
 //   …boutons
 // </ListToolbar>
 
-/** Conteneur de la barre. */
-export function ListToolbar({ children, className = '' }) {
-  return <div className={['sar-list-toolbar', className].filter(Boolean).join(' ')}>{children}</div>
+/** Conteneur de la barre. `plain` : sans cadre, quand la barre est déjà dans une carte. */
+export function ListToolbar({ children, className = '', plain = false }) {
+  return <div className={['sar-list-toolbar', plain ? 'sar-list-toolbar--plain' : '', className].filter(Boolean).join(' ')}>{children}</div>
 }
 
 /** Champ de recherche plein texte ; `onChange` reçoit la valeur. */
@@ -32,6 +32,16 @@ export function FilterSelect({ label, value, onChange, options, allLabel = 'Tout
         <option value="">{allLabel}</option>
         {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
       </select>
+    </label>
+  )
+}
+
+/** Filtre par date (jj/mm/aaaa selon la langue du navigateur) ; `onChange` reçoit la valeur AAAA-MM-JJ. */
+export function DateFilter({ label, value, onChange, min, max }) {
+  return (
+    <label className="sar-list-toolbar__date">
+      {label}
+      <input max={max} min={min} type="date" value={value} onChange={(event) => onChange(event.target.value)} />
     </label>
   )
 }

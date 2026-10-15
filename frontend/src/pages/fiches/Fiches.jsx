@@ -4,7 +4,7 @@ import { apiRequest } from '../../auth/api.js'
 import { useAuth } from '../../auth/useAuth.js'
 import AdminFicheModal from '../../components/fiche/AdminFicheModal.jsx'
 import EtapeBadge, { ConfidentialiteBadge } from '../../components/fiche/EtapeBadge.jsx'
-import { FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../../components/shared/ListToolbar.jsx'
+import { DateFilter, FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../../components/shared/ListToolbar.jsx'
 import PageBanner from '../../components/shared/PageBanner.jsx'
 import Alert from '../../components/ui/Alert.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -254,8 +254,8 @@ function Fiches() {
         <FilterSelect label="Confidentialité" options={CONFIDENTIALITE_OPTIONS} value={filters.confidentialite} onChange={setFilter('confidentialite')} />
         {!isAdmin && (
           <>
-            <label>Créée du<input type="date" value={filters.date_debut} onChange={(event) => setFilter('date_debut')(event.target.value)} /></label>
-            <label>au<input type="date" value={filters.date_fin} onChange={(event) => setFilter('date_fin')(event.target.value)} /></label>
+            <DateFilter label="Créée du" max={filters.date_fin || undefined} value={filters.date_debut} onChange={setFilter('date_debut')} />
+            <DateFilter label="au" min={filters.date_debut || undefined} value={filters.date_fin} onChange={setFilter('date_fin')} />
           </>
         )}
         <ToolbarActions>

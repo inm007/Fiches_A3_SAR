@@ -1,4 +1,4 @@
-import { Checkbox } from '../../ui/FormControls.jsx'
+import { Checkbox, Select } from '../../ui/FormControls.jsx'
 import { DOMAINES, MOC_STATUTS } from '../../../utils/constants.js'
 import RowsEditor, { CellInput, CellSelect } from './RowsEditor.jsx'
 import { peopleOptions } from './options.js'
@@ -35,17 +35,13 @@ export default function Section07RisquesMoc({ draft, set, fiche, options, readOn
         ))}
       </div>
       {coches.has('AUTRES') && (
-        <label className="sar-field">
-          <span className="sar-field__label">Valideur du domaine « Autres »</span>
-          <select
-            disabled={structureLocked}
-            value={coches.get('AUTRES').valideur_role_code ?? ''}
-            onChange={(event) => set('domaines', draft.domaines.map((domaine) => (domaine.domaine === 'AUTRES' ? { ...domaine, valideur_role_code: event.target.value } : domaine)))}
-          >
-            <option value="">Choisir…</option>
-            {(options?.roles_valideurs ?? []).map((role) => <option key={role.code} value={role.code}>{role.libelle}</option>)}
-          </select>
-        </label>
+        <Select
+          label="Valideur du domaine « Autres »"
+          options={(options?.roles_valideurs ?? []).map((role) => [role.code, role.libelle])}
+          readOnly={structureLocked}
+          value={coches.get('AUTRES').valideur_role_code}
+          onChange={(code) => set('domaines', draft.domaines.map((domaine) => (domaine.domaine === 'AUTRES' ? { ...domaine, valideur_role_code: code } : domaine)))}
+        />
       )}
       <div className="fiche-section__info">
         <strong>Valideurs qui seront sollicités :</strong> {valideurs.filter(Boolean).join(' · ')}

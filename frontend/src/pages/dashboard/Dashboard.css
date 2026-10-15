@@ -501,33 +501,13 @@
 }
 
 .dashboard-page__todo-tools {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 8px;
-  margin: 12px 0 4px;
+  gap: var(--space-1);
+  margin: var(--space-15) 0 var(--space-05);
 }
 
-.dashboard-page__todo-tools label {
-  display: grid;
+.dashboard-page__todo-tools > label {
   min-width: 120px;
   flex: 1 1 140px;
-  gap: 4px;
-  color: var(--gray-700);
-  font-size: var(--text-2xs);
-  font-weight: 600;
-}
-
-.dashboard-page__todo-tools input,
-.dashboard-page__todo-tools select {
-  min-height: 34px;
-  min-width: 0;
-  padding: 5px 8px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  background: var(--white);
-  font: inherit;
-  font-weight: 400;
 }
 
 .dashboard-page__todo:hover b {

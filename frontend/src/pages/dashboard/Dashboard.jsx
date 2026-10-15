@@ -6,10 +6,13 @@ import Alert from '../../components/ui/Alert.jsx'
 import Button from '../../components/ui/Button.jsx'
 import Icon from '../../components/ui/Icon.jsx'
 import Skeleton from '../../components/ui/Skeleton.jsx'
+import { FilterSelect, ListToolbar, SearchField } from '../../components/shared/ListToolbar.jsx'
 import { ETAPES } from '../../utils/constants.js'
 import { formatFcfa, plural } from '../../utils/format.js'
 import { downloadExcel, matchesSearch } from '../../utils/listTools.js'
 import './Dashboard.css'
+
+const TODO_TYPES = { validation: 'Validation', retard: 'Action en retard', controle: 'Contrôle', pilote: 'Désignation pilote' }
 
 const percent = (value) => (value === null || value === undefined ? '—' : `${String(value).replace('.', ',')} %`)
 const days = (value) => (value === null || value === undefined ? '—' : `${value} j`)
@@ -318,25 +321,22 @@ function Dashboard() {
             </div>
           )}
           {aTraiter.length > 0 && (
-            <div className="dashboard-page__todo-tools sar-list-toolbar">
-              <label className="sar-list-toolbar__search">
-                Rechercher
-                <input onChange={(event) => setTodoQuery(event.target.value)} placeholder="N° de fiche ou tâche…" type="search" value={todoQuery} />
-              </label>
-              <label>
-                Type
-                <select onChange={(event) => setTodoType(event.target.value)} value={todoType}>
-                  <option value="">Tous</option>
-                  {[...new Set(aTraiter.map((item) => item.type))].map((type) => <option key={type} value={type}>{({ validation: 'Validation', retard: 'Action en retard', controle: 'Contrôle', pilote: 'Désignation pilote' })[type] ?? type}</option>)}
-                </select>
-              </label>
-              <Button disabled={!filteredTodos.length} type="button" variant="export" onClick={() => downloadExcel('tableau-de-bord-a-traiter.xlsx', [
+            <ListToolbar className="dashboard-page__todo-tools" plain>
+              <SearchField placeholder="N° de fiche ou tâche…" value={todoQuery} onChange={setTodoQuery} />
+              <FilterSelect
+                allLabel="Tous"
+                label="Type"
+                options={[...new Set(aTraiter.map((item) => item.type))].map((type) => [type, TODO_TYPES[type] ?? type])}
+                value={todoType}
+                onChange={setTodoType}
+              />
+              <Button disabled={!filteredTodos.length} icon="download" type="button" variant="secondary" onClick={() => downloadExcel('tableau-de-bord-a-traiter.xlsx', [
                 { label: 'N° A3', value: (item) => item.numero_a3 },
                 { label: 'À traiter', value: (item) => item.libelle },
                 { label: 'Délai', value: (item) => item.delai },
                 { label: 'Type', value: (item) => item.type },
               ], filteredTodos)}>Exporter Excel</Button>
-            </div>
+            </ListToolbar>
           )}
           {data && filteredTodos.length === 0 && aTraiter.length > 0 && <p className="sar-muted">Aucun élément ne correspond à la recherche.</p>}
           {filteredTodos.map((item) => (
