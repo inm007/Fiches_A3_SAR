@@ -1,20 +1,13 @@
 /* ==========================================================================
    SAR · Palette de couleurs (variables CSS uniquement)
+   Les autres jetons (police, tailles, rayons, ombres, espacements) sont dans tokens.css
    Palette fonctionnelle de l’interface SAR
    ========================================================================== */
 
 :root {
-  /* ---------- Fondations de l'interface ---------- */
-  --ink-strong: #14161A;
-  --radius-control: 14px;
-  --space-1: 8px;
-  --space-2: 16px;
-  --space-3: 24px;
-  --space-4: 32px;
-  --shadow-soft: 0 2px 8px rgb(20 22 26 / 5%), 0 14px 32px rgb(20 22 26 / 6%);
-  --shadow-raised: 0 8px 18px rgb(20 22 26 / 10%), 0 20px 44px rgb(20 22 26 / 8%);
-  --duration-fast: 150ms;
-  --duration-normal: 220ms;
+  /* Voiles sous les fenêtres modales */
+  --overlay: rgb(20 22 26 / 45%);
+  --overlay-soft: rgb(20 22 26 / 35%);
 
   /* ---------- Marque ---------- */
   --brand-50:  #FDECEE;
@@ -22,6 +15,9 @@
   --brand-500: #E3000F;
   --brand-600: #B0000F;
   --brand-700: #8F000C;
+  --brand-800: #76000A;
+  --brand-highlight: #FF4B5B;
+  --brand-soft:      #FF8A94;
 
   /* ---------- Actions interactives ---------- */
   --button-secondary-border: #D5DAE1;
@@ -48,7 +44,10 @@
   --gray-400: #A8A8B3;
   --gray-500: #6B6B76;
   --gray-700: #3A3A44;
+  --gray-800: #33333D;
+  --gray-900: #24262B;
   --ink:      #1A1A1F;
+  --ink-strong: #14161A;
 
   /* ---------- Surfaces et texte ---------- */
   --bg:            var(--white);
@@ -67,6 +66,7 @@
   --success-bg:     #E6F4EC;
   --success-border: #B8DEC9;
   --success-solid:  #1F7A4D;
+  --success-highlight: #2DA36A;
 
   --error:          #C62828;
   --error-bg:       #FDECEC;
@@ -118,6 +118,14 @@
   --chart-phase-verification: #2A9D8F;
   --chart-phase-closure: #4F8A6B;
   --chart-phase-waiting: #B8BFC9;
+  --chart-phase-opening-bg: #EEF0F3;
+  --chart-phase-planning-bg: #EAF2FA;
+  --chart-phase-realization-bg: #EAF0F7;
+  --chart-phase-verification-bg: #E8F5F3;
+  --chart-phase-closure-bg: #EAF2ED;
+  --chart-phase-waiting-bg: #F1F2F4;
+  --chart-bar-top: #7799BF;
+  --chart-bar-bottom: #4E79A7;
 
   /* ---------- Divers ---------- */
   --focus-ring: rgb(227 0 15 / 25%);

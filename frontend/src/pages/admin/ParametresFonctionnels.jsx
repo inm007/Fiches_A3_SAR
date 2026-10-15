@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react'
 import { apiRequest } from '../../auth/api.js'
-import Button from '../../components/common/Button.jsx'
-import PageBanner from '../../components/common/PageBanner.jsx'
+import Alert from '../../components/ui/Alert.jsx'
+import Button from '../../components/ui/Button.jsx'
+import { Checkbox, TextInput } from '../../components/ui/FormControls.jsx'
+import Skeleton from '../../components/ui/Skeleton.jsx'
+import PageBanner from '../../components/shared/PageBanner.jsx'
+import { toast } from '../../utils/toast.js'
 import './ParametresFonctionnels.css'
 
 const defaults = {
@@ -16,7 +20,7 @@ function ParametresFonctionnels() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
 
   useEffect(() => {
     apiRequest('/admin/settings')
@@ -29,7 +33,7 @@ function ParametresFonctionnels() {
     event.preventDefault()
     setSaving(true)
     setError('')
-    setNotice('')
+    setFieldErrors({})
     try {
       const result = await apiRequest('/admin/settings', {
         method: 'PUT',
@@ -41,68 +45,39 @@ function ParametresFonctionnels() {
         }),
       })
       setValues({ ...defaults, ...result.data })
-      setNotice('Paramètres enregistrés.')
+      toast.success('Paramètres enregistrés.')
     } catch (saveError) {
-      const validationErrors = saveError.data?.errors
-      setError(validationErrors ? Object.values(validationErrors).flat().join(' ') : saveError.message)
+      const validationErrors = saveError.data?.errors ?? {}
+      const orphans = Object.entries(validationErrors).filter(([name]) => !(name in defaults)).flatMap(([, messages]) => messages)
+      setFieldErrors(validationErrors)
+      setError(Object.keys(validationErrors).length ? orphans.join(' ') : saveError.message)
     } finally {
       setSaving(false)
     }
   }
 
+  const set = (field) => (value) => setValues((current) => ({ ...current, [field]: value }))
+
   return (
     <section className="parametres-fonctionnels-page">
       <PageBanner description="Réglez les rappels automatiques et les limites des pièces jointes." title="Paramètres fonctionnels" />
-      {error && <p className="parametres-fonctionnels-page__message parametres-fonctionnels-page__message--error" role="alert">{error}</p>}
-      {notice && <p className="parametres-fonctionnels-page__message parametres-fonctionnels-page__message--success" role="status">{notice}</p>}
-      <form className="parametres-fonctionnels-page__form" onSubmit={save}>
-        <fieldset disabled={loading || saving}>
-          <legend>Relances</legend>
-          <label>
-            Cadence des rappels automatiques (jours)
-            <input
-              min="1"
-              onChange={(event) => setValues({ ...values, reminder_interval_days: event.target.value })}
-              required
-              type="number"
-              value={values.reminder_interval_days}
-            />
-          </label>
-          <label className="parametres-fonctionnels-page__checkbox">
-            <input
-              checked={Boolean(values.validation_reminders_enabled)}
-              onChange={(event) => setValues({ ...values, validation_reminders_enabled: event.target.checked })}
-              type="checkbox"
-            />
-            Activer les rappels pour les validations en attente
-          </label>
-        </fieldset>
-        <fieldset disabled={loading || saving}>
-          <legend>Pièces jointes</legend>
-          <label>
-            Taille maximale par fichier (Mo)
-            <input
-              min="1"
-              onChange={(event) => setValues({ ...values, attachment_max_size_mb: event.target.value })}
-              required
-              type="number"
-              value={values.attachment_max_size_mb}
-            />
-          </label>
-          <label>
-            Nombre maximal de fichiers par fiche
-            <input
-              min="1"
-              onChange={(event) => setValues({ ...values, attachment_max_files: event.target.value })}
-              required
-              type="number"
-              value={values.attachment_max_files}
-            />
-          </label>
-          <p>Les contrôles de type de fichier et de taille sont également appliqués par l’API.</p>
-        </fieldset>
-        <Button disabled={loading || saving} type="submit">{saving ? 'Enregistrement…' : 'Enregistrer les paramètres'}</Button>
-      </form>
+      {error && <Alert severity="error">{error}</Alert>}
+      {loading ? <Skeleton height={44} lines={4} /> : (
+        <form className="parametres-fonctionnels-page__form" noValidate onSubmit={save}>
+          <fieldset disabled={saving}>
+            <legend>Relances</legend>
+            <TextInput error={fieldErrors.reminder_interval_days} label="Cadence des rappels automatiques (jours)" min={1} required type="number" value={values.reminder_interval_days} onChange={set('reminder_interval_days')} />
+            <Checkbox checked={Boolean(values.validation_reminders_enabled)} label="Activer les rappels pour les validations en attente" onChange={set('validation_reminders_enabled')} />
+          </fieldset>
+          <fieldset disabled={saving}>
+            <legend>Pièces jointes</legend>
+            <TextInput error={fieldErrors.attachment_max_size_mb} label="Taille maximale par fichier (Mo)" min={1} required type="number" value={values.attachment_max_size_mb} onChange={set('attachment_max_size_mb')} />
+            <TextInput error={fieldErrors.attachment_max_files} label="Nombre maximal de fichiers par fiche" min={1} required type="number" value={values.attachment_max_files} onChange={set('attachment_max_files')} />
+            <p>Les contrôles de type de fichier et de taille sont également appliqués par l’API.</p>
+          </fieldset>
+          <Button loading={saving} loadingLabel="Enregistrement…" type="submit">Enregistrer les paramètres</Button>
+        </form>
+      )}
     </section>
   )
 }

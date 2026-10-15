@@ -1,5 +1,5 @@
 import AdminEntityPage from '../../components/admin/AdminEntityPage.jsx'
-import Badge from '../../components/common/Badge.jsx'
+import Badge from '../../components/ui/Badge.jsx'
 import './Unites.css'
 
 const fields = [
@@ -21,7 +21,7 @@ const columns = [
     label: 'État',
     width: '16%',
     value: (unit) => unit.actif ? 'Actif' : 'Inactif',
-    render: (unit) => <Badge tone={unit.actif ? 'success' : 'muted'}>{unit.actif ? 'Actif' : 'Inactif'}</Badge>,
+    render: (unit) => <Badge tone={unit.actif ? 'active' : 'inactive'}>{unit.actif ? 'Actif' : 'Inactif'}</Badge>,
   },
 ]
 
@@ -41,7 +41,6 @@ function Unites() {
         fields={fields}
         title="Unités"
         exportColumns={exportColumns}
-        compactTable
       />
     </div>
   )

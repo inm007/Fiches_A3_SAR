@@ -1,4 +1,4 @@
-import { Checkbox, Select, TextInput } from '../../common/FormControls.jsx'
+import { Checkbox, Select, TextInput } from '../../ui/FormControls.jsx'
 import RowsEditor, { CellInput, CellSelect } from './RowsEditor.jsx'
 import { listOptions } from './options.js'
 import './FicheSection.css'

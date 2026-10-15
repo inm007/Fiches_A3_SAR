@@ -1,4 +1,4 @@
-import { Select, TextArea } from '../../common/FormControls.jsx'
+import { Select, TextArea } from '../../ui/FormControls.jsx'
 import { OBJECTIF_ATTEINT } from '../../../utils/constants.js'
 import { formatNumber, formatPercent } from '../../../utils/format.js'
 import RowsEditor, { CellInput } from './RowsEditor.jsx'

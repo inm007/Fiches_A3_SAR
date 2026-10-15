@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiRequest } from '../auth/api.js'
-import Alert from '../components/common/Alert.jsx'
-import Button from '../components/common/Button.jsx'
-import DataTable from '../components/common/DataTable.jsx'
-import FormField from '../components/common/FormField.jsx'
-import PageBanner from '../components/common/PageBanner.jsx'
-import ListPagination from '../components/common/ListPagination.jsx'
+import Alert from '../components/ui/Alert.jsx'
+import Badge from '../components/ui/Badge.jsx'
+import Button from '../components/ui/Button.jsx'
+import Card from '../components/ui/Card.jsx'
+import DataTable from '../components/ui/DataTable.jsx'
+import { TextInput } from '../components/ui/FormControls.jsx'
+import ListPagination from '../components/ui/ListPagination.jsx'
+import { FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../components/shared/ListToolbar.jsx'
+import PageBanner from '../components/shared/PageBanner.jsx'
+import PageLoader from '../components/shared/PageLoader.jsx'
 import { downloadExcel } from '../utils/listTools.js'
+import { toast } from '../utils/toast.js'
 import './Technique.css'
 
 const smtpFields = [
@@ -19,6 +24,7 @@ const smtpFields = [
 
 const logColumns = [
   { key: 'date', label: 'Date' },
+  { key: 'auteur', label: 'Auteur' },
   { key: 'operation', label: 'Opération' },
   { key: 'objet', label: 'Objet' },
   { key: 'detail', label: 'Détail' },
@@ -42,7 +48,7 @@ function Technique() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
 
   const applyOverview = useCallback((overview) => {
     setData(overview)
@@ -103,14 +109,16 @@ function Technique() {
     event.preventDefault()
     setSaving(true)
     setError('')
-    setNotice('')
+    setFieldErrors({})
     const changes = smtpFields
       .filter(({ key }) => (form[key] ?? '') !== (data.smtp?.[key] ?? ''))
       .map(({ key }) => [key, form[key]])
     if (password) changes.push(['SMTP_PASSWORD', password])
 
+    let current = null
     try {
       for (const [cle, valeur] of changes) {
+        current = cle
         await apiRequest('/technique/settings', {
           method: 'PUT',
           body: JSON.stringify({ cle, valeur: valeur === '' ? null : valeur }),
@@ -118,16 +126,19 @@ function Technique() {
       }
       setPassword('')
       applyOverview((await apiRequest('/technique')).data)
-      setNotice(changes.length ? 'Paramètres SMTP enregistrés.' : 'Aucune modification à enregistrer.')
+      if (changes.length) toast.success('Paramètres SMTP enregistrés.')
+      else toast.info('Aucune modification à enregistrer.')
     } catch (saveError) {
+      // Chaque paramètre est envoyé seul : l'erreur de validation s'affiche sous le champ concerné.
       const validationErrors = saveError.data?.errors
-      setError(validationErrors ? Object.values(validationErrors).flat().join(' ') : saveError.message)
+      if (validationErrors && current) setFieldErrors({ [current]: Object.values(validationErrors).flat() })
+      else setError(saveError.message)
     } finally {
       setSaving(false)
     }
   }
 
-  if (loading) return <div className="technique-page">Chargement…</div>
+  if (loading) return <PageLoader label="Chargement de l’état technique…" />
   if (!data) return <div className="technique-page"><Alert severity="error">{error || 'Impossible de charger l’état technique.'}</Alert></div>
 
   const logRows = (logsResult?.data || []).map((log) => ({
@@ -144,71 +155,75 @@ function Technique() {
       <PageBanner description="Authentification, courriel, SAP et journal d’administration." title="État technique" />
 
       {error && <Alert severity="error">{error}</Alert>}
-      {notice && <Alert severity="success">{notice}</Alert>}
 
       <div className="technique-page__status">
-        <div className="technique-page__card">
-          <h2>Authentification</h2>
+        <Card title="Authentification">
           <p>Fournisseur actif : <strong>{data.auth_provider}</strong></p>
-          <p className="technique-page__hint">Annuaire LDAP : point d’extension laissé à la SAR (désactivé).</p>
-        </div>
-        <div className="technique-page__card">
-          <h2>SAP</h2>
-          <p>{data.sap_enabled ? 'Branché' : 'Non branché (SAP_ENABLED=false)'}</p>
-        </div>
-        <div className="technique-page__card">
-          <h2>Courriel</h2>
+          <p className="sar-caption">Annuaire LDAP : point d’extension laissé à la SAR (désactivé).</p>
+        </Card>
+        <Card title="SAP">
+          <Badge tone={data.sap_enabled ? 'active' : 'inactive'}>{data.sap_enabled ? 'Branché' : 'Non branché'}</Badge>
+          {!data.sap_enabled && <p className="sar-caption">SAP_ENABLED=false</p>}
+        </Card>
+        <Card title="Courriel">
           <p>Transport : <strong>{data.mail_mailer === 'log' ? 'journal (démonstration)' : data.mail_mailer}</strong></p>
-        </div>
+        </Card>
       </div>
 
-      <form className="technique-page__card technique-page__form" onSubmit={saveSmtp}>
-        <h2>Serveur SMTP</h2>
-        {smtpFields.map(({ key, label, type }) => (
-          <FormField
-            key={key}
-            id={`smtp-${key}`}
-            label={label}
-            type={type || 'text'}
-            value={form[key] ?? ''}
-            onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value }))}
+      <Card title="Serveur SMTP">
+        <form className="technique-page__form" noValidate onSubmit={saveSmtp}>
+          {smtpFields.map(({ key, label, type }) => (
+            <TextInput
+              autoComplete="off"
+              error={fieldErrors[key]}
+              key={key}
+              label={label}
+              type={type || 'text'}
+              value={form[key]}
+              onChange={(value) => setForm((current) => ({ ...current, [key]: value }))}
+            />
+          ))}
+          <TextInput
+            autoComplete="new-password"
+            error={fieldErrors.SMTP_PASSWORD}
+            hint={data.smtp?.SMTP_PASSWORD_SET ? 'Un mot de passe est enregistré ; laissez vide pour le conserver.' : 'Aucun mot de passe enregistré.'}
+            label="Mot de passe"
+            type="password"
+            value={password}
+            onChange={setPassword}
           />
-        ))}
-        <FormField
-          id="smtp-password"
-          label="Mot de passe"
-          type="password"
-          autoComplete="new-password"
-          value={password}
-          hint={data.smtp?.SMTP_PASSWORD_SET ? 'Un mot de passe est enregistré ; laissez vide pour le conserver.' : 'Aucun mot de passe enregistré.'}
-          onChange={(event) => setPassword(event.target.value)}
-        />
-        <Button type="submit" disabled={saving}>{saving ? 'Enregistrement…' : 'Enregistrer'}</Button>
-      </form>
+          <div><Button loading={saving} loadingLabel="Enregistrement…" type="submit">Enregistrer</Button></div>
+        </form>
+      </Card>
 
-      <div className="technique-page__card">
-        <h2>Journal d’administration</h2>
-        {logsError && <Alert severity="error">{logsError}</Alert>}
-        <div className="technique-page__log-tools sar-list-toolbar">
-          <label className="sar-list-toolbar__search">Rechercher<input onChange={(event) => { setLogQuery(event.target.value); setLogPage(1) }} placeholder="Opération, objet ou auteur…" type="search" value={logQuery} /></label>
-          <label>Opération<select onChange={(event) => { setLogOperation(event.target.value); setLogPage(1) }} value={logOperation}>
-            <option value="">Toutes</option>
-            {(logsResult?.meta.operations ?? []).map((operation) => <option key={operation} value={operation}>{operation}</option>)}
-          </select></label>
-          <span className="sar-list-toolbar__count">{logsResult?.meta.total ?? 0} événement{logsResult?.meta.total !== 1 ? 's' : ''}</span>
-          <Button disabled={exportingLogs || !logsResult?.meta.total} type="button" variant="export" onClick={exportLogs}>{exportingLogs ? 'Préparation…' : 'Exporter Excel'}</Button>
+      <Card title="Journal d’administration">
+        <div className="technique-page__logs">
+          {logsError && <Alert severity="error">{logsError}</Alert>}
+          <ListToolbar plain>
+            <SearchField placeholder="Opération, objet ou auteur…" value={logQuery} onChange={(value) => { setLogQuery(value); setLogPage(1) }} />
+            <FilterSelect
+              label="Opération"
+              options={(logsResult?.meta.operations ?? []).map((operation) => [operation, operation])}
+              value={logOperation}
+              onChange={(value) => { setLogOperation(value); setLogPage(1) }}
+            />
+            <ToolbarActions>
+              <ResultCount count={logsResult?.meta.total ?? 0} singular="événement" />
+              <Button disabled={!logsResult?.meta.total} icon="download" loading={exportingLogs} loadingLabel="Préparation…" type="button" variant="secondary" onClick={exportLogs}>Exporter Excel</Button>
+            </ToolbarActions>
+          </ListToolbar>
+          <DataTable columns={logColumns} emptyMessage="Aucun événement enregistré." loading={!logsResult && !logsError} rows={logRows} />
+          {logsResult?.meta.total > 0 && (
+            <ListPagination
+              page={logsResult.meta.page}
+              pageSize={logPageSize}
+              total={logsResult.meta.total}
+              onPageChange={setLogPage}
+              onPageSizeChange={(size) => { setLogPageSize(size); setLogPage(1) }}
+            />
+          )}
         </div>
-        <DataTable columns={[{ key: 'date', label: 'Date' }, { key: 'auteur', label: 'Auteur' }, ...logColumns.slice(1)]} rows={logRows} emptyMessage="Aucun événement enregistré." />
-        {logsResult?.meta.total > 0 && (
-          <ListPagination
-            page={logsResult.meta.page}
-            pageSize={logPageSize}
-            total={logsResult.meta.total}
-            onPageChange={setLogPage}
-            onPageSizeChange={(size) => { setLogPageSize(size); setLogPage(1) }}
-          />
-        )}
-      </div>
+      </Card>
     </section>
   )
 }

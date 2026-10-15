@@ -39,3 +39,9 @@ export function libelle(pairs, code) {
 export function emptyToNull(value) {
   return value === '' || value === undefined ? null : value
 }
+
+// Accord simple : plural(1, 'action') → « 1 action », plural(3, 'action') → « 3 actions ».
+export function plural(count, singular, pluralForm = `${singular}s`) {
+  const value = Number(count) || 0
+  return `${integerFormatter.format(value)} ${value > 1 ? pluralForm : singular}`
+}

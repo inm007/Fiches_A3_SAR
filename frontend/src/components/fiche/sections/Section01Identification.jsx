@@ -1,4 +1,4 @@
-import { Select, TextInput } from '../../common/FormControls.jsx'
+import { Select, TextInput } from '../../ui/FormControls.jsx'
 import { ConfidentialiteBadge } from '../EtapeBadge.jsx'
 import { listOptions, peopleOptions } from './options.js'
 import './FicheSection.css'

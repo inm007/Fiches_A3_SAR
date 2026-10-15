@@ -1,13 +1,13 @@
 import { useState } from 'react'
-import Button from '../../common/Button.jsx'
-import ConfirmDialog from '../../common/ConfirmDialog.jsx'
-import StatusBadge from '../../common/StatusBadge.jsx'
-import { TextArea, TextInput } from '../../common/FormControls.jsx'
+import Button from '../../ui/Button.jsx'
+import ConfirmDialog from '../../ui/ConfirmDialog.jsx'
+import Badge from '../../ui/Badge.jsx'
+import { TextArea, TextInput } from '../../ui/FormControls.jsx'
 import { describeError, ficheService } from '../../../services/ficheService.js'
 import { STATUTS_ACTION } from '../../../utils/constants.js'
 import { formatDate, formatFcfa } from '../../../utils/format.js'
 import { toast } from '../../../utils/toast.js'
-import Icon from '../../common/Icon.jsx'
+import Icon from '../../ui/Icon.jsx'
 import './FicheTab.css'
 
 const nextSteps = {
@@ -69,8 +69,8 @@ export default function ActionsTab({ fiche, onChange, onError }) {
                 <td>{formatFcfa(action.cout_estime)}</td>
                 <td>
                   {action.en_retard
-                    ? <StatusBadge tone="retard"><Icon name="clock" size={13} />En retard</StatusBadge>
-                    : <StatusBadge tone={statut.tone}>{statut.label}</StatusBadge>}
+                    ? <Badge tone="retard"><Icon name="clock" size={13} />En retard</Badge>
+                    : <Badge tone={statut.tone}>{statut.label}</Badge>}
                   {action.date_realisation && <div className="fiche-tab__muted">le {formatDate(action.date_realisation)}</div>}
                 </td>
                 <td>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import Button from '../common/Button.jsx'
-import SaveIndicator from '../common/SaveIndicator.jsx'
+import Button from '../ui/Button.jsx'
+import SaveIndicator from '../ui/SaveIndicator.jsx'
 import { describeError, ficheService } from '../../services/ficheService.js'
 import { SECTIONS } from '../../utils/constants.js'
 import { toast } from '../../utils/toast.js'

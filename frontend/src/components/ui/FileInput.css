@@ -1,0 +1,38 @@
+.sar-file__control {
+  position: relative;
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  gap: var(--space-15);
+  padding: 3px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--white);
+}
+
+/* Champ natif masqué visuellement mais toujours focalisable et soumis avec le formulaire */
+.sar-file .sar-file__native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  clip-path: inset(50%);
+}
+
+.sar-file .sar-file__native:focus-visible + .sar-file__button {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+}
+
+.sar-file__name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sar-file__name.is-empty {
+  color: var(--text-muted);
+}

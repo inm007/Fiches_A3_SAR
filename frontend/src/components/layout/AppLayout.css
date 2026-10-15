@@ -13,7 +13,9 @@
   min-width: 0;
   margin: 0 auto;
   padding: 24px 24px 48px;
-  overflow-x: hidden;
+  /* clip et non hidden : hidden ferait de <main> un conteneur de défilement et
+     décalerait les en-têtes collants (sticky) comme celui de la fiche. */
+  overflow-x: clip;
   animation: sar-up 0.25s;
 }
 

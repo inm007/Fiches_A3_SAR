@@ -1,4 +1,4 @@
-import { Checkbox, Select, TextArea } from '../../common/FormControls.jsx'
+import { Checkbox, Select, TextArea } from '../../ui/FormControls.jsx'
 import './FicheSection.css'
 
 export default function Section04Objectif({ draft, set, fiche, readOnly }) {

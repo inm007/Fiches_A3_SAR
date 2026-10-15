@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import Button from '../common/Button.jsx'
-import ConfirmDialog from '../common/ConfirmDialog.jsx'
-import { Select, TextArea } from '../common/FormControls.jsx'
+import Button from '../ui/Button.jsx'
+import ConfirmDialog from '../ui/ConfirmDialog.jsx'
+import { Select, TextArea } from '../ui/FormControls.jsx'
 import { describeError, ficheService } from '../../services/ficheService.js'
 import { TRANSITIONS } from '../../utils/constants.js'
 import { toast } from '../../utils/toast.js'
@@ -57,7 +57,7 @@ function WorkflowActions({ fiche, options, onChange, onError }) {
   }
 
   return (
-    <div aria-label="Actions du workflow" className="workflow-actions">
+    <div aria-label="Actions sur la fiche" className="workflow-actions">
       {droits.peut_designer_pilote && <Button type="button" onClick={() => setDialog({ type: 'pilote' })}>{fiche.pilote ? 'Changer le pilote' : 'Désigner le pilote'}</Button>}
       {droits.transitions.map((code) => (
         <Button disabled={busy} key={code} type="button" variant={TRANSITIONS[code].primary ? 'primary' : 'secondary'} onClick={() => startTransition(code)}>

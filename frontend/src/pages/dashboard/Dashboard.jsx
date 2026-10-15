@@ -2,14 +2,17 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { apiRequest } from '../../auth/api.js'
 import { useAuth } from '../../auth/useAuth.js'
-import Alert from '../../components/common/Alert.jsx'
-import Button from '../../components/common/Button.jsx'
-import Icon from '../../components/common/Icon.jsx'
-import Skeleton from '../../components/common/Skeleton.jsx'
+import Alert from '../../components/ui/Alert.jsx'
+import Button from '../../components/ui/Button.jsx'
+import Icon from '../../components/ui/Icon.jsx'
+import Skeleton from '../../components/ui/Skeleton.jsx'
+import { FilterSelect, ListToolbar, SearchField } from '../../components/shared/ListToolbar.jsx'
 import { ETAPES } from '../../utils/constants.js'
-import { formatFcfa } from '../../utils/format.js'
+import { formatFcfa, plural } from '../../utils/format.js'
 import { downloadExcel, matchesSearch } from '../../utils/listTools.js'
 import './Dashboard.css'
+
+const TODO_TYPES = { validation: 'Validation', retard: 'Action en retard', controle: 'Contrôle', pilote: 'Désignation pilote' }
 
 const percent = (value) => (value === null || value === undefined ? '—' : `${String(value).replace('.', ',')} %`)
 const days = (value) => (value === null || value === undefined ? '—' : `${value} j`)
@@ -176,23 +179,20 @@ function Dashboard() {
 
   return (
     <section className="dashboard-page">
-      {canDeclare && (
-        <header className="sar-page-head dashboard-page__actions">
-          <Button type="button" onClick={() => navigate('/fiches/nouvelle')}><Icon name="plus" />Nouvelle fiche</Button>
-        </header>
-      )}
-
       {error && <Alert severity="error">{error}</Alert>}
 
       <div className={`dashboard-page__hero${compactPriorities ? ' dashboard-page__hero--compact' : ''}`}>
         <div>
           <div className="dashboard-page__eyebrow">Vos priorités du jour</div>
-          <h2>{compactPriorities ? 'Aucun retard ni validation en attente' : `${aTraiter.length} élément(s) attendent votre action`}</h2>
+          <h2>{compactPriorities ? 'Aucun retard ni validation en attente' : `${plural(aTraiter.length, 'élément')} ${aTraiter.length > 1 ? 'attendent' : 'attend'} votre action`}</h2>
           <div className="dashboard-page__hero-text">
-            {data ? `${retards} action(s) en retard dans les priorités affichées · ${data.validations_a_traiter} validation(s) à traiter` : 'Chargement des indicateurs…'}
+            {data ? `${plural(retards, 'action')} en retard dans les priorités affichées · ${plural(data.validations_a_traiter, 'validation')} à traiter` : 'Chargement des indicateurs…'}
           </div>
         </div>
-        <Button type="button" variant="secondary" onClick={() => navigate('/fiches')}>Voir les fiches <Icon name="arrow" /></Button>
+        <div className="dashboard-page__hero-actions">
+          {canDeclare && <Button icon="plus" type="button" onClick={() => navigate('/fiches/nouvelle')}>Nouvelle fiche</Button>}
+          <Button type="button" variant="secondary" onClick={() => navigate('/fiches')}>Voir les fiches <Icon name="arrow" /></Button>
+        </div>
       </div>
 
       <div className="dashboard-page__kpis">
@@ -255,7 +255,7 @@ function Dashboard() {
                 const height = count > 0 ? Math.max(count / maxMonthlyFiches * 100, 8) : 0
 
                 return (
-                  <div className="dashboard-page__monthly-column" key={month.mois} title={`${monthLabel(month.mois)} : ${count} fiche(s)`}>
+                  <div className="dashboard-page__monthly-column" key={month.mois} title={`${monthLabel(month.mois)} : ${plural(count, 'fiche')}`}>
                     <strong>{count}</strong>
                     <span className="dashboard-page__monthly-track"><i style={{ height: `${height}%` }} /></span>
                     <span>{monthLabel(month.mois)}</span>
@@ -275,7 +275,7 @@ function Dashboard() {
               {actionStatuses.filter((item) => item.count > 0).map((item) => (
                 <li key={item.code}>
                   <span className="dashboard-page__todo-chart-label">{item.label}</span>
-                  <span aria-label={`${item.count} action(s)`} className="dashboard-page__todo-chart-track" role="img">
+                  <span aria-label={plural(item.count, 'action')} className="dashboard-page__todo-chart-track" role="img">
                     <i style={{ width: `${item.count / maxActionCount * 100}%`, background: item.color }} />
                   </span>
                   <strong>{item.count}</strong>
@@ -321,25 +321,22 @@ function Dashboard() {
             </div>
           )}
           {aTraiter.length > 0 && (
-            <div className="dashboard-page__todo-tools sar-list-toolbar">
-              <label className="sar-list-toolbar__search">
-                Rechercher
-                <input onChange={(event) => setTodoQuery(event.target.value)} placeholder="N° de fiche ou tâche…" type="search" value={todoQuery} />
-              </label>
-              <label>
-                Type
-                <select onChange={(event) => setTodoType(event.target.value)} value={todoType}>
-                  <option value="">Tous</option>
-                  {[...new Set(aTraiter.map((item) => item.type))].map((type) => <option key={type} value={type}>{({ validation: 'Validation', retard: 'Action en retard', controle: 'Contrôle', pilote: 'Désignation pilote' })[type] ?? type}</option>)}
-                </select>
-              </label>
-              <Button disabled={!filteredTodos.length} type="button" variant="export" onClick={() => downloadExcel('tableau-de-bord-a-traiter.xlsx', [
+            <ListToolbar className="dashboard-page__todo-tools" plain>
+              <SearchField placeholder="N° de fiche ou tâche…" value={todoQuery} onChange={setTodoQuery} />
+              <FilterSelect
+                allLabel="Tous"
+                label="Type"
+                options={[...new Set(aTraiter.map((item) => item.type))].map((type) => [type, TODO_TYPES[type] ?? type])}
+                value={todoType}
+                onChange={setTodoType}
+              />
+              <Button disabled={!filteredTodos.length} icon="download" type="button" variant="secondary" onClick={() => downloadExcel('tableau-de-bord-a-traiter.xlsx', [
                 { label: 'N° A3', value: (item) => item.numero_a3 },
                 { label: 'À traiter', value: (item) => item.libelle },
                 { label: 'Délai', value: (item) => item.delai },
                 { label: 'Type', value: (item) => item.type },
               ], filteredTodos)}>Exporter Excel</Button>
-            </div>
+            </ListToolbar>
           )}
           {data && filteredTodos.length === 0 && aTraiter.length > 0 && <p className="sar-muted">Aucun élément ne correspond à la recherche.</p>}
           {filteredTodos.map((item) => (

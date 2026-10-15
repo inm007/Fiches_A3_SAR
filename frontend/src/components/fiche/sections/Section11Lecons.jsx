@@ -1,4 +1,4 @@
-import { TextArea } from '../../common/FormControls.jsx'
+import { TextArea } from '../../ui/FormControls.jsx'
 import { RUBRIQUES_LECONS } from '../../../utils/constants.js'
 import './FicheSection.css'
 

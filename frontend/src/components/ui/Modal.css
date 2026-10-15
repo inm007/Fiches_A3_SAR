@@ -1,0 +1,223 @@
+.sar-modal__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  overflow-y: auto;
+  padding: 24px 16px;
+  place-items: center;
+  background: var(--overlay);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 180ms ease, visibility 180ms linear;
+}
+
+.sar-modal__overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.sar-modal {
+  position: relative;
+  display: grid;
+  width: min(var(--sar-modal-width, 480px), calc(100vw - 32px));
+  max-height: 85dvh;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-modal);
+  background: var(--white);
+  box-shadow: var(--shadow-modal);
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.sar-modal--md {
+  --sar-modal-width: 640px;
+}
+
+.sar-modal.is-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.sar-modal__header {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px 16px;
+}
+
+.sar-modal__heading {
+  min-width: 0;
+}
+
+.sar-modal__heading h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.sar-modal__heading p {
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.sar-modal__close {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  color: var(--gray-600);
+  background: transparent;
+  cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.sar-modal__close:hover {
+  color: var(--ink);
+  background: var(--gray-100);
+}
+
+.sar-modal__close:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+}
+
+.sar-modal__body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 24px 24px;
+}
+
+.sar-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--white);
+}
+
+.sar-modal__discard-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  padding: 20px;
+  place-items: center;
+  background: var(--overlay-soft);
+  backdrop-filter: blur(2px);
+}
+
+.sar-modal__discard {
+  display: grid;
+  width: min(100%, 400px);
+  justify-items: start;
+  gap: 12px;
+  padding: 24px;
+  border-radius: var(--radius-card);
+  background: var(--white);
+  box-shadow: var(--shadow-modal);
+}
+
+.sar-modal__warning {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--button-danger-text);
+  background: var(--button-danger-bg);
+}
+
+.sar-modal__discard h3,
+.sar-modal__discard p {
+  margin: 0;
+}
+
+.sar-modal__discard h3 {
+  color: var(--ink);
+  font-size: var(--text-lg);
+}
+
+.sar-modal__discard p {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.sar-modal__discard-actions {
+  display: flex;
+  width: 100%;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+@media (max-width: 639px) {
+  .sar-modal__overlay {
+    padding: 16px;
+  }
+
+  .sar-modal {
+    width: calc(100vw - 32px);
+    max-height: calc(100dvh - 32px);
+  }
+
+  .sar-modal__header {
+    padding: 18px 18px 14px;
+  }
+
+  .sar-modal__body {
+    padding: 4px 18px 20px;
+  }
+
+  .sar-modal__footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    padding: 14px 18px 18px;
+  }
+
+  .sar-modal__footer .sar-button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .sar-modal__discard-actions {
+    flex-direction: column-reverse;
+  }
+
+  .sar-modal__discard-actions .sar-button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sar-modal__overlay,
+  .sar-modal {
+    transition: none;
+  }
+
+  .sar-modal__overlay {
+    visibility: hidden;
+  }
+
+  .sar-modal__overlay.is-open {
+    visibility: visible;
+  }
+}

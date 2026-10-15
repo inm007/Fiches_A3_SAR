@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import Button from '../../common/Button.jsx'
-import ConfirmDialog from '../../common/ConfirmDialog.jsx'
-import StatusBadge from '../../common/StatusBadge.jsx'
-import { Select, TextArea, TextInput } from '../../common/FormControls.jsx'
+import Button from '../../ui/Button.jsx'
+import ConfirmDialog from '../../ui/ConfirmDialog.jsx'
+import Badge from '../../ui/Badge.jsx'
+import { Select, TextArea, TextInput } from '../../ui/FormControls.jsx'
 import { describeError, ficheService } from '../../../services/ficheService.js'
 import { JALONS } from '../../../utils/constants.js'
 import { formatDate } from '../../../utils/format.js'
@@ -64,7 +64,7 @@ export default function ControlesTab({ fiche, options, onChange, onError }) {
               const [tone, label] = etat(item)
               return (
                 <article className="fiche-tab__card" key={item.id}>
-                  <header><strong>{JALONS[item.jalon]}</strong><StatusBadge tone={tone}>{label}</StatusBadge></header>
+                  <header><strong>{JALONS[item.jalon]}</strong><Badge tone={tone}>{label}</Badge></header>
                   <span className="fiche-tab__muted">Échéance : {formatDate(item.date_echeance)}{item.date_effective && ` · fait le ${formatDate(item.date_effective)}`}</span>
                   {item.commentaire && <span>{item.commentaire}</span>}
                   {item.preuve && <span className="fiche-tab__muted">Preuve : {item.preuve}</span>}

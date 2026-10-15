@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Alert from '../../components/common/Alert.jsx'
-import Button from '../../components/common/Button.jsx'
-import PageBanner from '../../components/common/PageBanner.jsx'
-import EmptyState from '../../components/common/EmptyState.jsx'
-import ListPagination from '../../components/common/ListPagination.jsx'
-import Skeleton from '../../components/common/Skeleton.jsx'
-import StatusBadge from '../../components/common/StatusBadge.jsx'
+import Alert from '../../components/ui/Alert.jsx'
+import Button from '../../components/ui/Button.jsx'
+import PageBanner from '../../components/shared/PageBanner.jsx'
+import EmptyState from '../../components/ui/EmptyState.jsx'
+import ListPagination from '../../components/ui/ListPagination.jsx'
+import Skeleton from '../../components/ui/Skeleton.jsx'
+import Badge from '../../components/ui/Badge.jsx'
+import Icon from '../../components/ui/Icon.jsx'
+import { FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../../components/shared/ListToolbar.jsx'
 import { refreshCounters } from '../../hooks/useCounters.js'
 import { notificationService } from '../../services/notificationService.js'
 import { formatDateTime } from '../../utils/format.js'
@@ -92,43 +94,47 @@ function Notifications() {
   return (
     <section className="notifications-page">
       <PageBanner
-        actions={(
-          <div className="notifications-page__header-actions">
-          <Button disabled={exporting || !result?.meta.total} type="button" variant="export" onClick={exportAll}>{exporting ? 'Préparation…' : 'Exporter Excel'}</Button>
-          <Button disabled={!hasUnread || markingAll} type="button" variant="success" onClick={markAll}>{markingAll ? 'Mise à jour…' : 'Tout marquer comme lu'}</Button>
-          </div>
-        )}
+        actions={<Button disabled={!hasUnread} icon="ok" loading={markingAll} loadingLabel="Mise à jour…" type="button" variant="success" onClick={markAll}>Tout marquer comme lu</Button>}
         title="Notifications"
       />
       {error && <Alert severity="error">{error}</Alert>}
-      {!result && !error && <Skeleton />}
+      {!result && !error && <Skeleton lines={5} height={22} />}
       {result && (
-        <div className="notifications-page__filters sar-list-toolbar">
-          <label className="sar-list-toolbar__search">Recherche<input onChange={(event) => { setQuery(event.target.value); setPage(1) }} placeholder="Message ou numéro de fiche…" type="search" value={query} /></label>
-          <label>État
-            <select onChange={(event) => { setReadFilter(event.target.value); setPage(1) }} value={readFilter}>
-              <option value="">Toutes</option>
-              <option value="non_lu">Non lues</option>
-              <option value="lu">Lues</option>
-            </select>
-          </label>
-          {(query || readFilter) && <Button onClick={() => { setQuery(''); setReadFilter(''); setPage(1) }} type="button" variant="secondary">Réinitialiser</Button>}
-          <span className="sar-list-toolbar__count">{result.meta.total} notification{result.meta.total !== 1 ? 's' : ''}</span>
+        <ListToolbar>
+          <SearchField label="Recherche" placeholder="Message ou numéro de fiche…" value={query} onChange={(value) => { setQuery(value); setPage(1) }} />
+          <FilterSelect label="État" options={[['non_lu', 'Non lues'], ['lu', 'Lues']]} value={readFilter} onChange={(value) => { setReadFilter(value); setPage(1) }} />
+          <ToolbarActions>
+            <ResultCount count={result.meta.total} singular="notification" />
+            {(query || readFilter) && <Button onClick={() => { setQuery(''); setReadFilter(''); setPage(1) }} type="button" variant="secondary">Réinitialiser</Button>}
+            <Button disabled={!result.meta.total} icon="download" loading={exporting} loadingLabel="Préparation…" type="button" variant="export" onClick={exportAll}>Exporter Excel</Button>
+          </ToolbarActions>
+        </ListToolbar>
+      )}
+      {result?.data.length === 0 && (
+        <div className="sar-card">
+          <EmptyState
+            action={(query || readFilter) && <Button type="button" variant="secondary" onClick={() => { setQuery(''); setReadFilter(''); setPage(1) }}>Réinitialiser les filtres</Button>}
+            description={(query || readFilter) ? 'Aucune notification ne correspond à ces critères.' : 'Les validations, échéances et changements d’étape de vos fiches apparaîtront ici.'}
+            icon="bell"
+            title="Aucune notification"
+          />
         </div>
       )}
-      {result?.data.length === 0 && <EmptyState description="Les validations, échéances et changements d’étape de vos fiches apparaîtront ici." title="Aucune notification" />}
       {result?.data.length > 0 && (
-        <div className="sar-card notifications-page__list">
+        <ul className="sar-card notifications-page__list">
           {result.data.map((notification) => (
-            <button className={`sar-list-item notifications-page__item${notification.lu ? '' : ' is-unread'}`} key={notification.id} type="button" onClick={() => open(notification)}>
-              <StatusBadge tone={notification.lu ? 'neutral' : 'brand'}>{notification.lu ? 'Lu' : 'Non lu'}</StatusBadge>
-              <div>
-                {notification.message}
-                <div className="sar-muted notifications-page__date">{formatDateTime(notification.created_at)}</div>
-              </div>
-            </button>
+            <li key={notification.id}>
+              <button className={`notifications-page__item${notification.lu ? '' : ' is-unread'}`} type="button" onClick={() => open(notification)}>
+                <span aria-hidden="true" className={`sar-tile${notification.lu ? ' notifications-page__tile--read' : ''}`}><Icon name="bell" size={18} /></span>
+                <span className="notifications-page__body">
+                  <span className="notifications-page__message">{notification.message}</span>
+                  <span className="notifications-page__meta sar-num">{formatDateTime(notification.created_at)}</span>
+                </span>
+                <Badge tone={notification.lu ? 'neutral' : 'brand'}>{notification.lu ? 'Lu' : 'Non lu'}</Badge>
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
       {result && result.meta.total > 0 && (
         <ListPagination

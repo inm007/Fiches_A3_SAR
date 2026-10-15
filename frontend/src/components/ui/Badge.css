@@ -1,0 +1,70 @@
+/* Pastille de la maquette : texte coloré sur fond pâle, point coloré quand il n'y a pas d'icône. */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.status-badge:not(:has(svg))::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
+}
+
+.status-badge .sar-icon {
+  width: 13px;
+  height: 13px;
+}
+
+.status-badge--neutral { color: var(--button-icon); background: var(--button-neutral-bg); }
+.status-badge--open,
+.status-badge--ouvert { color: var(--st-ouvert); background: var(--st-ouvert-bg); }
+.status-badge--progress,
+.status-badge--encours { color: var(--st-encours); background: var(--st-encours-bg); }
+.status-badge--validation { color: var(--st-validation); background: var(--st-validation-bg); }
+.status-badge--realisation { color: var(--st-realisation); background: var(--st-realisation-bg); }
+.status-badge--mesure { color: var(--st-mesure); background: var(--st-mesure-bg); }
+.status-badge--maintien { color: var(--st-maintien); background: var(--st-maintien-bg); }
+.status-badge--attente { color: var(--st-attente); background: var(--st-attente-bg); }
+.status-badge--done,
+.status-badge--cloture { color: var(--st-cloture); background: var(--st-cloture-bg); }
+.status-badge--restricted { color: var(--button-danger-text); background: var(--button-danger-bg); }
+.status-badge--normal { color: var(--conf-normal); background: var(--conf-normal-bg); }
+.status-badge--a-faire { color: var(--action-a-faire); background: var(--action-a-faire-bg); }
+.status-badge--realisee { color: var(--action-realisee); background: var(--action-realisee-bg); }
+.status-badge--annulee { color: var(--action-annulee); background: var(--action-annulee-bg); }
+.status-badge--retard { color: var(--action-retard); background: var(--action-retard-bg); }
+.status-badge--success,
+.status-badge--active { color: var(--button-success-text); background: var(--button-success-bg); }
+.status-badge--inactive { color: var(--button-icon); background: var(--button-neutral-bg); }
+.status-badge--error { color: var(--error); background: var(--error-bg); }
+.status-badge--warning { color: var(--warning); background: var(--warning-bg); }
+.status-badge--brand { color: var(--brand-700); background: var(--brand-50); }
+.status-badge--phase-opening,
+.status-badge--phase-planning,
+.status-badge--phase-realization,
+.status-badge--phase-verification,
+.status-badge--phase-closure,
+.status-badge--phase-waiting {
+  color: var(--ink);
+}
+.status-badge--phase-opening { background: var(--chart-phase-opening-bg); }
+.status-badge--phase-planning { background: var(--chart-phase-planning-bg); }
+.status-badge--phase-realization { background: var(--chart-phase-realization-bg); }
+.status-badge--phase-verification { background: var(--chart-phase-verification-bg); }
+.status-badge--phase-closure { background: var(--chart-phase-closure-bg); }
+.status-badge--phase-waiting { background: var(--chart-phase-waiting-bg); }
+.status-badge--phase-opening:not(:has(svg))::before { background: var(--chart-phase-opening); }
+.status-badge--phase-planning:not(:has(svg))::before { background: var(--chart-phase-planning); }
+.status-badge--phase-realization:not(:has(svg))::before { background: var(--chart-phase-realization); }
+.status-badge--phase-verification:not(:has(svg))::before { background: var(--chart-phase-verification); }
+.status-badge--phase-closure:not(:has(svg))::before { background: var(--chart-phase-closure); }
+.status-badge--phase-waiting:not(:has(svg))::before { background: var(--chart-phase-waiting); }
