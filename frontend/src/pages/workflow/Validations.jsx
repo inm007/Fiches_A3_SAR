@@ -7,7 +7,9 @@ import ConfirmDialog from '../../components/ui/ConfirmDialog.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 import ListPagination from '../../components/ui/ListPagination.jsx'
 import { TextArea } from '../../components/ui/FormControls.jsx'
-import Skeleton from '../../components/ui/Skeleton.jsx'
+import Badge from '../../components/ui/Badge.jsx'
+import DataTable from '../../components/ui/DataTable.jsx'
+import { FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../../components/shared/ListToolbar.jsx'
 import { refreshCounters } from '../../hooks/useCounters.js'
 import { describeError, ficheService } from '../../services/ficheService.js'
 import { toast } from '../../utils/toast.js'
@@ -27,7 +29,7 @@ function Validations() {
   const [error, setError] = useState(null)
   const [refus, setRefus] = useState(null)
   const [commentaire, setCommentaire] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState(null)
   const [query, setQuery] = useState('')
   const [porteFilter, setPorteFilter] = useState('')
   const [ancienneteFilter, setAncienneteFilter] = useState('')
@@ -41,7 +43,7 @@ function Validations() {
   useEffect(() => { load() }, [load])
 
   async function decide(demande, decision) {
-    setBusy(true)
+    setBusy(demande.id)
     setError(null)
     try {
       await ficheService.decision(demande.id, { decision, commentaire: commentaire || null, retour: demande.porte === 2 ? 'VERIFICATION_MAINTIEN' : null })
@@ -54,7 +56,7 @@ function Validations() {
       setRefus(null)
       setError(describeError(decisionError))
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
@@ -80,45 +82,55 @@ function Validations() {
           {error.manques.length > 0 && <ul>{error.manques.map((manque) => <li key={manque}>{manque}</li>)}</ul>}
         </Alert>
       )}
-      {!demandes && !error && <Skeleton lines={5} height={22} />}
-      {demandes?.length === 0 && <EmptyState description="Les demandes qui vous sont adressées sur ce profil apparaîtront ici." title="Aucune demande en attente" />}
+      {!demandes && !error && <DataTable columns={[{ key: 'a', label: 'N° A3' }, { key: 'b', label: 'Titre' }, { key: 'c', label: 'Porte' }, { key: 'd', label: 'Ancienneté' }]} loading rows={[]} variant="compact" />}
+      {demandes?.length === 0 && <div className="sar-card"><EmptyState description="Les demandes qui vous sont adressées sur ce profil apparaîtront ici." icon="ok" title="Aucune demande en attente" /></div>}
       {demandes?.length > 0 && (
-        <div className="sar-card validations-page__card">
-          <div className="validations-page__toolbar sar-list-toolbar">
-            <label className="sar-list-toolbar__search">Rechercher<input placeholder="N°, titre, rôle…" onChange={(event) => { setQuery(event.target.value); setPage(1) }} type="search" value={query} /></label>
-            <label>Porte<select onChange={(event) => { setPorteFilter(event.target.value); setPage(1) }} value={porteFilter}><option value="">Toutes</option><option value="1">Porte 1</option><option value="2">Porte 2</option></select></label>
-            <label>Ancienneté<select onChange={(event) => { setAncienneteFilter(event.target.value); setPage(1) }} value={ancienneteFilter}><option value="">Toutes</option><option value="ancienne">7 jours et plus</option><option value="recente">Moins de 7 jours</option></select></label>
-            {(query || porteFilter || ancienneteFilter) && <Button type="button" variant="secondary" onClick={() => { setQuery(''); setPorteFilter(''); setAncienneteFilter(''); setPage(1) }}>Réinitialiser</Button>}
-            <span className="sar-list-toolbar__count">{filteredDemandes.length} demande{filteredDemandes.length > 1 ? 's' : ''}</span>
-            <Button disabled={!filteredDemandes.length} type="button" variant="export" onClick={() => downloadExcel('validations-a-traiter.xlsx', [
-              { label: 'N° A3', value: (demande) => demande.fiche.numero_a3 },
-              { label: 'Titre', value: (demande) => demande.fiche.titre },
-              { label: 'Porte', value: (demande) => demande.porte },
-              { label: 'Rôle demandé', value: (demande) => demande.role },
-              { label: 'Demandée le', value: (demande) => demande.demandee_le },
-              { label: 'Ancienneté (jours)', value: (demande) => demande.anciennete_jours },
-            ], filteredDemandes)}>Exporter Excel</Button>
-          </div>
-          <table className="sar-table">
-            <thead><tr><th>N° A3</th><th>Titre</th><th>Porte</th><th>Rôle demandé</th><th>Ancienneté</th><th /></tr></thead>
-            <tbody>
-              {visibleDemandes.map((demande) => (
-                <tr key={demande.id}>
-                  <td><b>{demande.fiche.numero_a3}</b></td>
-                  <td>{demande.fiche.titre}</td>
-                  <td>Porte {demande.porte}</td>
-                  <td>{demande.role}</td>
-                  <td className={demande.anciennete_jours >= SEUIL_ANCIENNETE ? 'validations-page__old' : 'validations-page__age'}>{demande.anciennete_jours} j</td>
-                  <td className="validations-page__actions sar-list-actions">
-                    <Button size="small" type="button" variant="secondary" onClick={() => navigate(`/fiches/${demande.fiche.id}`)}>Ouvrir</Button>
-                    <Button disabled={busy} size="small" type="button" variant="success" onClick={() => decide(demande, 'VALIDE')}>Approuver</Button>
-                    <Button disabled={busy} size="small" type="button" variant="danger" onClick={() => setRefus(demande)}>Refuser</Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filteredDemandes.length === 0 && <EmptyState title="Aucune demande ne correspond à ces critères." />}
+        <>
+          <ListToolbar className="validations-page__toolbar">
+            <SearchField placeholder="N°, titre, rôle…" value={query} onChange={(value) => { setQuery(value); setPage(1) }} />
+            <FilterSelect label="Porte" options={[['1', 'Porte 1'], ['2', 'Porte 2']]} value={porteFilter} onChange={(value) => { setPorteFilter(value); setPage(1) }} />
+            <FilterSelect label="Ancienneté" options={[['ancienne', `${SEUIL_ANCIENNETE} jours et plus`], ['recente', `Moins de ${SEUIL_ANCIENNETE} jours`]]} value={ancienneteFilter} onChange={(value) => { setAncienneteFilter(value); setPage(1) }} />
+            <ToolbarActions>
+              <ResultCount count={filteredDemandes.length} singular="demande" />
+              {(query || porteFilter || ancienneteFilter) && <Button type="button" variant="secondary" onClick={() => { setQuery(''); setPorteFilter(''); setAncienneteFilter(''); setPage(1) }}>Réinitialiser</Button>}
+              <Button disabled={!filteredDemandes.length} icon="download" type="button" variant="export" onClick={() => downloadExcel('validations-a-traiter.xlsx', [
+                { label: 'N° A3', value: (demande) => demande.fiche.numero_a3 },
+                { label: 'Titre', value: (demande) => demande.fiche.titre },
+                { label: 'Porte', value: (demande) => demande.porte },
+                { label: 'Rôle demandé', value: (demande) => demande.role },
+                { label: 'Demandée le', value: (demande) => demande.demandee_le },
+                { label: 'Ancienneté (jours)', value: (demande) => demande.anciennete_jours },
+              ], filteredDemandes)}>Exporter Excel</Button>
+            </ToolbarActions>
+          </ListToolbar>
+          <DataTable
+            actionsWidth="280px"
+            actions={(demande) => (
+              <div className="sar-list-actions">
+                <Button size="small" type="button" variant="secondary" onClick={() => navigate(`/fiches/${demande.fiche.id}`)}>Ouvrir</Button>
+                <Button disabled={Boolean(busy)} loading={busy === demande.id} size="small" type="button" variant="success" onClick={() => decide(demande, 'VALIDE')}>Approuver</Button>
+                <Button disabled={Boolean(busy)} size="small" type="button" variant="danger" onClick={() => setRefus(demande)}>Refuser</Button>
+              </div>
+            )}
+            columns={[
+              { key: 'numero', label: 'N° A3', width: '140px', render: (demande) => <strong className="sar-num">{demande.fiche.numero_a3}</strong> },
+              { key: 'titre', label: 'Titre', render: (demande) => <span className="data-table__cell-text" title={demande.fiche.titre}>{demande.fiche.titre}</span> },
+              { key: 'porte', label: 'Porte', width: '96px', render: (demande) => `Porte ${demande.porte}` },
+              { key: 'role', label: 'Rôle demandé', width: '20%', render: (demande) => <span className="data-table__cell-text" title={demande.role}>{demande.role}</span> },
+              {
+                key: 'anciennete',
+                label: 'Ancienneté',
+                width: '116px',
+                render: (demande) => (demande.anciennete_jours >= SEUIL_ANCIENNETE
+                  ? <Badge icon="clock" tone="error">{demande.anciennete_jours} j</Badge>
+                  : <span className="sar-num">{demande.anciennete_jours} j</span>),
+              },
+            ]}
+            emptyAction={<Button type="button" variant="secondary" onClick={() => { setQuery(''); setPorteFilter(''); setAncienneteFilter(''); setPage(1) }}>Réinitialiser les filtres</Button>}
+            emptyMessage="Aucune demande ne correspond à ces critères"
+            rows={visibleDemandes}
+            variant="compact"
+          />
           {filteredDemandes.length > 0 && (
             <ListPagination
               page={page}
@@ -128,10 +140,10 @@ function Validations() {
               onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
             />
           )}
-        </div>
+        </>
       )}
       <ConfirmDialog
-        busy={busy}
+        busy={Boolean(busy)}
         confirmLabel="Confirmer le refus"
         disabled={!commentaire.trim()}
         open={Boolean(refus)}

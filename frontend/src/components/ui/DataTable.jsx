@@ -10,6 +10,7 @@ function DataTable({
   emptyAction,
   loading = false,
   actions,
+  actionsWidth,
   context,
   variant = 'default',
   onRowClick,
@@ -36,7 +37,7 @@ function DataTable({
         {compact && (
           <colgroup>
             {columns.map((column) => <col className={column.className} key={column.key} style={column.width ? { width: column.width } : undefined} />)}
-            {actions && <col className="data-table__actions-column" />}
+            {actions && <col className="data-table__actions-column" style={actionsWidth ? { width: actionsWidth } : undefined} />}
           </colgroup>
         )}
         <thead>

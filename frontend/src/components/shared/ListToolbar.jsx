@@ -40,3 +40,8 @@ export function FilterSelect({ label, value, onChange, options, allLabel = 'Tout
 export function ResultCount({ count = 0, singular = 'résultat', plural = `${singular}s` }) {
   return <span aria-live="polite" className="sar-list-toolbar__count">{count} {count > 1 ? plural : singular}</span>
 }
+
+/** Ligne du bas de la barre : compteur à gauche, boutons (réinitialiser, exporter) à droite. */
+export function ToolbarActions({ children }) {
+  return <div className="sar-list-toolbar__actions">{children}</div>
+}

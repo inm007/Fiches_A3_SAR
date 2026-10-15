@@ -1,64 +1,30 @@
 .notifications-page {
   display: grid;
-  gap: 16px;
-}
-
-.notifications-page__header-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.notifications-page__filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 12px;
-  padding: 14px 16px;
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-card);
-  background: var(--white);
-  box-shadow: var(--shadow-card);
-}
-
-.notifications-page__filters label {
-  display: grid;
-  min-width: 150px;
-  gap: 4px;
-  font-size: var(--text-xs);
-  font-weight: 600;
-}
-
-.notifications-page__filters input,
-.notifications-page__filters select {
-  min-height: 38px;
-  padding: 7px 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  background: var(--white);
-  font: inherit;
-  font-weight: 400;
-}
-
-.notifications-page__filters span {
-  margin-right: auto;
-  color: var(--text-muted);
-  font-size: var(--text-sm);
+  gap: var(--space-2);
 }
 
 .notifications-page__list {
+  margin: 0;
   padding: 0;
   overflow: hidden;
+  list-style: none;
+}
+
+.notifications-page__list li + li {
+  border-top: 1px solid var(--border);
 }
 
 .notifications-page__item {
+  display: flex;
   width: 100%;
-  padding: 14px 20px;
+  align-items: center;
+  gap: var(--space-15);
+  padding: var(--space-15) 20px;
   border: 0;
-  border-bottom: 1px solid var(--border);
   background: var(--white);
   cursor: pointer;
   text-align: left;
+  transition: background-color var(--duration-fast);
 }
 
 .notifications-page__item:hover {
@@ -67,25 +33,32 @@
 
 .notifications-page__item.is-unread {
   background: var(--brand-50);
+  box-shadow: inset 3px 0 0 var(--brand-500);
 }
 
-.notifications-page__date {
-  font-size: var(--text-xs);
+.notifications-page__tile--read {
+  color: var(--gray-500);
+  background: var(--gray-100);
 }
 
-.notifications-page__pagination {
+.notifications-page__body {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+}
+
+.notifications-page__message {
+  color: var(--ink);
+}
+
+.notifications-page__item.is-unread .notifications-page__message {
+  font-weight: var(--weight-medium);
+}
+
+.notifications-page__meta {
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-@media (max-width: 650px) {
-  .notifications-page__header-actions {
-    width: 100%;
-  }
-
-  .notifications-page__header-actions .sar-button {
-    flex: 1;
-  }
+  gap: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
 }

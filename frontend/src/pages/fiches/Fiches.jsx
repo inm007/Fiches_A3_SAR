@@ -4,7 +4,7 @@ import { apiRequest } from '../../auth/api.js'
 import { useAuth } from '../../auth/useAuth.js'
 import AdminFicheModal from '../../components/fiche/AdminFicheModal.jsx'
 import EtapeBadge, { ConfidentialiteBadge } from '../../components/fiche/EtapeBadge.jsx'
-import { FilterSelect, ListToolbar, ResultCount, SearchField } from '../../components/shared/ListToolbar.jsx'
+import { FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../../components/shared/ListToolbar.jsx'
 import PageBanner from '../../components/shared/PageBanner.jsx'
 import Alert from '../../components/ui/Alert.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -258,11 +258,11 @@ function Fiches() {
             <label>au<input type="date" value={filters.date_fin} onChange={(event) => setFilter('date_fin')(event.target.value)} /></label>
           </>
         )}
-        <div className="fiches-page__tools">
+        <ToolbarActions>
           <ResultCount count={source.total} singular="fiche" />
           {hasActiveFilters && <Button type="button" variant="secondary" onClick={() => { setFilters(initialFilters); setPage(1) }}>Réinitialiser</Button>}
           <Button disabled={!source.total} icon="download" loading={exporting} loadingLabel="Préparation…" type="button" variant="secondary" onClick={exportList}>Exporter Excel</Button>
-        </div>
+        </ToolbarActions>
       </ListToolbar>
 
       {(source.error || exportError) && <Alert severity="error">{source.error || exportError}</Alert>}
@@ -275,6 +275,7 @@ function Fiches() {
               <Button size="small" type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); setManaged(fiche.source) }}>Gérer</Button>
             </div>
           ) : undefined}
+          actionsWidth="168px"
           columns={columns}
           emptyAction={hasActiveFilters
             ? <Button type="button" variant="secondary" onClick={() => { setFilters(initialFilters); setPage(1) }}>Réinitialiser les filtres</Button>

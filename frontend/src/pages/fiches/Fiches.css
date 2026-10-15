@@ -7,19 +7,6 @@
   flex-basis: 150px;
 }
 
-.fiches-page__tools {
-  display: flex;
-  flex: 1 0 100%;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-1);
-}
-
-.fiches-page__tools .sar-list-toolbar__count {
-  margin-right: auto;
-}
-
 .fiches-page__number {
   color: var(--ink);
   font-weight: var(--weight-semibold);

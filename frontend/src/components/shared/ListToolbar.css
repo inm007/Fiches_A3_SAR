@@ -101,3 +101,16 @@
     flex: 1 1 auto;
   }
 }
+
+.sar-list-toolbar__actions {
+  display: flex;
+  flex: 1 0 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+}
+
+.sar-list-toolbar__actions .sar-list-toolbar__count {
+  margin-right: auto;
+}
