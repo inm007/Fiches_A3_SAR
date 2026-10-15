@@ -63,7 +63,6 @@ function Equipements() {
         fields={fields}
         related={related}
         title="Équipements"
-        compactTable
       />
     </div>
   )

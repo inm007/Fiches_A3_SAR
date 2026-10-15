@@ -108,7 +108,6 @@ function Utilisateurs() {
         extraActions={extraActions}
         fields={fields}
         title="Administration des utilisateurs"
-        compactTable
       />
     </div>
   )

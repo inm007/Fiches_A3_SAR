@@ -86,7 +86,6 @@ function Affectations() {
         fields={fields}
         related={related}
         title="Affectations"
-        compactTable
       />
     </div>
   )

@@ -3,8 +3,9 @@ import { apiRequest } from '../../auth/api.js'
 import Button from '../../components/ui/Button.jsx'
 import ConfirmDialog from '../../components/ui/ConfirmDialog.jsx'
 import DataTable from '../../components/ui/DataTable.jsx'
-import FilterBar from '../../components/shared/FilterBar.jsx'
-import Icon from '../../components/ui/Icon.jsx'
+import Alert from '../../components/ui/Alert.jsx'
+import { TextInput } from '../../components/ui/FormControls.jsx'
+import { FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../../components/shared/ListToolbar.jsx'
 import RowActions from '../../components/ui/RowActions.jsx'
 import Badge from '../../components/ui/Badge.jsx'
 import ListPagination from '../../components/ui/ListPagination.jsx'
@@ -32,7 +33,7 @@ function Listes() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [formError, setFormError] = useState('')
-  const [notice, setNotice] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [pendingDeactivation, setPendingDeactivation] = useState(null)
   const [deactivating, setDeactivating] = useState(false)
   const formDirty = form.code !== initialForm.code
@@ -100,7 +101,7 @@ function Listes() {
     setInitialForm(nextForm)
     setError('')
     setFormError('')
-    setNotice('')
+    setFieldErrors({})
   }
 
   function startEdit(item) {
@@ -111,7 +112,7 @@ function Listes() {
     setInitialForm(nextForm)
     setError('')
     setFormError('')
-    setNotice('')
+    setFieldErrors({})
   }
 
   async function save(event) {
@@ -119,7 +120,7 @@ function Listes() {
     setSaving(true)
     setError('')
     setFormError('')
-    setNotice('')
+    setFieldErrors({})
     try {
       await apiRequest(`/admin/lists/${selectedId}/values${editing ? `/${editing.id}` : ''}`, {
         method: editing ? 'PATCH' : 'POST',
@@ -127,11 +128,13 @@ function Listes() {
       })
       setModalOpen(false)
       setEditing(null)
-      toast(editing ? 'Valeur mise à jour.' : 'Valeur ajoutée.', 3000)
+      toast.success(editing ? 'Valeur mise à jour.' : 'Valeur ajoutée.')
       await loadValues(selectedId)
     } catch (saveError) {
-      const validationErrors = saveError.data?.errors
-      setFormError(validationErrors ? Object.values(validationErrors).flat().join(' ') : saveError.message)
+      const validationErrors = saveError.data?.errors ?? {}
+      const orphans = Object.entries(validationErrors).filter(([name]) => !(name in form)).flatMap(([, messages]) => messages)
+      setFieldErrors(validationErrors)
+      setFormError(Object.keys(validationErrors).length ? orphans.join(' ') : saveError.message)
     } finally {
       setSaving(false)
     }
@@ -139,16 +142,15 @@ function Listes() {
 
   async function toggleActive(item) {
     setError('')
-    setNotice('')
     try {
       await apiRequest(`/admin/lists/${selectedId}/values/${item.id}`, {
         method: 'PATCH',
         body: JSON.stringify({ actif: !item.actif }),
       })
-      setNotice(item.actif ? 'Valeur désactivée.' : 'Valeur activée.')
+      toast.success(item.actif ? 'Valeur désactivée.' : 'Valeur activée.')
       await loadValues(selectedId)
     } catch (toggleError) {
-      setError(toggleError.message)
+      toast.error(toggleError.message)
     }
   }
 
@@ -172,7 +174,6 @@ function Listes() {
     reordered[index] = reordered[newIndex]
     reordered[newIndex] = current
     setError('')
-    setNotice('')
     try {
       const result = await apiRequest(`/admin/lists/${selectedId}/values/order`, {
         method: 'PUT',
@@ -180,7 +181,7 @@ function Listes() {
       })
       setValues(result.data)
     } catch (moveError) {
-      setError(`Le réordonnancement n’a pas abouti : ${moveError.message}`)
+      toast.error(`Le réordonnancement n’a pas abouti : ${moveError.message}`)
       await loadValues(selectedId)
     }
   }
@@ -195,12 +196,11 @@ function Listes() {
   return (
     <section className="listes-page">
       <PageBanner
-        actions={<Button disabled={!selectedId} onClick={startCreate}>Ajouter une valeur</Button>}
+        actions={<Button disabled={!selectedId} icon="plus" onClick={startCreate}>Ajouter une valeur</Button>}
         description="Gérez les valeurs de référence utilisées dans les fiches. Les valeurs historiques sont conservées."
         title="Listes de choix"
       />
-      {error && <p className="listes-page__message listes-page__message--error" role="alert">{error}</p>}
-      {notice && <p className="listes-page__message listes-page__message--success" role="status">{notice}</p>}
+      {error && <Alert severity="error">{error}</Alert>}
       <div className="listes-page__layout">
         <nav aria-label="Listes de référence" className="listes-page__nav">
           <h2>Référentiels</h2>
@@ -223,36 +223,24 @@ function Listes() {
               <p>{lists.find((list) => String(list.id) === selectedId)?.description}</p>
             </div>
           </header>
-          <FilterBar className="listes-page__filterbar">
-            <div className="listes-page__filterbar-primary">
-              <label className="listes-page__search" htmlFor="listes-search">
-                <span>Rechercher</span>
-                <input id="listes-search" onChange={(event) => { setQuery(event.target.value); setPage(1) }} placeholder="Code ou libellé…" type="search" value={query} />
-              </label>
-              <label className="listes-page__filter">
-                <span>État</span>
-                <select onChange={(event) => { setActiveFilter(event.target.value); setPage(1) }} value={activeFilter}>
-                  <option value="">Tous</option>
-                  <option value="true">Actifs</option>
-                  <option value="false">Inactifs</option>
-                </select>
-              </label>
-              <div className="listes-page__filterbar-tools">
-                <span className="listes-page__result-count">{filteredValues.length} résultat{filteredValues.length > 1 ? 's' : ''}</span>
-                {(query || activeFilter) && <Button onClick={() => { setQuery(''); setActiveFilter(''); setPage(1) }} type="button" variant="secondary">Réinitialiser</Button>}
-                <Button disabled={loading || filteredValues.length === 0} onClick={() => downloadExcel(
-                  `valeurs-${lists.find((list) => String(list.id) === selectedId)?.code ?? 'referentiel'}.xlsx`,
-                  [
-                    { label: 'Code', value: (item) => item.code },
-                    { label: 'Libellé', value: (item) => item.libelle },
-                    { label: 'Ordre', value: (item) => item.ordre },
-                    { label: 'Actif', value: (item) => item.actif ? 'Oui' : 'Non' },
-                  ],
-                  filteredValues,
-                )} type="button" variant="secondary"><Icon name="download" size={16} />Exporter Excel</Button>
-              </div>
-            </div>
-          </FilterBar>
+          <ListToolbar>
+            <SearchField id="listes-search" placeholder="Code ou libellé…" value={query} onChange={(value) => { setQuery(value); setPage(1) }} />
+            <FilterSelect allLabel="Tous" label="État" options={[['true', 'Actifs'], ['false', 'Inactifs']]} value={activeFilter} onChange={(value) => { setActiveFilter(value); setPage(1) }} />
+            <ToolbarActions>
+              <ResultCount count={filteredValues.length} />
+              {(query || activeFilter) && <Button onClick={() => { setQuery(''); setActiveFilter(''); setPage(1) }} type="button" variant="secondary">Réinitialiser</Button>}
+              <Button disabled={loading || filteredValues.length === 0} icon="download" onClick={() => downloadExcel(
+                `valeurs-${lists.find((list) => String(list.id) === selectedId)?.code ?? 'referentiel'}.xlsx`,
+                [
+                  { label: 'Code', value: (item) => item.code },
+                  { label: 'Libellé', value: (item) => item.libelle },
+                  { label: 'Ordre', value: (item) => item.ordre },
+                  { label: 'Actif', value: (item) => item.actif ? 'Oui' : 'Non' },
+                ],
+                filteredValues,
+              )} type="button" variant="secondary">Exporter Excel</Button>
+            </ToolbarActions>
+          </ListToolbar>
           <DataTable
             actions={(item) => {
               const index = values.findIndex((value) => value.id === item.id)
@@ -314,27 +302,21 @@ function Listes() {
         footer={({ requestClose }) => (
           <>
             <Button disabled={saving} onClick={requestClose} type="button" variant="secondary">Annuler</Button>
-            <Button disabled={saving} form="listes-value-form" type="submit">
-              {saving && <span aria-hidden="true" className="listes-page__spinner" />}
-              {saving ? 'Enregistrement…' : editing ? 'Enregistrer' : 'Ajouter'}
+            <Button form="listes-value-form" loading={saving} loadingLabel="Enregistrement…" type="submit">
+              {editing ? 'Enregistrer' : 'Ajouter'}
             </Button>
           </>
         )}
-        onClose={() => { setModalOpen(false); setFormError('') }}
+        onClose={() => { setModalOpen(false); setFormError(''); setFieldErrors({}) }}
         open={modalOpen}
         size="sm"
         title={editing ? 'Modifier une valeur' : 'Ajouter une valeur'}
       >
-        <form className="listes-page__form" id="listes-value-form" onSubmit={save}>
-          {formError && (
-            <div className="listes-page__form-error" role="alert">
-              <Icon name="al" size={16} />
-              <span>{formError}</span>
-            </div>
-          )}
-          <label>Code<input data-modal-autofocus maxLength="255" onChange={(event) => setForm({ ...form, code: event.target.value })} required value={form.code} /></label>
-          <label>Libellé<input maxLength="255" onChange={(event) => setForm({ ...form, libelle: event.target.value })} required value={form.libelle} /></label>
-          <label>Ordre<input min="0" onChange={(event) => setForm({ ...form, ordre: Number(event.target.value) })} required type="number" value={form.ordre} /></label>
+        <form className="listes-page__form" id="listes-value-form" noValidate onSubmit={save}>
+          {formError && <Alert severity="error">{formError}</Alert>}
+          <TextInput data-modal-autofocus error={fieldErrors.code} label="Code" maxLength={255} required value={form.code} onChange={(code) => setForm({ ...form, code })} />
+          <TextInput error={fieldErrors.libelle} label="Libellé" maxLength={255} required value={form.libelle} onChange={(libelle) => setForm({ ...form, libelle })} />
+          <TextInput error={fieldErrors.ordre} label="Ordre" min={0} required type="number" value={form.ordre} onChange={(ordre) => setForm({ ...form, ordre: Number(ordre) })} />
         </form>
       </Modal>
       <ConfirmDialog

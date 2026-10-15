@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiRequest } from '../../auth/api.js'
+import Alert from '../ui/Alert.jsx'
 import Button from '../ui/Button.jsx'
 import ConfirmDialog from '../ui/ConfirmDialog.jsx'
 import DataTable from '../ui/DataTable.jsx'
-import FilterBar from '../shared/FilterBar.jsx'
-import Icon from '../ui/Icon.jsx'
+import { Checkbox, Select, TextInput } from '../ui/FormControls.jsx'
 import Modal from '../ui/Modal.jsx'
+import { FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../shared/ListToolbar.jsx'
 import PageBanner from '../shared/PageBanner.jsx'
 import RowActions from '../ui/RowActions.jsx'
 import ListPagination from '../ui/ListPagination.jsx'
@@ -28,7 +29,6 @@ function AdminEntityPage({
   columns,
   related = EMPTY_RELATED,
   extraActions,
-  compactTable = false,
   exportColumns,
 }) {
   const [rows, setRows] = useState([])
@@ -45,7 +45,7 @@ function AdminEntityPage({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [formError, setFormError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [pendingDeactivation, setPendingDeactivation] = useState(null)
 
   const load = useCallback(async () => {
@@ -124,7 +124,7 @@ function AdminEntityPage({
     setInitialValues(nextValues)
     setError('')
     setFormError('')
-    setSuccess('')
+    setFieldErrors({})
   }
 
   function openEdit(row) {
@@ -142,7 +142,7 @@ function AdminEntityPage({
     setInitialValues(nextValues)
     setError('')
     setFormError('')
-    setSuccess('')
+    setFieldErrors({})
   }
 
   async function save(event) {
@@ -150,7 +150,7 @@ function AdminEntityPage({
     setSaving(true)
     setError('')
     setFormError('')
-    setSuccess('')
+    setFieldErrors({})
     const payload = Object.fromEntries(fields.map((field) => {
       const value = values[field.name]
       return [field.name, field.type === 'checkbox' ? Boolean(value) : (value === '' ? null : value)]
@@ -162,13 +162,15 @@ function AdminEntityPage({
       })
       setModalOpen(false)
       setEditing(null)
-      toast(editing ? 'Modifications enregistrées.' : 'Élément créé.', 3000)
+      toast.success(editing ? 'Modifications enregistrées.' : 'Élément créé.')
       await load()
     } catch (saveError) {
-      const validationErrors = saveError.data?.errors
-      setFormError(validationErrors
-        ? Object.values(validationErrors).flat().join(' ')
-        : saveError.message)
+      // Erreurs Laravel : sous chaque champ affiché ; celles sans champ visible restent en tête du formulaire.
+      const validationErrors = saveError.data?.errors ?? {}
+      const visible = fields.filter((field) => !field.showWhen || field.showWhen(values, editing)).map((field) => field.name)
+      const orphans = Object.entries(validationErrors).filter(([name]) => !visible.includes(name)).flatMap(([, messages]) => messages)
+      setFieldErrors(validationErrors)
+      setFormError(Object.keys(validationErrors).length ? orphans.join(' ') : saveError.message)
     } finally {
       setSaving(false)
     }
@@ -176,27 +178,25 @@ function AdminEntityPage({
 
   async function toggleActive(row) {
     setError('')
-    setSuccess('')
     try {
       await apiRequest(`${endpoint}/${row.id}`, {
         method: 'PATCH',
         body: JSON.stringify({ actif: !row.actif }),
       })
-      setSuccess(row.actif ? 'Élément désactivé.' : 'Élément activé.')
+      toast.success(row.actif ? 'Élément désactivé.' : 'Élément activé.')
       await load()
     } catch (toggleError) {
-      setError(toggleError.message)
+      toast.error(toggleError.message)
     }
   }
 
   async function runExtraAction(action, row) {
     setError('')
-    setSuccess('')
     try {
       const message = await action.run(row)
-      setSuccess(message || 'Opération effectuée.')
+      toast.success(message || 'Opération effectuée.')
     } catch (actionError) {
-      setError(actionError.message)
+      toast.error(actionError.message)
     }
   }
 
@@ -214,9 +214,9 @@ function AdminEntityPage({
           filteredRows,
         )}
         type="button"
-        variant={compactTable ? 'secondary' : 'export'}
+        icon="download"
+        variant="secondary"
       >
-        {compactTable && <Icon name="download" size={16} />}
         Exporter Excel
       </Button>
     )
@@ -250,130 +250,74 @@ function AdminEntityPage({
     return <RowActions actions={actions} />
   }
 
+  const filtersActive = Boolean(query) || Object.values(filters).some(Boolean)
+
+  function renderField(field) {
+    if (field.showWhen && !field.showWhen(values, editing)) return null
+    const common = {
+      error: fieldErrors[field.name],
+      label: field.label,
+      required: field.required,
+      value: values[field.name],
+      onChange: (value) => setValues((current) => ({ ...current, [field.name]: value })),
+      'data-modal-autofocus': fields.indexOf(field) === 0 ? true : undefined,
+    }
+    if (field.type === 'checkbox') {
+      return <Checkbox checked={Boolean(values[field.name])} key={field.name} label={field.label} onChange={common.onChange} />
+    }
+    if (field.type === 'select') {
+      const options = (field.options ?? relatedData[field.optionsKey] ?? []).map((option) => [
+        String(option.id ?? option.value),
+        field.optionLabel ? field.optionLabel(option) : option.label ?? option.libelle ?? option.nom ?? option.code,
+      ])
+      return <Select key={field.name} {...common} hint={field.hint} options={options} placeholder="Sélectionner…" />
+    }
+    return <TextInput key={field.name} {...common} hint={field.hint} max={field.max} maxLength={field.maxLength} min={field.min} type={field.type ?? 'text'} />
+  }
+
   return (
-    <section className={`admin-entity${compactTable ? ' admin-entity--compact' : ''}`}>
-      <PageBanner actions={<Button onClick={openCreate}>Ajouter</Button>} description={description} title={title} />
+    <section className="admin-entity">
+      <PageBanner actions={<Button icon="plus" onClick={openCreate}>Ajouter</Button>} description={description} title={title} />
 
-      {error && <p className="admin-entity__message admin-entity__message--error" role="alert">{error}</p>}
-      {success && <p className="admin-entity__message admin-entity__message--success" role="status">{success}</p>}
+      {error && <Alert severity="error">{error}</Alert>}
 
-      {compactTable ? (
-        <FilterBar className="admin-entity__filterbar">
-          <div className="admin-entity__filterbar-primary">
-            <label className="admin-entity__search" htmlFor={`${endpoint}-search`}>
-              <span>Rechercher</span>
-              <input
-                id={`${endpoint}-search`}
-                onChange={(event) => { setQuery(event.target.value); setPage(1) }}
-                placeholder="Rechercher dans tous les champs…"
-                type="search"
-                value={query}
-              />
-            </label>
-            <div className="admin-entity__filterbar-tools">
-              <span className="admin-entity__result-count">{filteredRows.length} résultat{filteredRows.length > 1 ? 's' : ''}</span>
-              {(query || Object.values(filters).some(Boolean)) && (
-                <Button onClick={() => { setQuery(''); setFilters({}); setPage(1) }} type="button" variant="secondary">
-                  Réinitialiser
-                </Button>
-              )}
-              {renderExportButton()}
-            </div>
-          </div>
-          {filterOptions.length > 0 && (
-            <div className="admin-entity__filters">
-              {filterOptions.map(({ column, options }) => (
-                <label className="admin-entity__filter" key={column.key}>
-                  <span>{column.label}</span>
-                  <select
-                    aria-label={`Filtrer par ${column.label}`}
-                    onChange={(event) => { setFilters((current) => ({ ...current, [column.key]: event.target.value })); setPage(1) }}
-                    value={filters[column.key] ?? ''}
-                  >
-                    <option value="">Tous</option>
-                    {options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                  </select>
-                </label>
-              ))}
-            </div>
-          )}
-        </FilterBar>
-      ) : (
-        <div className="admin-entity__toolbar sar-list-toolbar">
-          <label className="sar-list-toolbar__search" htmlFor={`${endpoint}-search`}>
-            Rechercher
-            <input
-              id={`${endpoint}-search`}
-              onChange={(event) => { setQuery(event.target.value); setPage(1) }}
-              placeholder="Rechercher dans tous les champs…"
-              type="search"
-              value={query}
-            />
-          </label>
-          {filterOptions.map(({ column, options }) => (
-            <label className="admin-entity__filter" key={column.key}>
-              <span>{column.label}</span>
-              <select
-                aria-label={`Filtrer par ${column.label}`}
-                onChange={(event) => { setFilters((current) => ({ ...current, [column.key]: event.target.value })); setPage(1) }}
-                value={filters[column.key] ?? ''}
-              >
-                <option value="">Toutes</option>
-                {options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-              </select>
-            </label>
-          ))}
-          {(query || Object.values(filters).some(Boolean)) && (
+      <ListToolbar>
+        <SearchField
+          id={`${endpoint}-search`}
+          placeholder="Rechercher dans tous les champs…"
+          value={query}
+          onChange={(value) => { setQuery(value); setPage(1) }}
+        />
+        {filterOptions.map(({ column, options }) => (
+          <FilterSelect
+            allLabel="Tous"
+            key={column.key}
+            label={column.label}
+            options={options}
+            value={filters[column.key] ?? ''}
+            onChange={(value) => { setFilters((current) => ({ ...current, [column.key]: value })); setPage(1) }}
+          />
+        ))}
+        <ToolbarActions>
+          <ResultCount count={filteredRows.length} />
+          {filtersActive && (
             <Button type="button" variant="secondary" onClick={() => { setQuery(''); setFilters({}); setPage(1) }}>Réinitialiser</Button>
           )}
-          <span className="sar-list-toolbar__count">{filteredRows.length} résultat{filteredRows.length > 1 ? 's' : ''}</span>
           {renderExportButton()}
-        </div>
-      )}
+        </ToolbarActions>
+      </ListToolbar>
 
-      {compactTable ? (
-        <DataTable
-          actions={renderRowActions}
-          columns={columns}
-          context={relatedData}
-          emptyMessage="Aucun élément trouvé."
-          loading={loading}
-          rows={visibleRows}
-          variant="compact"
-        />
-      ) : (
-        <div className="admin-entity__table-wrap">
-          <table className="admin-entity__table">
-            <thead><tr>{columns.map((column) => <th key={column.key}>{column.label}</th>)}<th>Actions</th></tr></thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={columns.length + 1}>Chargement…</td></tr>
-              ) : filteredRows.length === 0 ? (
-                <tr><td colSpan={columns.length + 1}>Aucun élément trouvé.</td></tr>
-              ) : visibleRows.map((row) => (
-                <tr key={row.id}>
-                  {columns.map((column) => (
-                    <td key={column.key}>{column.render ? column.render(row, relatedData) : (column.value ? column.value(row, relatedData) : row[column.key]) ?? '—'}</td>
-                  ))}
-                  <td className="admin-entity__actions sar-list-actions">
-                    <Button onClick={() => openEdit(row)} size="small" variant="edit">Modifier</Button>
-                    {typeof row.actif === 'boolean' && (
-                      <Button onClick={() => toggleActive(row)} size="small" variant={row.actif ? 'danger' : 'success'}>
-                        {row.actif ? 'Désactiver' : 'Activer'}
-                      </Button>
-                    )}
-                    {extraActions?.map((action) => (
-                      <Button key={action.label} disabled={action.disabled?.(row)} onClick={() => runExtraAction(action, row)} size="small" variant="secondary">
-                        {action.label}
-                      </Button>
-                    ))}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        actions={renderRowActions}
+        columns={columns}
+        context={relatedData}
+        emptyAction={filtersActive ? undefined : <Button icon="plus" onClick={openCreate}>Ajouter</Button>}
+        emptyDescription={filtersActive ? 'Modifiez la recherche ou réinitialisez les filtres.' : undefined}
+        emptyMessage={filtersActive ? 'Aucun élément ne correspond à la recherche.' : 'Aucun élément pour le moment.'}
+        loading={loading}
+        rows={visibleRows}
+        variant="compact"
+      />
       {!loading && filteredRows.length > 0 && (
         <ListPagination
           page={currentPage}
@@ -389,71 +333,19 @@ function AdminEntityPage({
         footer={({ requestClose }) => (
           <>
             <Button disabled={saving} onClick={requestClose} type="button" variant="secondary">Annuler</Button>
-            <Button disabled={saving} form="admin-entity-form" type="submit">
-              {saving && <span aria-hidden="true" className="admin-entity__spinner" />}
-              {saving ? 'Enregistrement…' : editing ? 'Enregistrer' : 'Ajouter'}
+            <Button form="admin-entity-form" loading={saving} loadingLabel="Enregistrement…" type="submit">
+              {editing ? 'Enregistrer' : 'Ajouter'}
             </Button>
           </>
         )}
-        onClose={() => { setModalOpen(false); setFormError('') }}
+        onClose={() => { setModalOpen(false); setFormError(''); setFieldErrors({}) }}
         open={modalOpen}
         size={fields.length > 4 ? 'md' : 'sm'}
         title={editing ? `Modifier — ${title}` : `Ajouter — ${title}`}
       >
-        <form className={`admin-entity__form${fields.length > 5 ? ' admin-entity__form--columns' : ''}`} id="admin-entity-form" onSubmit={save}>
-          {formError && (
-            <div className="admin-entity__form-error" role="alert">
-              <Icon name="al" size={16} />
-              <span>{formError}</span>
-            </div>
-          )}
-          {fields.map((field) => {
-            if (field.showWhen && !field.showWhen(values, editing)) return null
-            const fieldId = `${endpoint}-${field.name}`
-            if (field.type === 'checkbox') {
-              return (
-                <label className="admin-entity__checkbox" htmlFor={fieldId} key={field.name}>
-                  <input checked={Boolean(values[field.name])} id={fieldId} onChange={(event) => setValues({ ...values, [field.name]: event.target.checked })} type="checkbox" />
-                  {field.label}
-                </label>
-              )
-            }
-            const options = field.options ?? relatedData[field.optionsKey] ?? []
-            return (
-              <label className="admin-entity__field" htmlFor={fieldId} key={field.name}>
-                <span>{field.label}</span>
-                {field.type === 'select' ? (
-                  <select
-                    id={fieldId}
-                    onChange={(event) => setValues({ ...values, [field.name]: event.target.value })}
-                    required={field.required}
-                    data-modal-autofocus={fields.indexOf(field) === 0 ? true : undefined}
-                    value={values[field.name]}
-                  >
-                    <option value="">Sélectionner…</option>
-                    {options.map((option) => (
-                      <option key={option.id ?? option.value} value={option.id ?? option.value}>
-                        {field.optionLabel ? field.optionLabel(option) : option.label ?? option.libelle ?? option.nom ?? option.code}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    id={fieldId}
-                    max={field.max}
-                    maxLength={field.maxLength}
-                    min={field.min}
-                    onChange={(event) => setValues({ ...values, [field.name]: event.target.value })}
-                    required={field.required}
-                    type={field.type ?? 'text'}
-                    data-modal-autofocus={fields.indexOf(field) === 0 ? true : undefined}
-                    value={values[field.name]}
-                  />
-                )}
-                {field.hint && <small>{field.hint}</small>}
-              </label>
-            )
-          })}
+        <form className={`admin-entity__form${fields.length > 5 ? ' admin-entity__form--columns' : ''}`} id="admin-entity-form" noValidate onSubmit={save}>
+          {formError && <Alert severity="error">{formError}</Alert>}
+          {fields.map(renderField)}
         </form>
       </Modal>
       <ConfirmDialog

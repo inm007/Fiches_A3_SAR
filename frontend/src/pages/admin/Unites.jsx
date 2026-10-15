@@ -41,7 +41,6 @@ function Unites() {
         fields={fields}
         title="Unités"
         exportColumns={exportColumns}
-        compactTable
       />
     </div>
   )
