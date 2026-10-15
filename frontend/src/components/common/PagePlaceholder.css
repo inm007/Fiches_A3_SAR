@@ -4,18 +4,18 @@
 
 .page-placeholder__header h1 {
   margin: 0;
-  font-size: 26px;
+  font-size: var(--text-3xl);
 }
 
 .page-placeholder__header p {
   margin: 8px 0 0;
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: var(--text-md);
 }
 
 .page-placeholder__surface {
   min-height: 280px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--white);
 }

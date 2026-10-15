@@ -16,12 +16,12 @@
   padding: 24px;
   border-radius: var(--radius-modal);
   background: var(--white);
-  box-shadow: 0 24px 60px rgb(26 26 31 / 25%);
+  box-shadow: var(--shadow-modal);
 }
 
 .confirm-dialog h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--text-lg);
   font-weight: 600;
 }
 

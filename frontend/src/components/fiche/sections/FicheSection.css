@@ -12,12 +12,12 @@
 .fiche-section__help {
   margin: 0;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .fiche-section h3 {
   margin: 4px 0 0;
-  font-size: 15px;
+  font-size: var(--text-lg);
   font-weight: 600;
 }
 
@@ -30,10 +30,10 @@
 .fiche-section__info {
   padding: 12px 14px;
   border: 1px solid var(--info-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--info);
   background: var(--info-bg);
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .fiche-section__totaux {
@@ -45,18 +45,18 @@
 .fiche-section__total {
   padding: 12px 14px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--gray-50);
 }
 
 .fiche-section__total span {
   display: block;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 .fiche-section__total strong {
-  font-size: 16px;
+  font-size: var(--text-lg);
 }
 
 .fiche-section__chain {
@@ -73,14 +73,14 @@
 .fiche-section__table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .fiche-section__table th {
   padding: 9px 10px;
   color: var(--gray-700);
   background: var(--gray-100);
-  font-size: 12px;
+  font-size: var(--text-xs);
   text-align: left;
 }
 

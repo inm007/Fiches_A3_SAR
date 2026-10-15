@@ -4,8 +4,8 @@
   align-items: center;
   gap: 5px;
   padding: 2px 10px;
-  border-radius: 999px;
-  font-size: 12px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
   font-weight: 500;
   line-height: 20px;
   white-space: nowrap;
@@ -56,12 +56,12 @@
 .status-badge--phase-waiting {
   color: var(--ink);
 }
-.status-badge--phase-opening { background: #EEF0F3; }
-.status-badge--phase-planning { background: #EAF2FA; }
-.status-badge--phase-realization { background: #EAF0F7; }
-.status-badge--phase-verification { background: #E8F5F3; }
-.status-badge--phase-closure { background: #EAF2ED; }
-.status-badge--phase-waiting { background: #F1F2F4; }
+.status-badge--phase-opening { background: var(--chart-phase-opening-bg); }
+.status-badge--phase-planning { background: var(--chart-phase-planning-bg); }
+.status-badge--phase-realization { background: var(--chart-phase-realization-bg); }
+.status-badge--phase-verification { background: var(--chart-phase-verification-bg); }
+.status-badge--phase-closure { background: var(--chart-phase-closure-bg); }
+.status-badge--phase-waiting { background: var(--chart-phase-waiting-bg); }
 .status-badge--phase-opening:not(:has(svg))::before { background: var(--chart-phase-opening); }
 .status-badge--phase-planning:not(:has(svg))::before { background: var(--chart-phase-planning); }
 .status-badge--phase-realization:not(:has(svg))::before { background: var(--chart-phase-realization); }

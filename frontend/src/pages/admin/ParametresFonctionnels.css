@@ -5,7 +5,7 @@
 
 .parametres-fonctionnels-page > header h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: var(--text-3xl);
 }
 
 .parametres-fonctionnels-page > header p {
@@ -25,13 +25,13 @@
   gap: 18px;
   padding: 22px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--white);
 }
 
 .parametres-fonctionnels-page__form legend {
   padding: 0 8px;
-  font-size: 18px;
+  font-size: var(--text-lg);
   font-weight: 700;
 }
 
@@ -46,7 +46,7 @@
   min-height: 42px;
   padding: 8px 11px;
   border: 1px solid var(--border-strong);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 .parametres-fonctionnels-page__form .parametres-fonctionnels-page__checkbox {
@@ -63,7 +63,7 @@
 .parametres-fonctionnels-page__message {
   margin: 0;
   padding: 12px 16px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 .parametres-fonctionnels-page__message--error {

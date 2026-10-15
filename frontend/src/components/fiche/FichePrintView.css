@@ -22,9 +22,9 @@
     inset: 0;
     display: block;
     width: 100%;
-    color: #1a1a1f;
-    background: #fff;
-    font-family: Arial, sans-serif;
+    color: var(--ink);
+    background: var(--white);
+    font-family: var(--font-sans);
     font-size: 8pt;
     line-height: 1.3;
   }
@@ -35,12 +35,12 @@
     justify-content: space-between;
     gap: 12mm;
     padding-bottom: 5mm;
-    border-bottom: 2px solid #e60012;
+    border-bottom: 2px solid var(--brand-500);
   }
 
   .fiche-print__header p {
     margin: 0 0 2mm;
-    color: #8f000b;
+    color: var(--brand-700);
     font-size: 8pt;
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -61,7 +61,7 @@
   }
 
   .fiche-print__status b {
-    color: #b8000e;
+    color: var(--brand-600);
     font-size: 10pt;
   }
 
@@ -76,7 +76,7 @@
   .fiche-print__section {
     break-inside: avoid;
     padding: 3mm;
-    border: 0.3mm solid #d2d2d8;
+    border: 0.3mm solid var(--gray-300);
     border-radius: 1.5mm;
   }
 
@@ -86,13 +86,13 @@
     gap: 2mm;
     margin: 0 0 2.5mm;
     padding-bottom: 1.5mm;
-    border-bottom: 0.4mm solid #e5e5e8;
+    border-bottom: 0.4mm solid var(--gray-200);
     font-size: 10pt;
   }
 
   .fiche-print__section h2 span {
-    color: #e60012;
-    font-family: Consolas, monospace;
+    color: var(--brand-500);
+    font-family: var(--font-mono);
     font-size: 9pt;
   }
 
@@ -109,7 +109,7 @@
   }
 
   .fiche-print__fields dt {
-    color: #6b6b76;
+    color: var(--gray-500);
     font-size: 7pt;
     font-weight: 700;
     text-transform: uppercase;
@@ -130,29 +130,29 @@
   .fiche-print__section th,
   .fiche-print__section td {
     padding: 1.2mm;
-    border: 0.25mm solid #e5e5e8;
+    border: 0.25mm solid var(--gray-200);
     text-align: left;
     vertical-align: top;
     overflow-wrap: anywhere;
   }
 
   .fiche-print__section th {
-    color: #3a3a44;
-    background: #f0f0f2 !important;
+    color: var(--gray-700);
+    background: var(--gray-100) !important;
     print-color-adjust: exact;
   }
 
   .fiche-print__empty {
     margin: 0;
-    color: #6b6b76;
+    color: var(--gray-500);
     font-style: italic;
   }
 
   .fiche-print__footer {
     margin-top: 4mm;
     padding-top: 2mm;
-    border-top: 0.3mm solid #d2d2d8;
-    color: #6b6b76;
+    border-top: 0.3mm solid var(--gray-300);
+    color: var(--gray-500);
     font-size: 7pt;
     text-align: right;
   }

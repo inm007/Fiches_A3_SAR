@@ -1,7 +1,7 @@
 .data-table__scroll {
   overflow-x: auto;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--white);
 }
 
@@ -21,13 +21,13 @@
 .data-table th {
   color: var(--gray-700);
   background: var(--gray-100);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 
 .data-table td {
   color: var(--ink);
-  font-size: 14px;
+  font-size: var(--text-md);
 }
 
 .data-table tbody tr:last-child td {
@@ -66,7 +66,7 @@
   height: 36px;
   color: var(--gray-700);
   background: var(--gray-50);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-align: left;
@@ -90,7 +90,7 @@
 }
 
 .data-table--compact th button:focus-visible {
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   outline: 2px solid var(--brand-500);
   outline-offset: 2px;
 }
@@ -152,7 +152,7 @@
 
 .data-table__empty strong {
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--text-lg);
 }
 
 .data-table__empty-icon {
@@ -163,7 +163,7 @@
   border-radius: 50%;
   color: var(--gray-500);
   background: var(--gray-100);
-  font-size: 23px;
+  font-size: var(--text-2xl);
 }
 
 .data-table__skeleton-row td {
@@ -228,7 +228,7 @@
     overflow: hidden;
     color: var(--text-muted);
     content: attr(data-label);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     text-overflow: ellipsis;
     text-transform: uppercase;
   }

@@ -1,7 +1,7 @@
 .missing-conditions {
   padding: 14px 18px;
   border: 1px solid var(--error-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   color: var(--error);
   background: var(--error-bg);
 }
@@ -11,7 +11,7 @@
   align-items: center;
   gap: 8px;
   margin: 0 0 8px;
-  font-size: 15px;
+  font-size: var(--text-lg);
 }
 
 .missing-conditions p {

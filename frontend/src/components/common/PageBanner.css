@@ -13,7 +13,7 @@
   color: var(--white);
   background:
     radial-gradient(420px 220px at 92% 0, rgb(230 0 18 / 75%), transparent),
-    linear-gradient(120deg, var(--ink), #33333d);
+    linear-gradient(120deg, var(--ink), var(--gray-800));
 }
 
 .sar-page-banner::after {
@@ -52,7 +52,7 @@
   max-width: 900px;
   margin: 7px 0 0;
   color: rgb(255 255 255 / 82%);
-  font-size: 14px;
+  font-size: var(--text-md);
   line-height: 1.5;
 }
 

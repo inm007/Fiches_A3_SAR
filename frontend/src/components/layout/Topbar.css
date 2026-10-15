@@ -27,7 +27,7 @@
   min-width: 0;
   gap: 8px;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .topbar__breadcrumb--dashboard {
@@ -41,7 +41,7 @@
   flex: 0 0 auto;
   place-items: center;
   border: 1px solid transparent;
-  border-radius: 11px;
+  border-radius: var(--radius-xl);
   color: var(--gray-500);
   transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
 }
@@ -67,7 +67,7 @@
   min-width: 0;
   overflow: hidden;
   color: var(--ink);
-  font-size: 15px;
+  font-size: var(--text-lg);
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -100,8 +100,8 @@
   border-radius: 50%;
   color: var(--brand-700);
   background: var(--brand-50);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--text-xs);
+  font-weight: 700;
   letter-spacing: 0.02em;
 }
 
@@ -126,7 +126,7 @@
   max-width: 150px;
   overflow: hidden;
   color: var(--ink);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -135,7 +135,7 @@
 .topbar__user-role {
   overflow: hidden;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -150,11 +150,11 @@
   gap: 8px;
   padding: 0 14px;
   border: 1px solid var(--button-danger-bg);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   color: var(--button-danger-text);
   background: var(--button-danger-bg);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
 }
@@ -169,7 +169,7 @@
   border-color: var(--error-border);
   color: var(--button-danger-text);
   background: var(--button-danger-hover);
-  box-shadow: 0 0 0 3px rgb(180 35 24 / 8%);
+  box-shadow: var(--ring-error);
   outline: 2px solid var(--brand-500);
   outline-offset: 2px;
 }
@@ -183,7 +183,7 @@
   top: calc(100% + 4px);
   right: 16px;
   color: var(--error);
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 @media (max-width: 1100px) {
@@ -225,7 +225,7 @@
   }
 
   .topbar__breadcrumb strong {
-    font-size: 13px;
+    font-size: var(--text-sm);
   }
 
   .topbar__user-details,
@@ -268,14 +268,14 @@
   margin: 0;
   overflow: hidden;
   padding: 6px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--gray-500);
   background: var(--gray-100);
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .topbar__search:focus-within {
-  box-shadow: 0 0 0 3px var(--focus-ring);
+  box-shadow: var(--ring-focus);
 }
 
 .topbar__search input {
@@ -290,9 +290,11 @@
   flex: 0 0 auto;
   padding: 0 6px;
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: var(--radius-md);
   background: var(--white);
-  font: 500 11px/18px inherit;
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  line-height: 18px;
 }
 
 @media (max-width: 1399px) {

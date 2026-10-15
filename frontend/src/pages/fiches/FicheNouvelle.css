@@ -5,7 +5,7 @@
 
 .fiche-nouvelle-page h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: var(--text-2xl);
 }
 
 .fiche-nouvelle-page__card {

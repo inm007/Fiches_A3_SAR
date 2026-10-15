@@ -16,7 +16,7 @@
   flex: 0 1 190px;
   gap: 5px;
   color: var(--gray-700);
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 600;
 }
 
@@ -32,11 +32,11 @@
   min-height: 40px;
   padding: 8px 11px;
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   color: var(--ink);
   background: var(--white);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 400;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -45,7 +45,7 @@
 .sar-list-toolbar select:focus {
   border-color: var(--brand-500);
   outline: 0;
-  box-shadow: 0 0 0 3px rgb(230 0 18 / 10%);
+  box-shadow: var(--ring-focus);
 }
 
 .sar-list-toolbar__count {
@@ -55,10 +55,10 @@
   margin: 0 auto 0 0;
   padding: 0 11px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--gray-700);
   background: var(--gray-50);
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -78,7 +78,7 @@
 .sar-list-actions .sar-button {
   min-height: 32px;
   padding: 0 10px;
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 @media (max-width: 700px) {

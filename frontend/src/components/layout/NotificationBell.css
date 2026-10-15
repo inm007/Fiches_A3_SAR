@@ -27,10 +27,10 @@
   right: 2px;
   min-width: 16px;
   padding: 0 4px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--white);
   background: var(--brand-500);
-  font-size: 10px;
+  font-size: var(--text-3xs);
   font-weight: 600;
   line-height: 16px;
   text-align: center;
@@ -44,7 +44,7 @@
   width: 360px;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--white);
   box-shadow: var(--shadow-pop);
   animation: sar-up 0.15s;
@@ -65,7 +65,7 @@
   border-bottom: 1px solid var(--border);
   background: var(--white);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--text-sm);
   text-align: left;
 }
 
@@ -78,7 +78,7 @@
 }
 
 .notification-bell__item .sar-muted {
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 .notification-bell__empty {

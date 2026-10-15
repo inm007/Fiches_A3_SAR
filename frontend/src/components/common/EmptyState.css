@@ -15,7 +15,7 @@
   border-radius: 50%;
   color: var(--brand-600);
   background: var(--brand-50);
-  font-size: 20px;
+  font-size: var(--text-xl);
 }
 
 .empty-state strong {
@@ -24,5 +24,5 @@
 
 .empty-state p {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--text-md);
 }

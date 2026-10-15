@@ -6,7 +6,7 @@
   place-items: center;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   color: var(--button-icon);
   background: transparent;
   cursor: pointer;
