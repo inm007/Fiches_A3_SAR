@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import Alert from '../../components/common/Alert.jsx'
-import Skeleton from '../../components/common/Skeleton.jsx'
+import Alert from '../../components/ui/Alert.jsx'
+import Skeleton from '../../components/ui/Skeleton.jsx'
 import FicheHeader from '../../components/fiche/FicheHeader.jsx'
-import FicheTabs from '../../components/fiche/FicheTabs.jsx'
+import Tabs from '../../components/ui/Tabs.jsx'
 import MissingConditionsPanel from '../../components/fiche/MissingConditionsPanel.jsx'
 import SectionEditor from '../../components/fiche/SectionEditor.jsx'
 import SectionStepper from '../../components/fiche/SectionStepper.jsx'
@@ -15,8 +15,8 @@ import ControlesTab from '../../components/fiche/tabs/ControlesTab.jsx'
 import HistoriqueTab from '../../components/fiche/tabs/HistoriqueTab.jsx'
 import PiecesJointesTab from '../../components/fiche/tabs/PiecesJointesTab.jsx'
 import ValidationsTab from '../../components/fiche/tabs/ValidationsTab.jsx'
-import Button from '../../components/common/Button.jsx'
-import Icon from '../../components/common/Icon.jsx'
+import Button from '../../components/ui/Button.jsx'
+import Icon from '../../components/ui/Icon.jsx'
 import { ficheService } from '../../services/ficheService.js'
 import { setCrumb } from '../../utils/crumb.js'
 import './FicheDetail.css'
@@ -119,27 +119,29 @@ function FicheDetail() {
         <WorkflowActions fiche={fiche} options={options} onChange={onChange} onError={onError} />
       </FicheHeader>
       <MissingConditionsPanel error={panel} onClose={() => setPanel(null)} onReload={reload} />
-      <FicheTabs active={tab} tabs={tabs} onChange={goToTab} />
-      {tab === 'fiche' ? (
-        <div className="fiche-detail-page__body">
-          <aside className="fiche-detail-page__stepper">
-            <SectionStepper active={section} completude={fiche.completude} editables={fiche.droits.sections_editables} onSelect={goToSection} />
-          </aside>
-          <SectionEditor
-            fiche={fiche}
-            key={`${section}-${fiche.statut_etape}-${fiche.version}`}
-            options={options}
-            refs={refs}
-            section={section}
-            onDirtyChange={setDirty}
-            onError={onError}
-            onNavigate={goToSection}
-            onSaved={onChange}
-          />
-        </div>
-      ) : (
-        <TabComponent fiche={fiche} options={options} onChange={onChange} onError={onError} />
-      )}
+      <Tabs active={tab} idPrefix="fiche-tab" label="Rubriques de la fiche" tabs={tabs} onChange={goToTab} />
+      <div aria-labelledby={`fiche-tab-${tab}`} id={`fiche-tab-panel-${tab}`} role="tabpanel">
+        {tab === 'fiche' ? (
+          <div className="fiche-detail-page__body">
+            <aside className="fiche-detail-page__stepper">
+              <SectionStepper active={section} completude={fiche.completude} editables={fiche.droits.sections_editables} onSelect={goToSection} />
+            </aside>
+            <SectionEditor
+              fiche={fiche}
+              key={`${section}-${fiche.statut_etape}-${fiche.version}`}
+              options={options}
+              refs={refs}
+              section={section}
+              onDirtyChange={setDirty}
+              onError={onError}
+              onNavigate={goToSection}
+              onSaved={onChange}
+            />
+          </div>
+        ) : (
+          <TabComponent fiche={fiche} options={options} onChange={onChange} onError={onError} />
+        )}
+      </div>
       <FichePrintView fiche={fiche} refs={refs} />
     </div>
   )

@@ -146,7 +146,7 @@
 }
 
 .auth-field input:focus {
-  border-color: var(--info);
+  border-color: var(--brand-500);
   outline: 0;
   box-shadow: var(--ring-focus);
 }
@@ -239,23 +239,23 @@
 }
 
 /* Champs FormField des pages mot de passe : même rendu que la connexion */
-.auth-form .form-field {
+.auth-form .sar-field {
   gap: 6px;
 }
 
-.auth-form .form-field__label {
+.auth-form .sar-field__label {
   font-size: var(--text-sm);
 }
 
-.auth-form .form-field input {
+.auth-form .sar-field input {
   height: 46px;
   border-color: var(--gray-300);
   border-radius: var(--radius-lg);
   font-size: var(--text-lg);
 }
 
-.auth-form .form-field input:focus {
-  border-color: var(--info);
+.auth-form .sar-field input:focus {
+  border-color: var(--brand-500);
   outline: 0;
   box-shadow: var(--ring-focus);
 }

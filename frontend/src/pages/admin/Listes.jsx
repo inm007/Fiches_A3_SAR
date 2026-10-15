@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiRequest } from '../../auth/api.js'
-import Button from '../../components/common/Button.jsx'
-import ConfirmDialog from '../../components/common/ConfirmDialog.jsx'
-import DataTable from '../../components/common/DataTable.jsx'
-import FilterBar from '../../components/common/FilterBar.jsx'
-import Icon from '../../components/common/Icon.jsx'
-import RowActions from '../../components/common/RowActions.jsx'
-import Badge from '../../components/common/Badge.jsx'
-import ListPagination from '../../components/common/ListPagination.jsx'
-import Modal from '../../components/common/Modal.jsx'
-import PageBanner from '../../components/common/PageBanner.jsx'
+import Button from '../../components/ui/Button.jsx'
+import ConfirmDialog from '../../components/ui/ConfirmDialog.jsx'
+import DataTable from '../../components/ui/DataTable.jsx'
+import FilterBar from '../../components/shared/FilterBar.jsx'
+import Icon from '../../components/ui/Icon.jsx'
+import RowActions from '../../components/ui/RowActions.jsx'
+import Badge from '../../components/ui/Badge.jsx'
+import ListPagination from '../../components/ui/ListPagination.jsx'
+import Modal from '../../components/ui/Modal.jsx'
+import PageBanner from '../../components/shared/PageBanner.jsx'
 import { downloadExcel, matchesSearch } from '../../utils/listTools.js'
 import { toast } from '../../utils/toast.js'
 import './Listes.css'
@@ -290,7 +290,7 @@ function Listes() {
                 label: 'État',
                 width: '14%',
                 value: (item) => item.actif ? 'Actif' : 'Inactif',
-                render: (item) => <Badge tone={item.actif ? 'success' : 'muted'}>{item.actif ? 'Actif' : 'Inactif'}</Badge>,
+                render: (item) => <Badge tone={item.actif ? 'active' : 'inactive'}>{item.actif ? 'Actif' : 'Inactif'}</Badge>,
               },
             ]}
             emptyMessage="Aucune valeur dans cette liste."

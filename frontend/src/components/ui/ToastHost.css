@@ -1,0 +1,38 @@
+.sar-toasts {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 60;
+  display: grid;
+  gap: 8px;
+}
+
+.sar-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  color: var(--white);
+  background: var(--ink);
+  animation: sar-up 0.2s;
+}
+
+.sar-toast--success .sar-icon { color: var(--success-highlight); }
+.sar-toast--error { background: var(--button-danger-solid); }
+.sar-toast--info .sar-icon { color: var(--info-border); }
+
+.sar-toast__close {
+  display: grid;
+  margin-left: auto;
+  padding: 2px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.7;
+  place-items: center;
+}
+
+.sar-toast__close:hover { opacity: 1; }

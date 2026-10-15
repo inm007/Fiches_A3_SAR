@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../../../auth/useAuth.js'
-import Button from '../../common/Button.jsx'
+import Button from '../../ui/Button.jsx'
 import { describeError, ficheService } from '../../../services/ficheService.js'
 import { formatDate } from '../../../utils/format.js'
 import { toast } from '../../../utils/toast.js'

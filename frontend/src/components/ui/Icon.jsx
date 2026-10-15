@@ -1,14 +1,15 @@
-// Icônes au trait de la maquette « SAR · Fiches A3 — Démo » (20 px, contour).
+// Jeu d'icônes unique de l'application : tracés au trait de la maquette « SAR · Fiches A3 — Démo »
+// (24 × 24, contour). Ajouter ici toute nouvelle icône, jamais de SVG recopié dans un composant.
 const paths = {
   home: 'M3 11l9-8 9 8M5 10v10h14V10',
   file: 'M6 3h9l4 4v14H6zM14 3v5h5',
   plus: 'M12 5v14M5 12h14',
   ok: 'M5 12l5 5 9-10',
-  bell: 'M6 16V11a6 6 0 1112 0v5l2 2H4zM10 20a2 2 0 004 0',
+  bell: 'M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4',
   lock: 'M6 11h12v9H6zM8 11V8a4 4 0 018 0v3',
   clock: 'M12 7v5l3 2M3 12a9 9 0 1018 0 9 9 0 10-18 0',
   search: 'M11 4a7 7 0 100 14 7 7 0 000-14zM20 20l-4-4',
-  users: 'M9 11a3 3 0 100-6 3 3 0 000 6zM3 20c0-4 3-6 6-6s6 2 6 6M17 8a3 3 0 010 6M21 20c0-3-2-5-4-5.5',
+  users: 'M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
   set: 'M4 7h10M18 7h2M4 17h2M10 17h10M14 5v4M8 15v4',
   x: 'M6 6l12 12M18 6L6 18',
   al: 'M12 4l9 16H3zM12 10v4M12 17v1',
@@ -31,6 +32,10 @@ const paths = {
   mail: 'M4 5h16v14H4zM4 7l8 6 8-6',
   disable: 'M8 11V7a4 4 0 018 0v4M6 11h12v9H6zM4 4l16 16',
   enable: 'M6 11h12v9H6zM8 11V7a4 4 0 018 0',
+  dashboard: 'M3 10.5 12 3l9 7.5M5 9v11h14V9M9 20v-6h6v6',
+  files: 'M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7',
+  validation: 'M5 12l4 4L19 6M4 4h5M4 20h5',
+  settings: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.7 2.94-.09-.02a1.7 1.7 0 0 0-1.72.75l-.05.08h-3.4l-.04-.09a1.7 1.7 0 0 0-1.52-1.02h-.1l-1.7-2.94.06-.07a1.7 1.7 0 0 0 .35-1.67l-.03-.1-2.94-1.7.02-.09a1.7 1.7 0 0 0-.75-1.72l-.08-.05V7.9l.09-.04a1.7 1.7 0 0 0 1.02-1.52v-.1l2.94-1.7.07.06a1.7 1.7 0 0 0 1.67.35l.1-.03 1.7-2.94.09.02a1.7 1.7 0 0 0 1.72-.75l.05-.08h3.4l.04.09a1.7 1.7 0 0 0 1.52 1.02h.1l1.7 2.94-.06.07a1.7 1.7 0 0 0-.35 1.67l.03.1 2.94 1.7-.02.09a1.7 1.7 0 0 0 .75 1.72l.08.05v3.4l-.09.04a1.7 1.7 0 0 0-1.02 1.52v.1z',
   download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
 }
 

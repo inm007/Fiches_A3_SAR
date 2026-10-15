@@ -1,4 +1,4 @@
-import { Checkbox } from '../../common/FormControls.jsx'
+import { Checkbox } from '../../ui/FormControls.jsx'
 import { DOMAINES, MOC_STATUTS } from '../../../utils/constants.js'
 import RowsEditor, { CellInput, CellSelect } from './RowsEditor.jsx'
 import { peopleOptions } from './options.js'

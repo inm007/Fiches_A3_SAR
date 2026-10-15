@@ -1,4 +1,4 @@
-import PagePlaceholder from '../../components/common/PagePlaceholder.jsx'
+import PagePlaceholder from '../../components/shared/PagePlaceholder.jsx'
 import './Forbidden.css'
 
 function Forbidden() {

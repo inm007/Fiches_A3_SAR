@@ -17,3 +17,7 @@
   background: var(--white);
   box-shadow: var(--shadow-card);
 }
+
+.fiche-detail-page [role='tabpanel'] {
+  min-width: 0;
+}

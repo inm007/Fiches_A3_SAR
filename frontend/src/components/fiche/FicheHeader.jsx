@@ -1,4 +1,4 @@
-import StatusBadge from '../common/StatusBadge.jsx'
+import Badge from '../ui/Badge.jsx'
 import { ETAPES, PARCOURS, STATUTS_GENERAUX } from '../../utils/constants.js'
 import { formatDate } from '../../utils/format.js'
 import EtapeBadge, { ConfidentialiteBadge } from './EtapeBadge.jsx'
@@ -21,7 +21,7 @@ function FicheHeader({ fiche, children }) {
       </div>
       <div className="fiche-header__badges">
         <EtapeBadge etape={fiche.statut_etape} />
-        <StatusBadge tone="neutral">{STATUTS_GENERAUX[fiche.statut_general]}</StatusBadge>
+        <Badge tone="neutral">{STATUTS_GENERAUX[fiche.statut_general]}</Badge>
         <ConfidentialiteBadge value={fiche.confidentialite} />
         <span className="fiche-header__version">v{fiche.version}</span>
       </div>

@@ -1,5 +1,5 @@
-import Icon from '../common/Icon.jsx'
-import StatusBadge from '../common/StatusBadge.jsx'
+import Icon from '../ui/Icon.jsx'
+import Badge from '../ui/Badge.jsx'
 import { ETAPES } from '../../utils/constants.js'
 
 function EtapeBadge({ etape }) {
@@ -15,13 +15,13 @@ function EtapeBadge({ etape }) {
     EN_ATTENTE: 'waiting',
     CLOTURE: 'closure',
   }[etape]
-  return <StatusBadge tone={phase ? `phase-${phase}` : config.tone}>{config.label}</StatusBadge>
+  return <Badge tone={phase ? `phase-${phase}` : config.tone}>{config.label}</Badge>
 }
 
 export function ConfidentialiteBadge({ value }) {
   return value === 'RESTREINT'
-    ? <StatusBadge tone="restricted"><Icon name="lock" size={13} />Restreint</StatusBadge>
-    : <StatusBadge tone="normal">Normal</StatusBadge>
+    ? <Badge tone="restricted"><Icon name="lock" size={13} />Restreint</Badge>
+    : <Badge tone="normal">Normal</Badge>
 }
 
 export default EtapeBadge

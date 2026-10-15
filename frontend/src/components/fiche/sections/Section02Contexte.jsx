@@ -1,4 +1,4 @@
-import { Select, TextArea, TextInput } from '../../common/FormControls.jsx'
+import { Select, TextArea, TextInput } from '../../ui/FormControls.jsx'
 import { IMPACTS } from '../../../utils/constants.js'
 import { listOptions } from './options.js'
 import './FicheSection.css'

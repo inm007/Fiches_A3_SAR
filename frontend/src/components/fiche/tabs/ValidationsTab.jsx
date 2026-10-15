@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import Alert from '../../common/Alert.jsx'
-import Button from '../../common/Button.jsx'
-import ConfirmDialog from '../../common/ConfirmDialog.jsx'
-import StatusBadge from '../../common/StatusBadge.jsx'
-import { Select, TextArea } from '../../common/FormControls.jsx'
+import Alert from '../../ui/Alert.jsx'
+import Button from '../../ui/Button.jsx'
+import ConfirmDialog from '../../ui/ConfirmDialog.jsx'
+import Badge from '../../ui/Badge.jsx'
+import { Select, TextArea } from '../../ui/FormControls.jsx'
 import { refreshCounters } from '../../../hooks/useCounters.js'
 import { describeError, ficheService } from '../../../services/ficheService.js'
 import { CATEGORIES_GAIN, DECISIONS, STATUTS_GAIN } from '../../../utils/constants.js'
@@ -85,7 +85,7 @@ export default function ValidationsTab({ fiche, onChange, onError }) {
           <li className={steps[validation.decision]} key={validation.id}>
             <span>
               <b>Porte {validation.porte} — {validation.role?.libelle}</b>{' '}
-              <StatusBadge tone={tones[validation.decision]}>{DECISIONS[validation.decision]}</StatusBadge>
+              <Badge tone={tones[validation.decision]}>{DECISIONS[validation.decision]}</Badge>
             </span>
             <span className="fiche-tab__muted">
               {validation.valideur?.nom} · demandé le {formatDate(validation.demandee_le)}

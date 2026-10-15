@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { apiRequest } from '../../auth/api.js'
 import AuthPage from '../../components/layout/AuthPage.jsx'
-import FormField from '../../components/common/FormField.jsx'
-import Button from '../../components/common/Button.jsx'
+import FormField from '../../components/ui/FormField.jsx'
+import Button from '../../components/ui/Button.jsx'
 import './ResetPassword.css'
 
 function ResetPassword() {

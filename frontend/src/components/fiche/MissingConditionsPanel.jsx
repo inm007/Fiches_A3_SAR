@@ -1,4 +1,4 @@
-import Button from '../common/Button.jsx'
+import Button from '../ui/Button.jsx'
 import './MissingConditionsPanel.css'
 
 // Panneau des refus du serveur : conditions manquantes (422) ou conflit d'état (409).

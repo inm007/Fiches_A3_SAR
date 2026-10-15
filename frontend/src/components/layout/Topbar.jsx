@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/useAuth.js'
-import Icon from '../common/Icon.jsx'
+import Breadcrumb from '../ui/Breadcrumb.jsx'
+import Icon from '../ui/Icon.jsx'
 import NotificationBell from './NotificationBell.jsx'
 import ProfileSwitcher from './ProfileSwitcher.jsx'
 import './Topbar.css'
@@ -57,23 +58,11 @@ function Topbar() {
 
   return (
     <header className="topbar">
-      <nav aria-label="Fil d’Ariane" className={`topbar__breadcrumb${pathname === '/tableau-de-bord' ? ' topbar__breadcrumb--dashboard' : ''}`}>
-        <Link aria-label="Accueil" className="topbar__home" to={activeProfile?.redirect_to || '/tableau-de-bord'}>
-          <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
-            <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1V10Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
-          </svg>
-        </Link>
-        <svg aria-hidden="true" className="topbar__crumb-separator" fill="none" viewBox="0 0 24 24">
-          <path d="m9 18 6-6-6-6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
-        </svg>
-        {ficheDetail && <Link className="topbar__crumb-link" to="/fiches">Fiches</Link>}
-        {ficheDetail && (
-          <svg aria-hidden="true" className="topbar__crumb-separator" fill="none" viewBox="0 0 24 24">
-            <path d="m9 18 6-6-6-6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
-          </svg>
-        )}
-        <strong>{title}</strong>
-      </nav>
+      <Breadcrumb
+        className={`topbar__breadcrumb${pathname === '/tableau-de-bord' ? ' topbar__breadcrumb--dashboard' : ''}`}
+        homeTo={activeProfile?.redirect_to || '/tableau-de-bord'}
+        items={ficheDetail ? [{ label: 'Fiches', to: '/fiches' }, { label: title }] : [{ label: title }]}
+      />
       {canSearch && (
         <form className="topbar__search" role="search" onSubmit={submitSearch}>
           <Icon name="search" size={18} />

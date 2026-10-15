@@ -1,0 +1,21 @@
+.sar-spinner {
+  display: inline-block;
+  flex: none;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: sar-spin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+.sar-spinner--sm { width: 14px; height: 14px; }
+.sar-spinner--md { width: 20px; height: 20px; }
+.sar-spinner--lg { width: 32px; height: 32px; border-width: 3px; }
+
+@keyframes sar-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sar-spinner { animation-duration: 2s; }
+}

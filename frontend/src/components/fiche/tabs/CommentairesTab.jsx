@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import Button from '../../common/Button.jsx'
-import { TextArea } from '../../common/FormControls.jsx'
+import Button from '../../ui/Button.jsx'
+import { TextArea } from '../../ui/FormControls.jsx'
 import { describeError, ficheService } from '../../../services/ficheService.js'
 import { formatDateTime } from '../../../utils/format.js'
 import { toast } from '../../../utils/toast.js'

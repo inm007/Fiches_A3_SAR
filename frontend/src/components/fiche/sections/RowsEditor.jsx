@@ -1,4 +1,4 @@
-import Button from '../../common/Button.jsx'
+import Button from '../../ui/Button.jsx'
 import './RowsEditor.css'
 
 /**

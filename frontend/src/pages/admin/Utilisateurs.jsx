@@ -1,6 +1,6 @@
 import { apiRequest } from '../../auth/api.js'
 import AdminEntityPage from '../../components/admin/AdminEntityPage.jsx'
-import Badge from '../../components/common/Badge.jsx'
+import Badge from '../../components/ui/Badge.jsx'
 import './Utilisateurs.css'
 
 const fields = [
@@ -64,7 +64,7 @@ const columns = [
     label: 'État',
     width: '12%',
     value: (user) => user.actif ? 'Actif' : 'Inactif',
-    render: (user) => <Badge tone={user.actif ? 'success' : 'muted'}>{user.actif ? 'Actif' : 'Inactif'}</Badge>,
+    render: (user) => <Badge tone={user.actif ? 'active' : 'inactive'}>{user.actif ? 'Actif' : 'Inactif'}</Badge>,
   },
   {
     key: 'derniere_connexion',

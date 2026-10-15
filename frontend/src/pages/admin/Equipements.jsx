@@ -1,5 +1,5 @@
 import AdminEntityPage from '../../components/admin/AdminEntityPage.jsx'
-import Badge from '../../components/common/Badge.jsx'
+import Badge from '../../components/ui/Badge.jsx'
 import './Equipements.css'
 
 const related = [{ key: 'units', endpoint: '/admin/units' }]
@@ -40,7 +40,7 @@ const columns = [
     label: 'État',
     width: '15%',
     value: (equipment) => equipment.actif ? 'Actif' : 'Inactif',
-    render: (equipment) => <Badge tone={equipment.actif ? 'success' : 'muted'}>{equipment.actif ? 'Actif' : 'Inactif'}</Badge>,
+    render: (equipment) => <Badge tone={equipment.actif ? 'active' : 'inactive'}>{equipment.actif ? 'Actif' : 'Inactif'}</Badge>,
   },
 ]
 

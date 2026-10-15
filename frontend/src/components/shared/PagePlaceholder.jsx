@@ -1,4 +1,4 @@
-import EmptyState from './EmptyState.jsx'
+import EmptyState from '../ui/EmptyState.jsx'
 import PageBanner from './PageBanner.jsx'
 import './PagePlaceholder.css'
 

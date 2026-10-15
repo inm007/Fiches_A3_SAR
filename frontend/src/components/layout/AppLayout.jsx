@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom'
-import ToastHost from '../common/ToastHost.jsx'
+import ToastHost from '../ui/ToastHost.jsx'
 import Sidebar from './Sidebar.jsx'
 import Topbar from './Topbar.jsx'
 import './AppLayout.css'

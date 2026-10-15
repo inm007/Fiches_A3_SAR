@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { apiRequest } from '../../auth/api.js'
-import Button from '../../components/common/Button.jsx'
-import PageBanner from '../../components/common/PageBanner.jsx'
+import Button from '../../components/ui/Button.jsx'
+import PageBanner from '../../components/shared/PageBanner.jsx'
 import './ParametresFonctionnels.css'
 
 const defaults = {

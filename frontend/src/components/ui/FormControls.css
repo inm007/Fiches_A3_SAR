@@ -39,8 +39,27 @@
 .sar-field input:focus,
 .sar-field select:focus,
 .sar-field textarea:focus {
-  border-color: var(--info);
-  outline: 3px solid var(--focus-ring);
+  border-color: var(--brand-500);
+  outline: 0;
+  box-shadow: var(--ring-focus);
+}
+
+.sar-field.has-error input,
+.sar-field.has-error select,
+.sar-field.has-error textarea {
+  border-color: var(--error);
+}
+
+.sar-field.has-error input:focus,
+.sar-field.has-error select:focus,
+.sar-field.has-error textarea:focus {
+  box-shadow: var(--ring-error);
+}
+
+.sar-field__error {
+  color: var(--error);
+  font-size: var(--text-xs);
+  font-weight: 500;
 }
 
 .sar-field input[readonly],

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import Icon from '../common/Icon.jsx'
+import Icon from '../ui/Icon.jsx'
 import { refreshCounters, useCounters } from '../../hooks/useCounters.js'
 import { notificationService } from '../../services/notificationService.js'
 import { formatDateTime } from '../../utils/format.js'

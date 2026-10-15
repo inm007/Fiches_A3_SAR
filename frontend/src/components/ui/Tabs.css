@@ -1,4 +1,4 @@
-.fiche-tabs {
+.sar-tabs {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -6,7 +6,7 @@
   border-bottom: 1px solid var(--border);
 }
 
-.fiche-tabs button {
+.sar-tabs button {
   min-height: 42px;
   margin-bottom: -1px;
   padding: 0 14px;
@@ -20,18 +20,18 @@
   white-space: nowrap;
 }
 
-.fiche-tabs button:hover,
-.fiche-tabs button:focus-visible {
+.sar-tabs button:hover,
+.sar-tabs button:focus-visible {
   background: var(--gray-100);
 }
 
-.fiche-tabs button.is-active {
+.sar-tabs button.is-active {
   border-bottom-color: var(--brand-500);
   color: var(--brand-500);
   font-weight: 600;
 }
 
-.fiche-tabs__count {
+.sar-tabs__count {
   margin-left: 6px;
   padding: 0 7px;
   border-radius: var(--radius-pill);

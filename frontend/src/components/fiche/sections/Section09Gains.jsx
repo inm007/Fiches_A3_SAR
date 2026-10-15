@@ -1,5 +1,5 @@
-import { Checkbox, TextInput } from '../../common/FormControls.jsx'
-import StatusBadge from '../../common/StatusBadge.jsx'
+import { Checkbox, TextInput } from '../../ui/FormControls.jsx'
+import Badge from '../../ui/Badge.jsx'
 import { CATEGORIES_GAIN, STATUTS_GAIN } from '../../../utils/constants.js'
 import { formatFcfa, formatPayback } from '../../../utils/format.js'
 import RowsEditor, { CellInput, CellSelect } from './RowsEditor.jsx'
@@ -28,7 +28,7 @@ export default function Section09Gains({ draft, set, fiche, readOnly }) {
             { key: 'unite', label: 'Unité *', width: 70, render: (row, setRow) => <CellInput readOnly={locked(row)} value={row.unite} onChange={(value) => setRow('unite', value)} /> },
             { key: 'cout_unitaire', label: 'Coût unitaire (FCFA) *', width: 120, render: (row, setRow) => <CellInput min="0" readOnly={locked(row)} type="number" value={row.cout_unitaire} onChange={(value) => setRow('cout_unitaire', value)} /> },
             { key: 'montant_annuel', label: 'Montant annuel', width: 130, render: (row) => formatFcfa(row.montant_annuel) },
-            { key: 'statut', label: 'Statut', width: 90, render: (row) => <StatusBadge tone={gainTone[row.statut ?? 'PROPOSE']}>{STATUTS_GAIN[row.statut ?? 'PROPOSE']}</StatusBadge> },
+            { key: 'statut', label: 'Statut', width: 90, render: (row) => <Badge tone={gainTone[row.statut ?? 'PROPOSE']}>{STATUTS_GAIN[row.statut ?? 'PROPOSE']}</Badge> },
           ]}
           emptyLabel="Aucun gain chiffré."
           newRow={() => ({ categorie: '', hypothese_calcul: '', quantite: '', unite: '', cout_unitaire: '', statut: 'PROPOSE' })}

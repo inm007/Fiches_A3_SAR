@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Alert from '../../components/common/Alert.jsx'
-import Button from '../../components/common/Button.jsx'
-import PageBanner from '../../components/common/PageBanner.jsx'
-import EmptyState from '../../components/common/EmptyState.jsx'
-import ListPagination from '../../components/common/ListPagination.jsx'
-import Skeleton from '../../components/common/Skeleton.jsx'
-import StatusBadge from '../../components/common/StatusBadge.jsx'
+import Alert from '../../components/ui/Alert.jsx'
+import Button from '../../components/ui/Button.jsx'
+import PageBanner from '../../components/shared/PageBanner.jsx'
+import EmptyState from '../../components/ui/EmptyState.jsx'
+import ListPagination from '../../components/ui/ListPagination.jsx'
+import Skeleton from '../../components/ui/Skeleton.jsx'
+import Badge from '../../components/ui/Badge.jsx'
 import { refreshCounters } from '../../hooks/useCounters.js'
 import { notificationService } from '../../services/notificationService.js'
 import { formatDateTime } from '../../utils/format.js'
@@ -121,7 +121,7 @@ function Notifications() {
         <div className="sar-card notifications-page__list">
           {result.data.map((notification) => (
             <button className={`sar-list-item notifications-page__item${notification.lu ? '' : ' is-unread'}`} key={notification.id} type="button" onClick={() => open(notification)}>
-              <StatusBadge tone={notification.lu ? 'neutral' : 'brand'}>{notification.lu ? 'Lu' : 'Non lu'}</StatusBadge>
+              <Badge tone={notification.lu ? 'neutral' : 'brand'}>{notification.lu ? 'Lu' : 'Non lu'}</Badge>
               <div>
                 {notification.message}
                 <div className="sar-muted notifications-page__date">{formatDateTime(notification.created_at)}</div>

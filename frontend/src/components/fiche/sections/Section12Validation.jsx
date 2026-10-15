@@ -1,4 +1,4 @@
-import StatusBadge from '../../common/StatusBadge.jsx'
+import Badge from '../../ui/Badge.jsx'
 import { DECISIONS } from '../../../utils/constants.js'
 import { formatDate } from '../../../utils/format.js'
 import './FicheSection.css'
@@ -25,7 +25,7 @@ export default function Section12Validation({ fiche }) {
                 <td>{validation.role?.libelle}</td>
                 <td>{validation.valideur?.nom}</td>
                 <td>{formatDate(validation.decidee_le ?? validation.demandee_le)}</td>
-                <td><StatusBadge tone={decisionTone[validation.decision]}>{DECISIONS[validation.decision]}</StatusBadge></td>
+                <td><Badge tone={decisionTone[validation.decision]}>{DECISIONS[validation.decision]}</Badge></td>
                 <td>{validation.commentaire ?? '—'}</td>
                 <td>v{validation.version_fiche}</td>
               </tr>

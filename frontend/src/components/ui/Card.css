@@ -1,0 +1,28 @@
+.sar-card--flush {
+  padding: 0;
+  overflow: hidden;
+}
+
+.sar-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.sar-card--flush .sar-card__header {
+  margin: 0;
+  padding: var(--space-2) 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sar-card__header p {
+  margin: 2px 0 0;
+}
+
+.sar-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}

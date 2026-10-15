@@ -1,5 +1,5 @@
 import AdminEntityPage from '../../components/admin/AdminEntityPage.jsx'
-import Badge from '../../components/common/Badge.jsx'
+import Badge from '../../components/ui/Badge.jsx'
 import { formatDate } from '../../utils/format.js'
 import './Affectations.css'
 
@@ -62,7 +62,7 @@ const columns = [
     label: 'État',
     width: '15%',
     value: (assignment) => assignment.actif ? 'Actif' : 'Inactif',
-    render: (assignment) => <Badge tone={assignment.actif ? 'success' : 'muted'}>{assignment.actif ? 'Actif' : 'Inactif'}</Badge>,
+    render: (assignment) => <Badge tone={assignment.actif ? 'active' : 'inactive'}>{assignment.actif ? 'Actif' : 'Inactif'}</Badge>,
   },
 ]
 

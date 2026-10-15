@@ -26,3 +26,7 @@
   margin: 0;
   font-size: var(--text-md);
 }
+
+.empty-state__action {
+  margin-top: var(--space-1);
+}

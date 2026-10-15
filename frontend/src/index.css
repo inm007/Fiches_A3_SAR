@@ -1,6 +1,6 @@
 @import './theme/colors.css';
 @import './theme/tokens.css';
-@import './components/common/ListToolbar.css';
+@import './components/shared/ListToolbar.css';
 
 /* Socle visuel repris de la maquette « SAR · Fiches A3 — Démo » : cartes arrondies,
    ombres douces, en-têtes de tableau en capitales, pastilles à point, animations courtes. */

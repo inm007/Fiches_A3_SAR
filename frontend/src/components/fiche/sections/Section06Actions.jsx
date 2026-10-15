@@ -1,4 +1,4 @@
-import StatusBadge from '../../common/StatusBadge.jsx'
+import Badge from '../../ui/Badge.jsx'
 import { STATUTS_ACTION } from '../../../utils/constants.js'
 import RowsEditor, { CellInput, CellSelect } from './RowsEditor.jsx'
 import { listOptions, peopleOptions } from './options.js'
@@ -29,7 +29,7 @@ export default function Section06Actions({ draft, set, fiche, refs, options, rea
           { key: 'risque_id', label: 'MOC lié', width: 150, render: (row, setRow) => <CellSelect options={risques} placeholder="Aucun" readOnly={readOnly} value={row.risque_id} onChange={(value) => setRow('risque_id', value)} /> },
           { key: 'statut', label: 'Statut', width: 90, render: (row) => {
             const statut = STATUTS_ACTION[row.statut ?? 'A_FAIRE']
-            return <StatusBadge tone={statut.tone}>{statut.label}</StatusBadge>
+            return <Badge tone={statut.tone}>{statut.label}</Badge>
           } },
         ]}
         emptyLabel="Aucune action. Enregistrez d’abord les causes (section 5)."
