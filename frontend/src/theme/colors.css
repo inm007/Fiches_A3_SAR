@@ -5,6 +5,10 @@
    ========================================================================== */
 
 :root {
+  /* Voiles sous les fenêtres modales */
+  --overlay: rgb(20 22 26 / 45%);
+  --overlay-soft: rgb(20 22 26 / 35%);
+
   /* ---------- Marque ---------- */
   --brand-50:  #FDECEE;
   --brand-100: #FAD1D5;

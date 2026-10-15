@@ -42,9 +42,9 @@
 }
 
 .section-stepper button small {
+  display: inline-flex;
   margin-left: auto;
-  font-size: var(--text-3xs);
-  opacity: 0.6;
+  color: var(--text-muted);
 }
 
 .section-stepper__dot {

@@ -1,4 +1,5 @@
 import { SECTIONS } from '../../utils/constants.js'
+import Icon from '../ui/Icon.jsx'
 import './SectionStepper.css'
 
 const completudeLabel = { complet: 'complète', partiel: 'partielle', vide: 'vide' }
@@ -20,7 +21,7 @@ function SectionStepper({ active, completude = {}, editables = [], onSelect }) {
           >
             <i aria-hidden="true" className={`section-stepper__dot section-stepper__dot--${etat}`} />
             {numero}. {section}
-            {!editables.includes(numero) && <small aria-label="lecture seule">🔒</small>}
+            {!editables.includes(numero) && <small><Icon name="lock" size={12} /><span className="sar-sr-only">lecture seule</span></small>}
           </button>
         )
       })}

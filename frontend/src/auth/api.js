@@ -18,13 +18,25 @@ const STATUS_MESSAGES = {
   504: 'Le serveur met trop de temps à répondre. Réessayez dans quelques instants.',
 }
 
+// Messages techniques par défaut de Laravel, s'ils arrivent en anglais (locale du serveur non française).
+const LARAVEL_DEFAULTS = {
+  'Unauthenticated.': 'Votre session a expiré. Reconnectez-vous.',
+  'This action is unauthorized.': 'Vous n’êtes pas autorisé à effectuer cette action.',
+  'Not Found': 'Élément introuvable.',
+  'Forbidden': 'Accès refusé.',
+  'Too Many Attempts.': STATUS_MESSAGES[429],
+  'Too Many Requests': STATUS_MESSAGES[429],
+  'CSRF token mismatch.': STATUS_MESSAGES[419],
+  'Server Error': STATUS_MESSAGES[500],
+}
+
 // Message affiché pour une erreur API : le message métier de Laravel (validation, droits)
 // est conservé ; les erreurs techniques reçoivent un texte en français.
 export function apiErrorMessage(status, data, fallback = 'Une erreur est survenue.') {
   if (STATUS_MESSAGES[status] && (status === 0 || status >= 500 || status === 419 || !data?.message)) {
     return STATUS_MESSAGES[status]
   }
-  return data?.message || fallback
+  return LARAVEL_DEFAULTS[data?.message] ?? (data?.message || fallback)
 }
 
 async function readJson(response) {

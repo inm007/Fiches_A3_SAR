@@ -35,7 +35,7 @@ function FicheHeader({ fiche, children }) {
           En attente depuis l’étape « {ETAPES[fiche.etape_avant_attente]?.label} » : {fiche.motif_attente}
         </p>
       )}
-      <ol aria-label="Progression du workflow" className="fiche-header__progress">
+      <ol aria-label="Progression de la fiche" className="fiche-header__progress">
         {PARCOURS.map((etape, index) => (
           <li className={index < position ? 'is-done' : index === position ? 'is-current' : undefined} key={etape}>
             {ETAPES[etape].label}
