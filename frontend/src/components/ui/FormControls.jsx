@@ -53,13 +53,13 @@ export function TextArea({ label, required, hint, error, value, onChange, readOn
   )
 }
 
-/** Liste déroulante. `options` : tableau de paires [valeur, libellé]. */
+/** Liste déroulante. `options` : tableau de paires [valeur, libellé] ; `placeholder={null}` retire l'option vide. */
 export function Select({ label, required, hint, error, wide, value, onChange, options, readOnly, placeholder = 'Choisir…', ...props }) {
   const { hintId, errorId, a11y } = useFieldIds(hint, error)
   return (
     <Field error={error} errorId={errorId} hint={hint} hintId={hintId} label={label} required={required} wide={wide}>
       <select disabled={readOnly} aria-required={required || undefined} value={value ?? ''} onChange={(event) => onChange?.(event.target.value)} {...a11y} {...props}>
-        <option value="">{placeholder}</option>
+        {placeholder !== null && <option value="">{placeholder}</option>}
         {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
       </select>
     </Field>
