@@ -36,10 +36,6 @@ export function libelle(pairs, code) {
   return pairs.find(([value]) => value === code)?.[1] ?? code ?? '—'
 }
 
-export function emptyToNull(value) {
-  return value === '' || value === undefined ? null : value
-}
-
 // Accord simple : plural(1, 'action') → « 1 action », plural(3, 'action') → « 3 actions ».
 export function plural(count, singular, pluralForm = `${singular}s`) {
   const value = Number(count) || 0

@@ -10,7 +10,7 @@ import { TODO_TYPES, actionStatuses, monthLabel, phaseGroups, stageFlow } from '
 
 // Briques visuelles du tableau de bord, assemblées différemment selon le profil (RoleDashboards.jsx).
 
-export function AnimatedValue({ value, format = String }) {
+function AnimatedValue({ value, format = String }) {
   const numericValue = Number(value)
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   const [count, setCount] = useState(0)
@@ -69,7 +69,7 @@ export function Panel({ title, subtitle, link, className = '', children }) {
   )
 }
 
-export function EmptyNote({ children, icon = 'ok' }) {
+function EmptyNote({ children, icon = 'ok' }) {
   return (
     <div className="dash-empty">
       <span aria-hidden="true"><Icon name={icon} size={18} /></span>
@@ -164,7 +164,7 @@ export function MonthlyBars({ data }) {
 }
 
 /** Barres horizontales libellé / valeur. */
-export function BarList({ items, unit = 'élément' }) {
+function BarList({ items, unit = 'élément' }) {
   const max = Math.max(1, ...items.map((item) => item.count))
   return (
     <ul className="dash-bars">

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiRequest } from '../../auth/api.js'
+import { useListFilters } from '../../hooks/useListFilters.js'
 import Alert from '../ui/Alert.jsx'
 import Button from '../ui/Button.jsx'
 import ConfirmDialog from '../ui/ConfirmDialog.jsx'
@@ -10,17 +11,48 @@ import { FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } f
 import PageBanner from '../shared/PageBanner.jsx'
 import RowActions from '../ui/RowActions.jsx'
 import ListPagination from '../ui/ListPagination.jsx'
-import { downloadExcel, matchesSearch, normalizeSearchText } from '../../utils/listTools.js'
+import { downloadExcel, matchesSearch, normalizeSearchText, paginate } from '../../utils/listTools.js'
 import { toast } from '../../utils/toast.js'
 import './AdminEntityPage.css'
 
 const EMPTY_RELATED = []
-const PAGE_SIZE = 10
-
-function emptyValues(fields) {
-  return Object.fromEntries(fields.map((field) => [field.name, field.defaultValue ?? '']))
+const NO_FILTERS = { q: '' }
+const DEFAULT_MESSAGES = {
+  add: 'Ajouter',
+  createTitle: (title) => `Ajouter — ${title}`,
+  editTitle: (title) => `Modifier — ${title}`,
+  created: 'Élément créé.',
+  updated: 'Modifications enregistrées.',
+  activated: 'Élément activé.',
+  deactivated: 'Élément désactivé.',
+  confirmTitle: 'Désactiver cet élément ?',
+  confirmText: 'L’accès de cet élément sera désactivé. Vous pourrez le réactiver ultérieurement.',
+  empty: 'Aucun élément pour le moment.',
 }
 
+function emptyValues(fields, rows) {
+  return Object.fromEntries(fields.map((field) => [
+    field.name,
+    typeof field.defaultValue === 'function' ? field.defaultValue(rows) : field.defaultValue ?? '',
+  ]))
+}
+
+const byOrder = (rows) => [...rows].sort((a, b) => a.ordre - b.ordre)
+
+/**
+ * Page d'administration d'un référentiel : recherche, filtres, export, ajout,
+ * modification et désactivation.
+ *
+ * @param {string|null} props.endpoint Ressource REST ; null tant qu'elle n'est pas connue.
+ * @param {boolean} [props.pending] La page attend encore de connaître sa ressource : la liste reste en chargement.
+ * @param {string} [props.reorderEndpoint] Active le classement par `ordre` et les boutons Monter / Descendre.
+ * @param {(content: import('react').ReactNode) => import('react').ReactNode} [props.wrapContent]
+ *   Mise en page autour de la liste (sous le bandeau), ex. une colonne de navigation.
+ * @param {Partial<typeof DEFAULT_MESSAGES>} [props.messages] Libellés propres à la page.
+ *
+ * Une colonne peut fixer les choix de son filtre avec `filterOptions` ([valeur normalisée, libellé]) ;
+ * sinon le filtre est proposé quand la colonne compte entre 2 et 12 valeurs distinctes.
+ */
 function AdminEntityPage({
   title,
   description,
@@ -30,49 +62,60 @@ function AdminEntityPage({
   related = EMPTY_RELATED,
   extraActions,
   exportColumns,
+  exportName,
+  reorderEndpoint,
+  searchPlaceholder = 'Rechercher dans tous les champs…',
+  wrapContent = (content) => content,
+  messages: customMessages,
+  pending = false,
 }) {
+  const messages = { ...DEFAULT_MESSAGES, ...customMessages }
   const [rows, setRows] = useState([])
   const [relatedData, setRelatedData] = useState({})
-  const [query, setQuery] = useState('')
-  const [filters, setFilters] = useState({})
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(PAGE_SIZE)
+  const list = useListFilters(NO_FILTERS)
   const [editing, setEditing] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
-  const [values, setValues] = useState(() => emptyValues(fields))
-  const [initialValues, setInitialValues] = useState(() => emptyValues(fields))
-  const [loading, setLoading] = useState(true)
+  const [values, setValues] = useState(() => emptyValues(fields, []))
+  const [initialValues, setInitialValues] = useState(() => emptyValues(fields, []))
+  const [loading, setLoading] = useState(Boolean(endpoint))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [formError, setFormError] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
   const [pendingDeactivation, setPendingDeactivation] = useState(null)
+  const [deactivating, setDeactivating] = useState(false)
+
+  const fetchAll = useCallback(async () => {
+    const [result, ...relatedResults] = await Promise.all([
+      apiRequest(endpoint),
+      ...related.map((item) => apiRequest(item.endpoint)),
+    ])
+    return {
+      rows: reorderEndpoint ? byOrder(result.data) : result.data,
+      related: Object.fromEntries(related.map((item, index) => [item.key, relatedResults[index].data])),
+    }
+  }, [endpoint, related, reorderEndpoint])
 
   const load = useCallback(async () => {
     try {
-      const [result, ...relatedResults] = await Promise.all([
-        apiRequest(endpoint),
-        ...related.map((item) => apiRequest(item.endpoint)),
-      ])
-      setRows(result.data)
-      setRelatedData(Object.fromEntries(related.map((item, index) => [item.key, relatedResults[index].data])))
+      const data = await fetchAll()
+      setRows(data.rows)
+      setRelatedData(data.related)
     } catch (loadError) {
       setError(loadError.message)
     } finally {
       setLoading(false)
     }
-  }, [endpoint, related])
+  }, [fetchAll])
 
   useEffect(() => {
+    if (!endpoint) return undefined
     let cancelled = false
-    Promise.all([
-      apiRequest(endpoint),
-      ...related.map((item) => apiRequest(item.endpoint)),
-    ])
-      .then(([result, ...relatedResults]) => {
+    fetchAll()
+      .then((data) => {
         if (!cancelled) {
-          setRows(result.data)
-          setRelatedData(Object.fromEntries(related.map((item, index) => [item.key, relatedResults[index].data])))
+          setRows(data.rows)
+          setRelatedData(data.related)
         }
       })
       .catch((loadError) => {
@@ -82,8 +125,9 @@ function AdminEntityPage({
         if (!cancelled) setLoading(false)
       })
     return () => { cancelled = true }
-  }, [endpoint, related])
+  }, [endpoint, fetchAll])
 
+  const { filters } = list
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
       const values = columns.map((column) => column.searchValue
@@ -91,16 +135,17 @@ function AdminEntityPage({
         : column.value
           ? column.value(row, relatedData)
           : row[column.key])
-      return matchesSearch(values, query) && columns.every((column) => (
+      return matchesSearch(values, filters.q) && columns.every((column) => (
         !filters[column.key]
         || normalizeSearchText(column.value ? column.value(row, relatedData) : row[column.key]) === filters[column.key]
       ))
     })
-  }, [columns, filters, query, relatedData, rows])
+  }, [columns, filters, relatedData, rows])
 
   const filterOptions = useMemo(() => columns
     .filter((column) => column.filterable !== false)
     .map((column) => {
+      if (column.filterOptions) return { column, options: column.filterOptions }
       const options = new Map()
       rows.forEach((row) => {
         const value = column.value ? column.value(row, relatedData) : row[column.key]
@@ -109,16 +154,14 @@ function AdminEntityPage({
       })
       return { column, options: [...options.entries()].sort((a, b) => a[1].localeCompare(b[1], 'fr')) }
     })
-    .filter(({ options }) => options.length > 1 && options.length <= 12), [columns, relatedData, rows])
-  const currentPage = Math.min(page, Math.max(1, Math.ceil(filteredRows.length / pageSize)))
-  const visibleRows = filteredRows.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+    .filter(({ column, options }) => column.filterOptions || (options.length > 1 && options.length <= 12)), [columns, relatedData, rows])
+  const visible = paginate(filteredRows, list.page, list.pageSize)
   const formDirty = fields.some((field) => field.type === 'checkbox'
     ? Boolean(values[field.name]) !== Boolean(initialValues[field.name])
     : String(values[field.name] ?? '') !== String(initialValues[field.name] ?? ''))
 
-  function openCreate() {
-    setEditing(null)
-    const nextValues = emptyValues(fields)
+  function openForm(row, nextValues) {
+    setEditing(row)
     setModalOpen(true)
     setValues(nextValues)
     setInitialValues(nextValues)
@@ -127,22 +170,19 @@ function AdminEntityPage({
     setFieldErrors({})
   }
 
+  function openCreate() {
+    openForm(null, emptyValues(fields, rows))
+  }
+
   function openEdit(row) {
-    const nextValues = Object.fromEntries(fields.map((field) => {
+    openForm(row, Object.fromEntries(fields.map((field) => {
       const value = row[field.name]
       return [field.name, field.type === 'checkbox'
         ? Boolean(value)
         : field.type === 'date' && value
           ? String(value).slice(0, 10)
           : (value ?? '')]
-    }))
-    setEditing(row)
-    setModalOpen(true)
-    setValues(nextValues)
-    setInitialValues(nextValues)
-    setError('')
-    setFormError('')
-    setFieldErrors({})
+    })))
   }
 
   async function save(event) {
@@ -153,7 +193,9 @@ function AdminEntityPage({
     setFieldErrors({})
     const payload = Object.fromEntries(fields.map((field) => {
       const value = values[field.name]
-      return [field.name, field.type === 'checkbox' ? Boolean(value) : (value === '' ? null : value)]
+      if (field.type === 'checkbox') return [field.name, Boolean(value)]
+      if (value === '') return [field.name, null]
+      return [field.name, field.type === 'number' ? Number(value) : value]
     }))
     try {
       await apiRequest(editing ? `${endpoint}/${editing.id}` : endpoint, {
@@ -162,13 +204,13 @@ function AdminEntityPage({
       })
       setModalOpen(false)
       setEditing(null)
-      toast.success(editing ? 'Modifications enregistrées.' : 'Élément créé.')
+      toast.success(editing ? messages.updated : messages.created)
       await load()
     } catch (saveError) {
       // Erreurs Laravel : sous chaque champ affiché ; celles sans champ visible restent en tête du formulaire.
       const validationErrors = saveError.data?.errors ?? {}
-      const visible = fields.filter((field) => !field.showWhen || field.showWhen(values, editing)).map((field) => field.name)
-      const orphans = Object.entries(validationErrors).filter(([name]) => !visible.includes(name)).flatMap(([, messages]) => messages)
+      const visibleFields = fields.filter((field) => !field.showWhen || field.showWhen(values, editing)).map((field) => field.name)
+      const orphans = Object.entries(validationErrors).filter(([name]) => !visibleFields.includes(name)).flatMap(([, errors]) => errors)
       setFieldErrors(validationErrors)
       setFormError(Object.keys(validationErrors).length ? orphans.join(' ') : saveError.message)
     } finally {
@@ -183,10 +225,41 @@ function AdminEntityPage({
         method: 'PATCH',
         body: JSON.stringify({ actif: !row.actif }),
       })
-      toast.success(row.actif ? 'Élément désactivé.' : 'Élément activé.')
+      toast.success(row.actif ? messages.deactivated : messages.activated)
       await load()
     } catch (toggleError) {
       toast.error(toggleError.message)
+    }
+  }
+
+  async function confirmDeactivation() {
+    if (!pendingDeactivation) return
+    setDeactivating(true)
+    try {
+      await toggleActive(pendingDeactivation)
+      setPendingDeactivation(null)
+    } finally {
+      setDeactivating(false)
+    }
+  }
+
+  async function move(row, direction) {
+    const index = rows.findIndex((item) => item.id === row.id)
+    const newIndex = index + direction
+    if (newIndex < 0 || newIndex >= rows.length) return
+    const reordered = [...rows]
+    reordered[index] = rows[newIndex]
+    reordered[newIndex] = rows[index]
+    setError('')
+    try {
+      const result = await apiRequest(reorderEndpoint, {
+        method: 'PUT',
+        body: JSON.stringify({ ids: reordered.map((item) => item.id) }),
+      })
+      setRows(result.data)
+    } catch (moveError) {
+      toast.error(`Le réordonnancement n’a pas abouti : ${moveError.message}`)
+      await load()
     }
   }
 
@@ -204,9 +277,9 @@ function AdminEntityPage({
     const columnsToExport = exportColumns ?? columns
     return (
       <Button
-        disabled={loading || filteredRows.length === 0}
+        disabled={pending || loading || filteredRows.length === 0}
         onClick={() => downloadExcel(
-          `${title.toLocaleLowerCase('fr').replaceAll(/[^a-z0-9]+/g, '-')}.xlsx`,
+          exportName ?? `${title.toLocaleLowerCase('fr').replaceAll(/[^a-z0-9]+/g, '-')}.xlsx`,
           columnsToExport.map((column) => ({
             label: column.label,
             value: (row) => column.value ? column.value(row, relatedData) : row[column.key],
@@ -223,11 +296,21 @@ function AdminEntityPage({
   }
 
   function renderRowActions(row) {
-    const actions = [{
+    const actions = []
+    if (reorderEndpoint) {
+      // Le classement n'a de sens que sur la liste complète, sans filtre.
+      const index = rows.findIndex((item) => item.id === row.id)
+      const movementDisabled = list.active || visible.page !== 1
+      actions.push(
+        { icon: 'arrow-up', label: 'Monter', disabled: movementDisabled || index === 0, onClick: () => move(row, -1) },
+        { icon: 'arrow-down', label: 'Descendre', disabled: movementDisabled || index === rows.length - 1, onClick: () => move(row, 1) },
+      )
+    }
+    actions.push({
       icon: 'edit',
       label: 'Modifier',
       onClick: () => openEdit(row),
-    }]
+    })
     extraActions?.forEach((action) => {
       actions.push({
         disabled: action.disabled?.(row),
@@ -247,10 +330,8 @@ function AdminEntityPage({
         tone: row.actif ? 'danger' : 'success',
       })
     }
-    return <RowActions actions={actions} />
+    return <RowActions actions={actions} maxVisible={reorderEndpoint ? 4 : undefined} />
   }
-
-  const filtersActive = Boolean(query) || Object.values(filters).some(Boolean)
 
   function renderField(field) {
     if (field.showWhen && !field.showWhen(values, editing)) return null
@@ -275,57 +356,63 @@ function AdminEntityPage({
     return <TextInput key={field.name} {...common} hint={field.hint} max={field.max} maxLength={field.maxLength} min={field.min} type={field.type ?? 'text'} />
   }
 
+  const addButton = <Button disabled={!endpoint} icon="plus" onClick={openCreate}>{messages.add}</Button>
+
   return (
     <section className="admin-entity">
-      <PageBanner actions={<Button icon="plus" onClick={openCreate}>Ajouter</Button>} description={description} title={title} />
+      <PageBanner actions={addButton} description={description} title={title} />
 
       {error && <Alert severity="error">{error}</Alert>}
 
-      <ListToolbar>
-        <SearchField
-          id={`${endpoint}-search`}
-          placeholder="Rechercher dans tous les champs…"
-          value={query}
-          onChange={(value) => { setQuery(value); setPage(1) }}
-        />
-        {filterOptions.map(({ column, options }) => (
-          <FilterSelect
-            allLabel="Tous"
-            key={column.key}
-            label={column.label}
-            options={options}
-            value={filters[column.key] ?? ''}
-            onChange={(value) => { setFilters((current) => ({ ...current, [column.key]: value })); setPage(1) }}
-          />
-        ))}
-        <ToolbarActions>
-          <ResultCount count={filteredRows.length} />
-          {filtersActive && (
-            <Button type="button" variant="secondary" onClick={() => { setQuery(''); setFilters({}); setPage(1) }}>Réinitialiser</Button>
-          )}
-          {renderExportButton()}
-        </ToolbarActions>
-      </ListToolbar>
+      {wrapContent(
+        <>
+          <ListToolbar>
+            <SearchField
+              id={`${endpoint}-search`}
+              placeholder={searchPlaceholder}
+              value={filters.q}
+              onChange={list.setFilter('q')}
+            />
+            {filterOptions.map(({ column, options }) => (
+              <FilterSelect
+                allLabel="Tous"
+                key={column.key}
+                label={column.label}
+                options={options}
+                value={filters[column.key] ?? ''}
+                onChange={list.setFilter(column.key)}
+              />
+            ))}
+            <ToolbarActions>
+              <ResultCount count={filteredRows.length} />
+              {list.active && (
+                <Button type="button" variant="secondary" onClick={list.reset}>Réinitialiser</Button>
+              )}
+              {renderExportButton()}
+            </ToolbarActions>
+          </ListToolbar>
 
-      <DataTable
-        actions={renderRowActions}
-        columns={columns}
-        context={relatedData}
-        emptyAction={filtersActive ? undefined : <Button icon="plus" onClick={openCreate}>Ajouter</Button>}
-        emptyDescription={filtersActive ? 'Modifiez la recherche ou réinitialisez les filtres.' : undefined}
-        emptyMessage={filtersActive ? 'Aucun élément ne correspond à la recherche.' : 'Aucun élément pour le moment.'}
-        loading={loading}
-        rows={visibleRows}
-        variant="compact"
-      />
-      {!loading && filteredRows.length > 0 && (
-        <ListPagination
-          page={currentPage}
-          pageSize={pageSize}
-          total={filteredRows.length}
-          onPageChange={setPage}
-          onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
-        />
+          <DataTable
+            actions={renderRowActions}
+            columns={columns}
+            context={relatedData}
+            emptyAction={list.active || !endpoint ? undefined : addButton}
+            emptyDescription={list.active ? 'Modifiez la recherche ou réinitialisez les filtres.' : undefined}
+            emptyMessage={list.active ? 'Aucun élément ne correspond à la recherche.' : messages.empty}
+            loading={pending || loading}
+            rows={visible.rows}
+            variant="compact"
+          />
+          {!pending && !loading && filteredRows.length > 0 && (
+            <ListPagination
+              page={visible.page}
+              pageSize={list.pageSize}
+              total={filteredRows.length}
+              onPageChange={list.setPage}
+              onPageSizeChange={list.changePageSize}
+            />
+          )}
+        </>,
       )}
 
       <Modal
@@ -341,7 +428,7 @@ function AdminEntityPage({
         onClose={() => { setModalOpen(false); setFormError(''); setFieldErrors({}) }}
         open={modalOpen}
         size={fields.length > 4 ? 'md' : 'sm'}
-        title={editing ? `Modifier — ${title}` : `Ajouter — ${title}`}
+        title={editing ? messages.editTitle(title) : messages.createTitle(title)}
       >
         <form className={`admin-entity__form${fields.length > 5 ? ' admin-entity__form--columns' : ''}`} id="admin-entity-form" noValidate onSubmit={save}>
           {formError && <Alert severity="error">{formError}</Alert>}
@@ -349,17 +436,14 @@ function AdminEntityPage({
         </form>
       </Modal>
       <ConfirmDialog
+        busy={deactivating}
         confirmLabel="Désactiver"
         onCancel={() => setPendingDeactivation(null)}
-        onConfirm={async () => {
-          if (!pendingDeactivation) return
-          await toggleActive(pendingDeactivation)
-          setPendingDeactivation(null)
-        }}
+        onConfirm={confirmDeactivation}
         open={Boolean(pendingDeactivation)}
-        title="Désactiver cet élément ?"
+        title={messages.confirmTitle}
       >
-        L’accès de cet élément sera désactivé. Vous pourrez le réactiver ultérieurement.
+        {messages.confirmText}
       </ConfirmDialog>
     </section>
   )

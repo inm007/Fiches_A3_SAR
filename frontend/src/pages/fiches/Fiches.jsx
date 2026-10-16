@@ -11,10 +11,11 @@ import Button from '../../components/ui/Button.jsx'
 import DataTable from '../../components/ui/DataTable.jsx'
 import Icon from '../../components/ui/Icon.jsx'
 import ListPagination from '../../components/ui/ListPagination.jsx'
+import { useListFilters } from '../../hooks/useListFilters.js'
 import { ficheService } from '../../services/ficheService.js'
 import { ETAPES } from '../../utils/constants.js'
 import { formatDate } from '../../utils/format.js'
-import { downloadExcel, matchesSearch } from '../../utils/listTools.js'
+import { downloadExcel, matchesSearch, paginate } from '../../utils/listTools.js'
 import { toast } from '../../utils/toast.js'
 import './Fiches.css'
 
@@ -98,13 +99,12 @@ function useAdminRegistre({ enabled, filters, page, perPage }) {
     && (!filters.statut_etape || fiche.statut_etape === filters.statut_etape)
     && (!filters.confidentialite || fiche.confidentialite === filters.confidentialite)
   )), [fiches, filters])
-  const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / perPage)))
+  const visible = paginate(filtered, page, perPage)
 
   return {
-    rows: filtered.slice((currentPage - 1) * perPage, currentPage * perPage)
-      .map((fiche) => ({ ...fiche, unite: fiche.unite?.libelle ?? '—', piloteNom: personName(fiche.pilote), source: fiche })),
+    rows: visible.rows.map((fiche) => ({ ...fiche, unite: fiche.unite?.libelle ?? '—', piloteNom: personName(fiche.pilote), source: fiche })),
     total: filtered.length,
-    currentPage,
+    currentPage: visible.page,
     loading: fiches === null && !error,
     error,
     users,
@@ -139,10 +139,9 @@ function Fiches() {
   const canDeclare = ['AGENT', 'PILOTE'].includes(activeProfile?.role_code)
   const initialFilters = isAdmin ? ADMIN_FILTERS : REGISTRE_FILTERS
 
-  const [filters, setFilters] = useState(() => ({ ...initialFilters, q: searchParams.get('q') ?? '' }))
+  const list = useListFilters(initialFilters, () => ({ ...initialFilters, q: searchParams.get('q') ?? '' }))
+  const { filters, page, pageSize: perPage, setFilter, setPage } = list
   const [sort, setSort] = useState({ tri: 'created_at', ordre: 'desc' })
-  const [page, setPage] = useState(1)
-  const [perPage, setPerPage] = useState(10)
   const [refs, setRefs] = useState(null)
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState('')
@@ -157,9 +156,7 @@ function Fiches() {
     ficheService.referentiels().then(setRefs).catch(() => setRefs(null))
   }, [isAdmin])
 
-  const setFilter = (field) => (value) => { setPage(1); setFilters((current) => ({ ...current, [field]: value })) }
   const toggleSort = (tri) => setSort((current) => ({ tri, ordre: current.tri === tri && current.ordre === 'desc' ? 'asc' : 'desc' }))
-  const hasActiveFilters = Object.values(filters).some((value) => value !== '')
 
   async function exportList() {
     setExporting(true)
@@ -257,13 +254,13 @@ function Fiches() {
               from={filters.date_debut}
               label="Création"
               to={filters.date_fin}
-              onChange={({ from, to }) => { setPage(1); setFilters((current) => ({ ...current, date_debut: from, date_fin: to })) }}
+              onChange={({ from, to }) => list.updateFilters({ date_debut: from, date_fin: to })}
             />
           </>
         )}
         <ToolbarActions>
           <ResultCount count={source.total} singular="fiche" />
-          {hasActiveFilters && <Button type="button" variant="ghost" onClick={() => { setFilters(initialFilters); setPage(1) }}>Réinitialiser</Button>}
+          {list.active && <Button type="button" variant="ghost" onClick={list.reset}>Réinitialiser</Button>}
           <Button disabled={!source.total} icon="download" loading={exporting} loadingLabel="Préparation…" type="button" variant="secondary" onClick={exportList}>Exporter Excel</Button>
         </ToolbarActions>
       </ListToolbar>
@@ -280,10 +277,10 @@ function Fiches() {
           ) : undefined}
           actionsWidth="168px"
           columns={columns}
-          emptyAction={hasActiveFilters
-            ? <Button type="button" variant="secondary" onClick={() => { setFilters(initialFilters); setPage(1) }}>Réinitialiser les filtres</Button>
+          emptyAction={list.active
+            ? <Button type="button" variant="secondary" onClick={list.reset}>Réinitialiser les filtres</Button>
             : canDeclare && <Button icon="plus" type="button" onClick={() => navigate('/fiches/nouvelle')}>Déclarer une fiche</Button>}
-          emptyDescription={hasActiveFilters ? 'Aucune fiche ne correspond à ces critères.' : 'Aucune fiche n’est visible pour ce profil.'}
+          emptyDescription={list.active ? 'Aucune fiche ne correspond à ces critères.' : 'Aucune fiche n’est visible pour ce profil.'}
           emptyMessage="Aucune fiche"
           loading={source.loading}
           rows={source.rows}
@@ -298,7 +295,7 @@ function Fiches() {
           pageSize={perPage}
           total={source.total}
           onPageChange={setPage}
-          onPageSizeChange={(size) => { setPerPage(size); setPage(1) }}
+          onPageSizeChange={list.changePageSize}
         />
       )}
 

@@ -16,7 +16,7 @@ export const TODO_TYPES = {
   pilote: { label: 'Désignation pilote', plural: 'Pilotes à désigner', icon: 'users', tone: 'green' },
 }
 
-export const PHASES = [
+const PHASES = [
   { code: 'ouverture', label: 'Ouverture', color: 'var(--chart-phase-opening)', stages: ['OUVERT'] },
   { code: 'plan', label: 'Planification', color: 'var(--chart-phase-planning)', stages: ['EN_COURS', 'EN_VALIDATION_PLAN'] },
   { code: 'realisation', label: 'Réalisation', color: 'var(--chart-phase-realization)', stages: ['REALISATION_ACTIONS'] },
@@ -25,7 +25,7 @@ export const PHASES = [
   { code: 'attente', label: 'En attente', color: 'var(--chart-phase-waiting)', stages: ['EN_ATTENTE'] },
 ]
 
-export const ACTION_STATUSES = [
+const ACTION_STATUSES = [
   { code: 'A_FAIRE', label: 'À faire', color: 'var(--chart-phase-opening)' },
   { code: 'EN_COURS', label: 'En cours', color: 'var(--chart-phase-realization)' },
   { code: 'REALISE', label: 'Réalisées', color: 'var(--chart-phase-closure)' },

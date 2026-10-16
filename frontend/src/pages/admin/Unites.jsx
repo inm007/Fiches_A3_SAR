@@ -1,6 +1,5 @@
 import AdminEntityPage from '../../components/admin/AdminEntityPage.jsx'
 import Badge from '../../components/ui/Badge.jsx'
-import './Unites.css'
 
 const fields = [
   { name: 'code', label: 'Code', required: true, maxLength: 255 },
@@ -33,16 +32,14 @@ const exportColumns = [
 
 function Unites() {
   return (
-    <div className="unites-page">
-      <AdminEntityPage
-        columns={columns}
-        description="Gérez le référentiel des unités. Les unités utilisées dans l’historique sont désactivées, jamais supprimées."
-        endpoint="/admin/units"
-        fields={fields}
-        title="Unités"
-        exportColumns={exportColumns}
-      />
-    </div>
+    <AdminEntityPage
+      columns={columns}
+      description="Gérez le référentiel des unités. Les unités utilisées dans l’historique sont désactivées, jamais supprimées."
+      endpoint="/admin/units"
+      fields={fields}
+      title="Unités"
+      exportColumns={exportColumns}
+    />
   )
 }
 

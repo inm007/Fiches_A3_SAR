@@ -1,7 +1,6 @@
 import AdminEntityPage from '../../components/admin/AdminEntityPage.jsx'
 import Badge from '../../components/ui/Badge.jsx'
 import { formatDate } from '../../utils/format.js'
-import './Affectations.css'
 
 const related = [
   { key: 'users', endpoint: '/admin/users' },
@@ -77,17 +76,15 @@ const exportColumns = [
 
 function Affectations() {
   return (
-    <div className="affectations-page">
-      <AdminEntityPage
-        columns={columns}
-        description="Gérez les rôles et périmètres des comptes. Un utilisateur peut cumuler plusieurs affectations."
-        endpoint="/admin/assignments"
-        exportColumns={exportColumns}
-        fields={fields}
-        related={related}
-        title="Affectations"
-      />
-    </div>
+    <AdminEntityPage
+      columns={columns}
+      description="Gérez les rôles et périmètres des comptes. Un utilisateur peut cumuler plusieurs affectations."
+      endpoint="/admin/assignments"
+      exportColumns={exportColumns}
+      fields={fields}
+      related={related}
+      title="Affectations"
+    />
   )
 }
 

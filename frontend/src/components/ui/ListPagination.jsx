@@ -2,8 +2,6 @@ import Dropdown from './Dropdown.jsx'
 import Icon from './Icon.jsx'
 import './ListPagination.css'
 
-export const DEFAULT_PAGE_SIZE = 10
-
 /** Numéros affichés : la première, la dernière et deux voisines de la page courante, séparées par « … ». */
 function pageWindow(page, pageCount) {
   const pages = new Set([1, pageCount, page - 1, page, page + 1].filter((value) => value >= 1 && value <= pageCount))

@@ -1,0 +1,82 @@
+/* Tableau de bord · Raccourcis et étapes */
+.dash-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-shortcuts__item {
+  display: grid;
+  height: 100%;
+  box-sizing: border-box;
+  align-content: start;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--ink);
+  background: var(--white);
+  text-decoration: none;
+  transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease, transform var(--duration-fast) ease;
+}
+
+.dash-shortcuts__item:hover {
+  border-color: var(--brand-100);
+  box-shadow: var(--shadow-pop);
+  transform: translateY(-2px);
+}
+
+.dash-shortcuts__icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 8px;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--brand-600);
+  background: var(--brand-50);
+}
+
+.dash-shortcuts__item small {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.dash-steps {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-steps li {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+}
+
+.dash-steps li > span {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--white);
+  background: var(--brand-500);
+  font-weight: 700;
+}
+
+.dash-steps div {
+  display: grid;
+  gap: 2px;
+}
+
+.dash-steps small {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}

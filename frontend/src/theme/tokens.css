@@ -22,14 +22,12 @@
   --text-4xl: 32px;     /* titres des pages d'accueil et de connexion */
   --text-display: 40px; /* grand titre de la page de connexion */
 
-  --leading-tight: 1.25;
   --leading-normal: 20px;
   --leading-h1: 32px;
 
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
-  --weight-bold: 700;
 
   /* ---------- Rayons ---------- */
   --radius-sm: 4px;
@@ -38,15 +36,12 @@
   --radius-xl: 12px;
   --radius-card: 14px; /* cartes */
   --radius-modal: 16px;
-  --radius-control: 14px;
   --radius-pill: 999px;
 
   /* ---------- Ombres et anneaux de focus ---------- */
   --shadow-card: 0 1px 2px rgb(26 26 31 / 4%), 0 8px 24px rgb(26 26 31 / 4%);
   --shadow-pop: 0 8px 24px rgb(26 26 31 / 12%);
   --shadow-modal: 0 24px 64px rgb(20 22 26 / 24%);
-  --shadow-soft: 0 2px 8px rgb(20 22 26 / 5%), 0 14px 32px rgb(20 22 26 / 6%);
-  --shadow-raised: 0 8px 18px rgb(20 22 26 / 10%), 0 20px 44px rgb(20 22 26 / 8%);
   --ring-focus: 0 0 0 3px var(--focus-ring);
   --ring-error: 0 0 0 3px rgb(180 35 24 / 10%);
   --border-card: rgb(26 26 31 / 7%);
@@ -58,10 +53,8 @@
   --space-2: 16px;
   --space-3: 24px;
   --space-4: 32px;
-  --space-6: 48px;
   --page-gutter: 24px;
 
   /* ---------- Animations ---------- */
   --duration-fast: 150ms;
-  --duration-normal: 220ms;
 }
