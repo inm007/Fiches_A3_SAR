@@ -15,7 +15,7 @@ import { downloadExcel, matchesSearch } from '../../utils/listTools.js'
 import { toast } from '../../utils/toast.js'
 import './Listes.css'
 
-const PAGE_SIZE = 25
+const PAGE_SIZE = 10
 
 function Listes() {
   const [lists, setLists] = useState([])

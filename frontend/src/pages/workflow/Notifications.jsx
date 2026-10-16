@@ -6,21 +6,59 @@ import PageBanner from '../../components/shared/PageBanner.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 import ListPagination from '../../components/ui/ListPagination.jsx'
 import Skeleton from '../../components/ui/Skeleton.jsx'
-import Badge from '../../components/ui/Badge.jsx'
 import Icon from '../../components/ui/Icon.jsx'
 import { FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../../components/shared/ListToolbar.jsx'
 import { refreshCounters } from '../../hooks/useCounters.js'
 import { notificationService } from '../../services/notificationService.js'
-import { formatDateTime } from '../../utils/format.js'
+import { formatDate, formatDateTime } from '../../utils/format.js'
 import { downloadExcel } from '../../utils/listTools.js'
 import './Notifications.css'
 
-const PAGE_SIZES = [10, 20, 50, 100]
+const PAGE_SIZES = [10, 25, 50, 100]
+
+// Icône selon la nature du message (affichage seulement).
+function iconFor(message) {
+  if (/approbation|validation|valid/i.test(message)) return 'validation'
+  if (/refus|rejet/i.test(message)) return 'x'
+  if (/pilote/i.test(message)) return 'users'
+  if (/étape/i.test(message)) return 'arrow'
+  if (/retard|échéance|rappel/i.test(message)) return 'clock'
+  return 'bell'
+}
+
+function dayLabel(value) {
+  const date = new Date(value)
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  if (date.toDateString() === today.toDateString()) return 'Aujourd’hui'
+  if (date.toDateString() === yesterday.toDateString()) return 'Hier'
+  return formatDate(value)
+}
+
+/** Regroupe les notifications de la page par jour, dans l'ordre reçu. */
+function groupByDay(notifications) {
+  return notifications.reduce((groups, notification) => {
+    const label = dayLabel(notification.created_at)
+    const last = groups[groups.length - 1]
+    if (last?.label === label) last.items.push(notification)
+    else groups.push({ label, items: [notification] })
+    return groups
+  }, [])
+}
+
+function splitMessage(notification) {
+  const numero = notification.fiche?.numero_a3
+  const prefix = numero ? `${numero} — ` : ''
+  return prefix && notification.message.startsWith(prefix)
+    ? { numero, text: notification.message.slice(prefix.length) }
+    : { numero, text: notification.message }
+}
 
 function Notifications() {
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
+  const [pageSize, setPageSize] = useState(10)
   const [query, setQuery] = useState('')
   const [readFilter, setReadFilter] = useState('')
   const [result, setResult] = useState(null)
@@ -121,20 +159,34 @@ function Notifications() {
         </div>
       )}
       {result?.data.length > 0 && (
-        <ul className="sar-card notifications-page__list">
-          {result.data.map((notification) => (
-            <li key={notification.id}>
-              <button className={`notifications-page__item${notification.lu ? '' : ' is-unread'}`} type="button" onClick={() => open(notification)}>
-                <span aria-hidden="true" className={`sar-tile${notification.lu ? ' notifications-page__tile--read' : ''}`}><Icon name="bell" size={18} /></span>
-                <span className="notifications-page__body">
-                  <span className="notifications-page__message">{notification.message}</span>
-                  <span className="notifications-page__meta sar-num">{formatDateTime(notification.created_at)}</span>
-                </span>
-                <Badge tone={notification.lu ? 'neutral' : 'brand'}>{notification.lu ? 'Lu' : 'Non lu'}</Badge>
-              </button>
-            </li>
+        <div className="notifications-page__groups">
+          {groupByDay(result.data).map((group) => (
+            <section className="notifications-page__group" key={group.label}>
+              <h2>{group.label}</h2>
+              <ul className="notifications-page__list">
+                {group.items.map((notification) => {
+                  const { numero, text } = splitMessage(notification)
+                  return (
+                    <li key={notification.id}>
+                      <button className={`notifications-page__item${notification.lu ? '' : ' is-unread'}`} type="button" onClick={() => open(notification)}>
+                        <span aria-hidden="true" className="notifications-page__icon"><Icon name={iconFor(notification.message)} size={18} /></span>
+                        <span className="notifications-page__body">
+                          <span className="notifications-page__message">{text}</span>
+                          <span className="notifications-page__meta">
+                            {numero && <span className="notifications-page__numero">{numero}</span>}
+                            <span className="sar-num">{formatDateTime(notification.created_at)}</span>
+                          </span>
+                        </span>
+                        <span className={`notifications-page__state${notification.lu ? '' : ' is-unread'}`}>{notification.lu ? 'Lu' : 'Non lu'}</span>
+                        <Icon className="notifications-page__chevron" name="page-next" size={16} />
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
       )}
       {result && result.meta.total > 0 && (
         <ListPagination

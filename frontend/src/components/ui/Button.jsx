@@ -6,7 +6,7 @@ import './Button.css'
  * Bouton de l'application.
  *
  * @param {object} props
- * @param {'primary'|'secondary'|'success'|'danger'|'danger-solid'|'export'|'edit'} [props.variant='primary']
+ * @param {'primary'|'secondary'|'ghost'|'success'|'danger'|'danger-solid'|'export'|'edit'} [props.variant='primary']
  * @param {'small'} [props.size]
  * @param {string} [props.icon] Icône affichée avant le libellé.
  * @param {boolean} [props.loading] Envoi en cours : le bouton est désactivé et affiche un spinner.

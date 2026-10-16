@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react'
 import Button from '../../ui/Button.jsx'
+import Dropdown from '../../ui/Dropdown.jsx'
 import IconButton from '../../ui/IconButton.jsx'
 import './RowsEditor.css'
 
@@ -59,12 +60,7 @@ export function CellInput({ value, onChange, readOnly, type = 'text', ...props }
 
 export function CellSelect({ value, onChange, readOnly, options, placeholder = '—' }) {
   const label = useContext(CellLabel)
-  return (
-    <select aria-label={label} className="rows-editor__input" disabled={readOnly} value={value ?? ''} onChange={(event) => onChange(event.target.value)}>
-      <option value="">{placeholder}</option>
-      {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
-    </select>
-  )
+  return <Dropdown aria-label={label} className="rows-editor__dropdown" disabled={readOnly} options={options} placeholder={placeholder} value={value ?? ''} variant="small" onChange={onChange} />
 }
 
 export default RowsEditor

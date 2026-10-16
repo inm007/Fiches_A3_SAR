@@ -55,6 +55,19 @@
   background: var(--white);
 }
 
+.sar-button--ghost {
+  border-color: transparent;
+  color: var(--gray-700);
+  background: transparent;
+  box-shadow: none;
+}
+
+.sar-button.sar-button--ghost:hover {
+  border-color: transparent;
+  color: var(--brand-600);
+  background: var(--brand-50);
+}
+
 .sar-button--success {
   border-color: transparent;
   color: var(--button-success-text);

@@ -15,7 +15,7 @@ import { toast } from '../../utils/toast.js'
 import './AdminEntityPage.css'
 
 const EMPTY_RELATED = []
-const PAGE_SIZE = 25
+const PAGE_SIZE = 10
 
 function emptyValues(fields) {
   return Object.fromEntries(fields.map((field) => [field.name, field.defaultValue ?? '']))

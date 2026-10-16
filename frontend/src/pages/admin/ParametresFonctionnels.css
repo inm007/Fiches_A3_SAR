@@ -5,32 +5,52 @@
 
 .parametres-fonctionnels-page__form {
   display: grid;
-  justify-items: start;
-  gap: var(--space-2);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 18px;
 }
 
+/* Chaque groupe de réglages devient une carte avec son titre en en-tête. */
 .parametres-fonctionnels-page__form fieldset {
   display: grid;
-  width: min(100%, 760px);
+  min-width: 0;
   gap: 18px;
   margin: 0;
-  padding: 22px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  padding: 0 22px 22px;
+  overflow: hidden;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
   background: var(--white);
+  box-shadow: var(--shadow-card);
 }
 
 .parametres-fonctionnels-page__form legend {
-  padding: 0 var(--space-1);
+  float: left;
+  width: calc(100% + 44px);
+  box-sizing: border-box;
+  margin: 0 -22px 4px;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+  background: linear-gradient(90deg, var(--brand-50), var(--white) 70%);
   font-size: var(--text-lg);
   font-weight: 700;
 }
 
-.parametres-fonctionnels-page__form .sar-field {
-  max-width: 440px;
+.parametres-fonctionnels-page__form fieldset > :nth-child(2) {
+  clear: both;
 }
 
 .parametres-fonctionnels-page__form fieldset p {
   margin: 0;
-  color: var(--text-muted);
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  color: var(--info);
+  background: var(--info-bg);
+  font-size: var(--text-sm);
+}
+
+.parametres-fonctionnels-page__form > button {
+  grid-column: 1 / -1;
+  justify-self: start;
 }

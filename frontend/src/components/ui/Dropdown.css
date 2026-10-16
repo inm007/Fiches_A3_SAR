@@ -1,0 +1,209 @@
+/* Bouton de la liste déroulante */
+.sar-dropdown {
+  display: inline-flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  padding: 0 10px 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--ink);
+  background: var(--white);
+  font: inherit;
+  font-size: var(--text-md);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--duration-fast, 0.15s), box-shadow var(--duration-fast, 0.15s), background-color var(--duration-fast, 0.15s);
+}
+
+.sar-dropdown:hover:not(:disabled) {
+  border-color: var(--gray-400);
+}
+
+.sar-dropdown:focus-visible,
+.sar-dropdown.is-open {
+  border-color: var(--brand-500);
+  outline: 0;
+  box-shadow: var(--ring-focus);
+}
+
+.sar-dropdown[aria-invalid='true'] {
+  border-color: var(--error);
+}
+
+.sar-dropdown:disabled {
+  border-color: var(--border);
+  color: var(--gray-700);
+  background: var(--gray-50);
+  cursor: default;
+}
+
+.sar-dropdown:disabled .sar-dropdown__chevron {
+  display: none;
+}
+
+.sar-dropdown__value {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sar-dropdown__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sar-dropdown.is-empty .sar-dropdown__text {
+  color: var(--text-muted);
+}
+
+.sar-dropdown__chevron {
+  flex: 0 0 auto;
+  color: var(--gray-500);
+  transition: transform var(--duration-fast, 0.15s);
+}
+
+.sar-dropdown.is-open .sar-dropdown__chevron {
+  transform: rotate(180deg);
+}
+
+/* Filtre en pastille : « Étape » puis « Étape : En cours » une fois choisi */
+.sar-dropdown--filter {
+  width: auto;
+  max-width: 240px;
+  min-height: 36px;
+  padding: 0 8px 0 12px;
+  border-color: var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--white);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.sar-dropdown--filter .sar-dropdown__prefix {
+  color: var(--gray-700);
+}
+
+.sar-dropdown--filter.has-value {
+  border-color: var(--brand-200, var(--brand-100));
+  color: var(--brand-700);
+  background: var(--brand-50);
+}
+
+.sar-dropdown--filter.has-value .sar-dropdown__prefix {
+  color: var(--brand-600);
+  font-weight: 400;
+}
+
+.sar-dropdown--filter.has-value .sar-dropdown__text {
+  font-weight: 600;
+}
+
+.sar-dropdown--filter.has-value .sar-dropdown__chevron {
+  color: var(--brand-500);
+}
+
+/* Petite variante : pagination, cellules de tableau */
+.sar-dropdown--small {
+  min-height: 32px;
+  padding: 0 6px 0 10px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+/* Liste en surcouche (rendue dans <body> pour ne jamais être coupée) */
+.sar-dropdown__popover {
+  position: fixed;
+  z-index: 1300;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--white);
+  box-shadow: var(--shadow-pop);
+  animation: sar-dropdown-in var(--duration-fast, 0.15s) ease-out;
+}
+
+.sar-dropdown__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-15);
+  border-bottom: 1px solid var(--border);
+  color: var(--gray-500);
+}
+
+.sar-dropdown__search input {
+  width: 100%;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
+  outline: 0;
+  color: var(--ink);
+  background: transparent;
+  font: inherit;
+  font-size: var(--text-sm);
+}
+
+.sar-dropdown__list {
+  margin: 0;
+  padding: var(--space-05);
+  overflow-y: auto;
+  outline: 0;
+  list-style: none;
+}
+
+.sar-dropdown__list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.sar-dropdown__list li.is-placeholder {
+  color: var(--text-muted);
+}
+
+.sar-dropdown__list li.is-active {
+  background: var(--gray-100);
+}
+
+.sar-dropdown__list li[aria-selected='true'] {
+  color: var(--brand-700);
+  font-weight: 600;
+}
+
+.sar-dropdown__list li[aria-selected='true'] .sar-icon {
+  flex: 0 0 auto;
+  color: var(--brand-500);
+}
+
+.sar-dropdown__none {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+@keyframes sar-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sar-dropdown__popover {
+    animation: none;
+  }
+}

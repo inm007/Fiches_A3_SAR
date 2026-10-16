@@ -12,29 +12,8 @@
   border-right: 1px solid var(--border);
 }
 
-.profile-switcher select {
+.profile-switcher__dropdown {
   max-width: 250px;
-  min-height: 36px;
-  padding: 0 30px 0 11px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  color: var(--gray-700);
-  background: var(--white);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
-}
-
-.profile-switcher select:focus-visible {
-  border-color: var(--brand-500);
-  box-shadow: var(--ring-focus);
-  outline: none;
-}
-
-.profile-switcher select:disabled {
-  cursor: default;
-  opacity: 1;
-  background: var(--gray-50);
 }
 
 .profile-switcher__label {
@@ -67,7 +46,7 @@
     padding-right: 10px;
   }
 
-  .profile-switcher select {
+  .profile-switcher__dropdown {
     max-width: 170px;
   }
 }

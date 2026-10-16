@@ -1,4 +1,5 @@
 import Badge from '../ui/Badge.jsx'
+import Icon from '../ui/Icon.jsx'
 import { ETAPES, PARCOURS, STATUTS_GENERAUX } from '../../utils/constants.js'
 import { formatDate } from '../../utils/format.js'
 import EtapeBadge, { ConfidentialiteBadge } from './EtapeBadge.jsx'
@@ -21,24 +22,28 @@ function FicheHeader({ fiche, children }) {
       </div>
       <div className="fiche-header__badges">
         <EtapeBadge etape={fiche.statut_etape} />
-        <Badge tone="neutral">{STATUTS_GENERAUX[fiche.statut_general]}</Badge>
+        {STATUTS_GENERAUX[fiche.statut_general] !== ETAPES[fiche.statut_etape]?.label && <Badge tone="neutral">{STATUTS_GENERAUX[fiche.statut_general]}</Badge>}
         <ConfidentialiteBadge value={fiche.confidentialite} />
-        <span className="fiche-header__version">v{fiche.version}</span>
+        <span className="fiche-header__version">Version {fiche.version}</span>
       </div>
-      <p className="fiche-header__meta">
-        {identification.unite?.libelle} · Pilote : {fiche.pilote?.nom ?? 'non désigné'} · Cible : {formatDate(identification.date_cible)}
-        {identification.equipement && ` · Équipement : ${identification.equipement.code}`}
-        {sap.length > 0 && ` · SAP : ${sap.join(', ')}`}
-      </p>
+      <ul className="fiche-header__meta">
+        <li><Icon name="unit" size={15} />{identification.unite?.libelle}</li>
+        <li><Icon name="user" size={15} />Pilote : {fiche.pilote?.nom ?? 'non désigné'}</li>
+        <li><Icon name="calendar" size={15} />Cible : {formatDate(identification.date_cible)}</li>
+        {identification.equipement && <li><Icon name="equipment" size={15} />Équipement : {identification.equipement.code}</li>}
+        {sap.length > 0 && <li><Icon name="lists" size={15} />SAP : {sap.join(', ')}</li>}
+      </ul>
       {fiche.statut_etape === 'EN_ATTENTE' && (
         <p className="fiche-header__hold" role="status">
+          <Icon name="clock" size={16} />
           En attente depuis l’étape « {ETAPES[fiche.etape_avant_attente]?.label} » : {fiche.motif_attente}
         </p>
       )}
       <ol aria-label="Progression de la fiche" className="fiche-header__progress">
         {PARCOURS.map((etape, index) => (
-          <li className={index < position ? 'is-done' : index === position ? 'is-current' : undefined} key={etape}>
-            {ETAPES[etape].label}
+          <li aria-current={index === position ? 'step' : undefined} className={index < position ? 'is-done' : index === position ? 'is-current' : undefined} key={etape}>
+            <span aria-hidden="true" className="fiche-header__dot">{index < position ? <Icon name="check" size={13} /> : index + 1}</span>
+            <span className="fiche-header__step-label">{ETAPES[etape].label}</span>
           </li>
         ))}
       </ol>

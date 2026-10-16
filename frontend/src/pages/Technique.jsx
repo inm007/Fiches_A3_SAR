@@ -40,7 +40,7 @@ function Technique() {
   const [logQuery, setLogQuery] = useState('')
   const [logOperation, setLogOperation] = useState('')
   const [logPage, setLogPage] = useState(1)
-  const [logPageSize, setLogPageSize] = useState(25)
+  const [logPageSize, setLogPageSize] = useState(10)
   const [logsError, setLogsError] = useState('')
   const [exportingLogs, setExportingLogs] = useState(false)
   const [form, setForm] = useState({})

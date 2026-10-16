@@ -3,7 +3,13 @@
   gap: var(--space-2);
 }
 
-.listes-page__layout,
+.listes-page__layout {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
 .listes-page__content {
   display: grid;
   min-width: 0;
@@ -11,34 +17,43 @@
   gap: var(--space-2);
 }
 
-/* Choix du référentiel : rangée de pastilles */
+/* Choix du référentiel : colonne de navigation */
 .listes-page__nav {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1);
+  position: sticky;
+  top: 80px;
+  display: grid;
+  gap: 2px;
+  padding: 12px;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  background: var(--white);
+  box-shadow: var(--shadow-card);
 }
 
 .listes-page__nav h2 {
-  width: 100%;
-  margin: 0 0 2px;
+  margin: 4px 8px 8px;
   color: var(--text-muted);
-  font-size: var(--text-xs);
+  font-size: var(--text-2xs);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .listes-page__nav button {
+  position: relative;
+  display: flex;
   min-height: 38px;
-  padding: var(--space-1) 14px;
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-pill);
-  color: var(--text);
-  background: var(--white);
+  align-items: center;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  color: var(--gray-700);
+  background: transparent;
+  font: inherit;
   font-weight: 500;
-  white-space: nowrap;
+  text-align: left;
   cursor: pointer;
+  transition: background-color var(--duration-fast), color var(--duration-fast);
 }
 
 .listes-page__nav button:hover {
@@ -52,9 +67,20 @@
 }
 
 .listes-page__nav button.is-active {
-  border-color: var(--brand-100);
   color: var(--brand-700);
   background: var(--brand-50);
+  font-weight: 700;
+}
+
+.listes-page__nav button.is-active::before {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 0;
+  width: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-500);
+  content: '';
 }
 
 .listes-page__content > header h2 {

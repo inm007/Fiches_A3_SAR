@@ -51,11 +51,20 @@
 .data-table--compact th,
 .data-table--compact td {
   height: 56px;
-  padding: 8px 12px;
-  overflow: hidden;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border);
-  text-overflow: ellipsis;
   vertical-align: middle;
+}
+
+/* Les cellules passent à la ligne au lieu de masquer leur contenu. */
+.data-table--compact td {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.data-table--compact th {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -103,19 +112,31 @@
   cursor: pointer;
 }
 
-.data-table--compact tbody tr:hover {
-  background: var(--gray-50);
-}
+
 
 .data-table--compact tbody tr:last-child td {
   border-bottom: 0;
 }
 
+.data-table--compact tbody tr:nth-child(n):hover {
+  background: var(--brand-50);
+}
+
+.data-table--compact tbody tr:hover td:first-child {
+  box-shadow: inset 3px 0 0 var(--brand-500);
+}
+
 .data-table--compact .data-table__cell-text {
-  display: block;
+  display: -webkit-box;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.data-table--compact tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--gray-50) 45%, transparent);
 }
 
 .data-table--compact .data-table__unit-name {
