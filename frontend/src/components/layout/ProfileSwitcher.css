@@ -1,33 +1,49 @@
+/* Profil actif : pastille avec libellé discret au-dessus */
 .profile-switcher {
-  display: inline-grid;
+  display: grid;
   min-width: 0;
-  gap: 5px;
+  gap: 3px;
   color: var(--gray-700);
-  font-size: var(--text-2xs);
-}
-
-.profile-switcher--single {
-  max-width: 220px;
-  padding-right: 16px;
-  border-right: 1px solid var(--border);
-}
-
-.profile-switcher__dropdown {
-  max-width: 250px;
 }
 
 .profile-switcher__label {
+  padding-left: 2px;
   color: var(--text-muted);
   font-size: var(--text-3xs);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
   line-height: 1;
   text-transform: uppercase;
 }
 
+.profile-switcher__dropdown {
+  max-width: 260px;
+}
+
+.profile-switcher .sar-dropdown {
+  border-color: var(--brand-100);
+  border-radius: var(--radius-pill);
+  color: var(--brand-700);
+  background: var(--brand-50);
+  font-weight: 600;
+}
+
+.profile-switcher .sar-dropdown:hover:not(:disabled) {
+  border-color: var(--brand-500);
+}
+
+.profile-switcher--single {
+  max-width: 260px;
+}
+
 .profile-switcher__current {
+  display: block;
   overflow: hidden;
-  color: var(--ink);
+  padding: 6px 12px;
+  border: 1px solid var(--brand-100);
+  border-radius: var(--radius-pill);
+  color: var(--brand-700);
+  background: var(--brand-50);
   font-size: var(--text-xs);
   font-weight: 700;
   text-overflow: ellipsis;
@@ -40,13 +56,9 @@
   font-size: var(--text-xs);
 }
 
-@media (max-width: 1100px) {
-  .profile-switcher--single {
-    max-width: 170px;
-    padding-right: 10px;
-  }
-
+@media (max-width: 1399px) {
+  .profile-switcher--single,
   .profile-switcher__dropdown {
-    max-width: 170px;
+    max-width: 200px;
   }
 }
