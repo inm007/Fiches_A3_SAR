@@ -21,13 +21,51 @@
   background-size: 24px 24px;
 }
 
+/* Bloc de marque : logo dans sa pastille blanche, filet, nom de l'application. */
 .auth-page__logo {
+  display: inline-flex;
   align-self: flex-start;
+  align-items: center;
+  gap: 16px;
+  color: var(--ink);
+}
+
+.auth-page__logo-mark {
+  display: grid;
+  width: 88px;
+  height: 56px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--white);
 }
 
 .auth-page__logo img {
   display: block;
-  height: 56px;
+  width: 64px;
+  height: auto;
+}
+
+.auth-page__logo-copy {
+  display: grid;
+  gap: 3px;
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+  line-height: 1.2;
+}
+
+.auth-page__logo-copy strong {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.auth-page__logo-copy span {
+  color: var(--gray-500);
+  font-size: var(--text-3xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .auth-page__intro {
