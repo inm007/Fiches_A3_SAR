@@ -28,12 +28,16 @@ function AuthPage({
     <main className={`auth-page ${pageClass}`.trim()}>
       <section aria-label="Présentation de l’application" className="auth-page__brand">
         <Link aria-label="SAR, accueil" className="auth-page__logo" to="/connexion">
-          <img alt="Logo SAR" src={sarLogo} />
+          <span className="auth-page__logo-mark"><img alt="Logo SAR" src={sarLogo} /></span>
+          <span className="auth-page__logo-copy">
+            <strong>Fiches A3</strong>
+            <span>Société Africaine de Raffinage</span>
+          </span>
         </Link>
         {isLoginPage ? (
           <>
             <div className="auth-page__intro">
-              <p className="auth-page__eyebrow">Société Africaine de Raffinage · Amélioration continue</p>
+              <p className="auth-page__eyebrow">Amélioration continue</p>
               <h2 aria-label={brandAriaLabel}>{brandTitle}</h2>
             </div>
             <ol aria-label="Parcours d’une fiche A3" className="auth-page__journey">
@@ -49,7 +53,7 @@ function AuthPage({
         ) : (
           <>
             <div className="auth-page__intro">
-              <p className="auth-page__eyebrow">Société Africaine de Raffinage · Amélioration continue</p>
+              <p className="auth-page__eyebrow">Amélioration continue</p>
               <h2>Chaque écart traité<br />sur une seule page.</h2>
               <p>Déclarez un problème, trouvez ses causes, suivez les actions et mesurez le gain.</p>
             </div>
