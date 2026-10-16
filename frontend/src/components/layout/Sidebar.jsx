@@ -92,7 +92,7 @@ function Sidebar() {
         <span aria-hidden="true" className="sidebar__avatar">{initials}</span>
         <span className="sidebar__account-copy">
           <strong>{user?.prenom} {user?.nom}</strong>
-          <span>{activeProfile?.label || activeProfile?.role}</span>
+          <span title={activeProfile?.label || activeProfile?.role}>{activeProfile?.label || activeProfile?.role}</span>
         </span>
       </div>
     </aside>

@@ -67,17 +67,18 @@ function Topbar() {
         <form className="topbar__search" role="search" onSubmit={submitSearch}>
           <Icon name="search" size={18} />
           <input aria-label="Rechercher une fiche" placeholder="Rechercher une fiche…" value={search} onChange={(event) => setSearch(event.target.value)} />
-          <kbd>↵</kbd>
+          <kbd aria-hidden="true">Entrée</kbd>
         </form>
       )}
       <div className="topbar__profile">
         <ProfileSwitcher />
+        <span aria-hidden="true" className="topbar__divider" />
         {activeProfile?.role_code !== 'ADMIN_TECHNIQUE' && <NotificationBell />}
         <button aria-label="Se déconnecter" className="topbar__logout" onClick={handleLogout} title="Se déconnecter" type="button">
           <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
             <path d="M10 17l5-5-5-5m5 5H3m9-9h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
           </svg>
-          <span>Déconnexion</span>
+          <span className="topbar__logout-label">Déconnexion</span>
         </button>
       </div>
       {logoutError && <span className="topbar__error" role="alert">{logoutError}</span>}

@@ -1,7 +1,16 @@
 import { Link } from 'react-router-dom'
 import sarLogo from '../../assets/logo.jpg'
+import Icon from '../ui/Icon.jsx'
 import A3Sheet from './A3Sheet.jsx'
 import './AuthPage.css'
+
+// Parcours d'une fiche, rappelé sur la connexion.
+const JOURNEY = [
+  { icon: 'file', label: 'Déclarer' },
+  { icon: 'search', label: 'Analyser' },
+  { icon: 'ok', label: 'Agir' },
+  { icon: 'validation', label: 'Prouver' },
+]
 
 // Pages publiques (connexion, mot de passe) : la fiche A3 à gauche, le formulaire à droite.
 function AuthPage({
@@ -22,9 +31,21 @@ function AuthPage({
           <img alt="Logo SAR" src={sarLogo} />
         </Link>
         {isLoginPage ? (
-          <div className="auth-page__intro">
-            <h2 aria-label={brandAriaLabel}>{brandTitle}</h2>
-          </div>
+          <>
+            <div className="auth-page__intro">
+              <p className="auth-page__eyebrow">Société Africaine de Raffinage · Amélioration continue</p>
+              <h2 aria-label={brandAriaLabel}>{brandTitle}</h2>
+            </div>
+            <ol aria-label="Parcours d’une fiche A3" className="auth-page__journey">
+              {JOURNEY.map((step, index) => (
+                <li key={step.label}>
+                  <span aria-hidden="true"><Icon name={step.icon} size={18} /></span>
+                  <small>{String(index + 1).padStart(2, '0')}</small>
+                  <strong>{step.label}</strong>
+                </li>
+              ))}
+            </ol>
+          </>
         ) : (
           <>
             <div className="auth-page__intro">
@@ -38,6 +59,7 @@ function AuthPage({
       </section>
       <section className="auth-page__panel">
         <div className="auth-card">
+          {isLoginPage && <span className="auth-card__badge"><Icon name="lock" size={14} />Espace sécurisé Fiches A3</span>}
           <h1>{title}</h1>
           {description && <p className="auth-card__description">{description}</p>}
           {children}
