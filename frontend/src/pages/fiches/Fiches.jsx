@@ -4,7 +4,7 @@ import { apiRequest } from '../../auth/api.js'
 import { useAuth } from '../../auth/useAuth.js'
 import AdminFicheModal from '../../components/fiche/AdminFicheModal.jsx'
 import EtapeBadge, { ConfidentialiteBadge } from '../../components/fiche/EtapeBadge.jsx'
-import { DateFilter, FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../../components/shared/ListToolbar.jsx'
+import { DateRangeFilter, FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../../components/shared/ListToolbar.jsx'
 import PageBanner from '../../components/shared/PageBanner.jsx'
 import Alert from '../../components/ui/Alert.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -142,7 +142,7 @@ function Fiches() {
   const [filters, setFilters] = useState(() => ({ ...initialFilters, q: searchParams.get('q') ?? '' }))
   const [sort, setSort] = useState({ tri: 'created_at', ordre: 'desc' })
   const [page, setPage] = useState(1)
-  const [perPage, setPerPage] = useState(25)
+  const [perPage, setPerPage] = useState(10)
   const [refs, setRefs] = useState(null)
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState('')
@@ -177,25 +177,24 @@ function Fiches() {
     {
       key: 'numero_a3',
       label: 'N° A3',
-      width: '140px',
+      width: '128px',
       header: isAdmin ? undefined : <SortHeader field="numero_a3" label="N° A3" sort={sort} onSort={toggleSort} />,
       render: (fiche) => <Link className="fiches-page__number" to={`/fiches/${fiche.id}`} onClick={(event) => event.stopPropagation()}>{fiche.numero_a3}</Link>,
     },
     {
       key: 'titre',
-      label: 'Titre',
-      render: (fiche) => <span className="data-table__cell-text" title={fiche.titre}>{fiche.titre}</span>,
-    },
-    {
-      key: 'unite',
-      label: 'Unité',
-      width: '11%',
-      render: (fiche) => <span className="data-table__cell-text" title={fiche.unite}>{fiche.unite}</span>,
+      label: 'Fiche',
+      render: (fiche) => (
+        <span className="fiches-page__titre">
+          <strong title={fiche.titre}>{fiche.titre}</strong>
+          <small>{fiche.unite}</small>
+        </span>
+      ),
     },
     {
       key: 'pilote',
       label: 'Pilote',
-      width: '12%',
+      width: '150px',
       render: (fiche) => (
         <span className="fiches-page__pilote" title={fiche.piloteNom ?? 'Non désigné'}>
           <span aria-hidden="true" className="sar-avatar sar-avatar--sm">{initials(fiche.piloteNom)}</span>
@@ -206,13 +205,13 @@ function Fiches() {
     {
       key: 'etape',
       label: 'Étape',
-      width: '172px',
+      width: '204px',
       render: (fiche) => <EtapeBadge etape={fiche.statut_etape} />,
     },
     ...(isAdmin ? [] : [{
       key: 'date_cible',
       label: 'Date cible',
-      width: '118px',
+      width: '132px',
       header: <SortHeader field="date_cible" label="Date cible" sort={sort} onSort={toggleSort} />,
       render: (fiche) => (fiche.en_retard
         ? <span className="fiches-page__late" title="Date cible dépassée"><Icon name="clock" size={14} />{formatDate(fiche.date_cible)}</span>
@@ -254,13 +253,17 @@ function Fiches() {
         <FilterSelect label="Confidentialité" options={CONFIDENTIALITE_OPTIONS} value={filters.confidentialite} onChange={setFilter('confidentialite')} />
         {!isAdmin && (
           <>
-            <DateFilter label="Créée du" max={filters.date_fin || undefined} value={filters.date_debut} onChange={setFilter('date_debut')} />
-            <DateFilter label="au" min={filters.date_debut || undefined} value={filters.date_fin} onChange={setFilter('date_fin')} />
+            <DateRangeFilter
+              from={filters.date_debut}
+              label="Création"
+              to={filters.date_fin}
+              onChange={({ from, to }) => { setPage(1); setFilters((current) => ({ ...current, date_debut: from, date_fin: to })) }}
+            />
           </>
         )}
         <ToolbarActions>
           <ResultCount count={source.total} singular="fiche" />
-          {hasActiveFilters && <Button type="button" variant="secondary" onClick={() => { setFilters(initialFilters); setPage(1) }}>Réinitialiser</Button>}
+          {hasActiveFilters && <Button type="button" variant="ghost" onClick={() => { setFilters(initialFilters); setPage(1) }}>Réinitialiser</Button>}
           <Button disabled={!source.total} icon="download" loading={exporting} loadingLabel="Préparation…" type="button" variant="secondary" onClick={exportList}>Exporter Excel</Button>
         </ToolbarActions>
       </ListToolbar>

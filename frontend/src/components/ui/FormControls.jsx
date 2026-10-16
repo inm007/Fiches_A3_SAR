@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import Dropdown from './Dropdown.jsx'
 import './FormControls.css'
 
 // Champs avec libellé visible, aide, erreur et lecture seule (UX §10.2).
@@ -13,6 +14,7 @@ function useFieldIds(hint, error) {
   const hintId = hint ? `${id}-hint` : undefined
   const errorId = error ? `${id}-error` : undefined
   return {
+    id,
     hintId,
     errorId,
     a11y: {
@@ -22,10 +24,10 @@ function useFieldIds(hint, error) {
   }
 }
 
-function Field({ label, required, hint, error, hintId, errorId, children, wide }) {
+function Field({ label, labelId, required, hint, error, hintId, errorId, children, wide }) {
   return (
     <label className={['sar-field', wide ? 'sar-field--wide' : '', error ? 'has-error' : ''].filter(Boolean).join(' ')}>
-      <span className="sar-field__label">{label}{required && <abbr title="obligatoire"> *</abbr>}</span>
+      <span className="sar-field__label" id={labelId}>{label}{required && <abbr title="obligatoire"> *</abbr>}</span>
       {children}
       {hint && <span className="sar-field__hint" id={hintId}>{hint}</span>}
       {error && <span className="sar-field__error" id={errorId}>{errorText(error)}</span>}
@@ -53,15 +55,27 @@ export function TextArea({ label, required, hint, error, value, onChange, readOn
   )
 }
 
-/** Liste déroulante. `options` : tableau de paires [valeur, libellé] ; `placeholder={null}` retire l'option vide. */
-export function Select({ label, required, hint, error, wide, value, onChange, options, readOnly, placeholder = 'Choisir…', ...props }) {
-  const { hintId, errorId, a11y } = useFieldIds(hint, error)
+/**
+ * Liste déroulante (composant Dropdown). `options` : tableau de paires [valeur, libellé] ;
+ * `placeholder={null}` retire l'option vide ; `onChange` reçoit la valeur choisie.
+ */
+export function Select({ label, required, hint, error, wide, value, onChange, options, readOnly, disabled, placeholder = 'Choisir…', ...props }) {
+  const { id, hintId, errorId, a11y } = useFieldIds(hint, error)
   return (
-    <Field error={error} errorId={errorId} hint={hint} hintId={hintId} label={label} required={required} wide={wide}>
-      <select disabled={readOnly} aria-required={required || undefined} value={value ?? ''} onChange={(event) => onChange?.(event.target.value)} {...a11y} {...props}>
-        {placeholder !== null && <option value="">{placeholder}</option>}
-        {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
-      </select>
+    <Field error={error} errorId={errorId} hint={hint} hintId={hintId} label={label} labelId={`${id}-label`} required={required} wide={wide}>
+      <Dropdown
+        aria-describedby={a11y['aria-describedby']}
+        aria-labelledby={`${id}-label ${id}-button`}
+        aria-required={required || undefined}
+        disabled={readOnly || disabled}
+        id={`${id}-button`}
+        invalid={Boolean(error)}
+        options={options}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        {...props}
+      />
     </Field>
   )
 }

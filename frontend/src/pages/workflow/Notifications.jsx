@@ -15,12 +15,12 @@ import { formatDateTime } from '../../utils/format.js'
 import { downloadExcel } from '../../utils/listTools.js'
 import './Notifications.css'
 
-const PAGE_SIZES = [10, 20, 50, 100]
+const PAGE_SIZES = [10, 25, 50, 100]
 
 function Notifications() {
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
+  const [pageSize, setPageSize] = useState(10)
   const [query, setQuery] = useState('')
   const [readFilter, setReadFilter] = useState('')
   const [result, setResult] = useState(null)

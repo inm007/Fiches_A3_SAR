@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/useAuth.js'
+import Dropdown from '../ui/Dropdown.jsx'
 import './ProfileSwitcher.css'
 
 function ProfileSwitcher() {
@@ -9,8 +10,8 @@ function ProfileSwitcher() {
   const [error, setError] = useState('')
   const hasMultipleProfiles = profiles.length > 1
 
-  async function handleChange(event) {
-    const id = Number(event.target.value)
+  async function handleChange(value) {
+    const id = Number(value)
     if (!id || id === activeProfile?.affectation_id) return
 
     setError('')
@@ -32,19 +33,19 @@ function ProfileSwitcher() {
   }
 
   return (
-    <label className="profile-switcher">
+    <div className="profile-switcher">
       <span className="profile-switcher__label">Profil actif</span>
-      <select
+      <Dropdown
         aria-label="Profil actif"
-        onChange={handleChange}
+        className="profile-switcher__dropdown"
+        options={profiles.map((profile) => [profile.affectation_id, profile.label])}
+        placeholder={null}
         value={activeProfile?.affectation_id || ''}
-      >
-        {profiles.map((profile) => (
-          <option key={profile.affectation_id} value={profile.affectation_id}>{profile.label}</option>
-        ))}
-      </select>
+        variant="small"
+        onChange={handleChange}
+      />
       {error && <span className="profile-switcher__error" role="alert">{error}</span>}
-    </label>
+    </div>
   )
 }
 

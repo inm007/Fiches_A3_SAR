@@ -3,8 +3,28 @@
   gap: var(--space-2);
 }
 
-.fiches-page .sar-list-toolbar > label {
-  flex-basis: 150px;
+.fiches-page__titre {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.fiches-page__titre strong {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.fiches-page__titre small {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fiches-page__number {

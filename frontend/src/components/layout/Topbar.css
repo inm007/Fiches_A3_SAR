@@ -292,10 +292,8 @@
     width: 34px;
   }
 
-  .profile-switcher select {
+  .profile-switcher__dropdown {
     max-width: 110px;
-    padding-right: 22px;
-    padding-left: 8px;
   }
 
   .topbar {

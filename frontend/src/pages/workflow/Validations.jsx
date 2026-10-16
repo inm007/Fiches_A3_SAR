@@ -17,7 +17,7 @@ import { downloadExcel, matchesSearch } from '../../utils/listTools.js'
 import './Validations.css'
 
 const SEUIL_ANCIENNETE = 7
-const PAGE_SIZE = 25
+const PAGE_SIZE = 10
 
 /**
  * Demandes qui attendent le profil actif, les plus anciennes en premier (UX §9.1).
