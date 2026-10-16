@@ -13,10 +13,35 @@
   margin: 0 0 var(--space-05);
 }
 
+.technique-page__status > * {
+  position: relative;
+  overflow: hidden;
+}
+
+.technique-page__status > *::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(90deg, var(--brand-500), var(--brand-highlight));
+  content: '';
+}
+
+.technique-page__status > *:nth-child(2)::before {
+  background: linear-gradient(90deg, var(--chart-phase-realization), var(--chart-phase-planning));
+}
+
+.technique-page__status > *:nth-child(3)::before {
+  background: linear-gradient(90deg, var(--chart-phase-closure), var(--success-highlight));
+}
+
 .technique-page__form {
   display: grid;
-  max-width: 640px;
-  gap: var(--space-2);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2) 20px;
+}
+
+.technique-page__form > :last-child {
+  grid-column: 1 / -1;
 }
 
 .technique-page__logs {
