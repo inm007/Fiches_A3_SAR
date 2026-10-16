@@ -1,0 +1,43 @@
+/* Tableau de bord · Montants (contrôle de gestion, direction) */
+.dash-money {
+  display: grid;
+  grid-template-columns: 1.4fr 1.3fr 1fr 1fr;
+  gap: 16px;
+}
+
+.dash-money__main {
+  position: relative;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  overflow: hidden;
+  padding: 20px 24px;
+  border-radius: var(--radius-card);
+  color: var(--white);
+  background:
+    radial-gradient(260px 160px at 100% 0, rgb(255 255 255 / 18%), transparent 70%),
+    linear-gradient(135deg, var(--success-solid), #155E3B);
+  box-shadow: var(--shadow-card);
+}
+
+.dash-money__main span {
+  color: rgb(255 255 255 / 80%);
+  font-size: var(--text-sm);
+}
+
+.dash-money__main strong {
+  font-size: 34px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.dash-money__main small {
+  color: rgb(255 255 255 / 72%);
+  font-size: var(--text-xs);
+}
+
+.dash-money__main--panel {
+  padding: 24px;
+}

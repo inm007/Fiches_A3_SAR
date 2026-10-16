@@ -15,6 +15,12 @@ export function matchesSearch(values, query) {
   return terms.every((term) => haystack.includes(term))
 }
 
+/** Page affichée d'une liste filtrée ; la page demandée est ramenée dans les bornes. */
+export function paginate(rows, page, pageSize) {
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(rows.length / pageSize)))
+  return { page: currentPage, rows: rows.slice((currentPage - 1) * pageSize, currentPage * pageSize) }
+}
+
 function xmlEscape(value) {
   let text = ''
   for (const character of String(value ?? '')) {

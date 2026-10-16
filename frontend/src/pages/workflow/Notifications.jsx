@@ -9,12 +9,14 @@ import Skeleton from '../../components/ui/Skeleton.jsx'
 import Icon from '../../components/ui/Icon.jsx'
 import { FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../../components/shared/ListToolbar.jsx'
 import { refreshCounters } from '../../hooks/useCounters.js'
+import { useListFilters } from '../../hooks/useListFilters.js'
 import { notificationService } from '../../services/notificationService.js'
 import { formatDate, formatDateTime } from '../../utils/format.js'
 import { downloadExcel } from '../../utils/listTools.js'
 import './Notifications.css'
 
 const PAGE_SIZES = [10, 25, 50, 100]
+const NO_FILTERS = { q: '', etat: '' }
 
 // Icône selon la nature du message (affichage seulement).
 function iconFor(message) {
@@ -57,10 +59,9 @@ function splitMessage(notification) {
 
 function Notifications() {
   const navigate = useNavigate()
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
-  const [query, setQuery] = useState('')
-  const [readFilter, setReadFilter] = useState('')
+  const list = useListFilters(NO_FILTERS)
+  const { page, pageSize } = list
+  const { q: query, etat: readFilter } = list.filters
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
   const [exporting, setExporting] = useState(false)
@@ -139,11 +140,11 @@ function Notifications() {
       {!result && !error && <Skeleton lines={5} height={22} />}
       {result && (
         <ListToolbar>
-          <SearchField label="Recherche" placeholder="Message ou numéro de fiche…" value={query} onChange={(value) => { setQuery(value); setPage(1) }} />
-          <FilterSelect label="État" options={[['non_lu', 'Non lues'], ['lu', 'Lues']]} value={readFilter} onChange={(value) => { setReadFilter(value); setPage(1) }} />
+          <SearchField label="Recherche" placeholder="Message ou numéro de fiche…" value={query} onChange={list.setFilter('q')} />
+          <FilterSelect label="État" options={[['non_lu', 'Non lues'], ['lu', 'Lues']]} value={readFilter} onChange={list.setFilter('etat')} />
           <ToolbarActions>
             <ResultCount count={result.meta.total} singular="notification" />
-            {(query || readFilter) && <Button onClick={() => { setQuery(''); setReadFilter(''); setPage(1) }} type="button" variant="secondary">Réinitialiser</Button>}
+            {list.active && <Button onClick={list.reset} type="button" variant="secondary">Réinitialiser</Button>}
             <Button disabled={!result.meta.total} icon="download" loading={exporting} loadingLabel="Préparation…" type="button" variant="export" onClick={exportAll}>Exporter Excel</Button>
           </ToolbarActions>
         </ListToolbar>
@@ -151,8 +152,8 @@ function Notifications() {
       {result?.data.length === 0 && (
         <div className="sar-card">
           <EmptyState
-            action={(query || readFilter) && <Button type="button" variant="secondary" onClick={() => { setQuery(''); setReadFilter(''); setPage(1) }}>Réinitialiser les filtres</Button>}
-            description={(query || readFilter) ? 'Aucune notification ne correspond à ces critères.' : 'Les validations, échéances et changements d’étape de vos fiches apparaîtront ici.'}
+            action={list.active && <Button type="button" variant="secondary" onClick={list.reset}>Réinitialiser les filtres</Button>}
+            description={list.active ? 'Aucune notification ne correspond à ces critères.' : 'Les validations, échéances et changements d’étape de vos fiches apparaîtront ici.'}
             icon="bell"
             title="Aucune notification"
           />
@@ -194,8 +195,8 @@ function Notifications() {
           pageSize={pageSize}
           pageSizes={PAGE_SIZES}
           total={result.meta.total}
-          onPageChange={setPage}
-          onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
+          onPageChange={list.setPage}
+          onPageSizeChange={list.changePageSize}
         />
       )}
     </section>

@@ -6,7 +6,6 @@
 
 :root {
   /* Voiles sous les fenêtres modales */
-  --overlay: rgb(20 22 26 / 45%);
   --overlay-soft: rgb(20 22 26 / 35%);
 
   /* ---------- Marque ---------- */
@@ -15,7 +14,6 @@
   --brand-500: #E3000F;
   --brand-600: #B0000F;
   --brand-700: #8F000C;
-  --brand-800: #76000A;
   --brand-highlight: #FF4B5B;
   --brand-soft:      #FF8A94;
 
@@ -45,21 +43,16 @@
   --gray-500: #6B6B76;
   --gray-700: #3A3A44;
   --gray-800: #33333D;
-  --gray-900: #24262B;
   --ink:      #1A1A1F;
   --ink-strong: #14161A;
 
   /* ---------- Surfaces et texte ---------- */
-  --bg:            var(--white);
   --bg-page:       var(--gray-50);
-  --bg-card:       var(--white);
   --border:        var(--gray-200);
   --border-strong: var(--gray-300);
   --text:          var(--ink);
   --text-muted:    var(--gray-500);
   --text-disabled: var(--gray-400);
-  --link:          var(--brand-500);
-  --link-hover:    var(--brand-600);
 
   /* ---------- Messages système ---------- */
   --success:        #1F7A4D;
@@ -71,7 +64,6 @@
   --error:          #C62828;
   --error-bg:       #FDECEC;
   --error-border:   #F3B5B5;
-  --error-solid:    #C62828;
 
   --warning:        #8A5A00;
   --warning-bg:     #FFF4DD;
@@ -95,23 +87,14 @@
 
   /* ---------- Statuts des actions ---------- */
   --action-a-faire:      var(--gray-500);  --action-a-faire-bg:   var(--gray-100);
-  --action-encours:      var(--st-encours); --action-encours-bg: var(--st-encours-bg);
   --action-realisee:     var(--success);    --action-realisee-bg: var(--success-bg);
   --action-annulee:      var(--gray-400);  --action-annulee-bg:   var(--gray-50);
   --action-retard:       var(--error);      --action-retard-bg:    var(--error-bg);
 
   /* ---------- Confidentialité ---------- */
   --conf-normal:         var(--gray-500); --conf-normal-bg:   var(--gray-100);
-  --conf-restreint:      var(--white);    --conf-restreint-bg: var(--ink);
 
   /* ---------- Graphiques ---------- */
-  --chart-1: #E60012;
-  --chart-2: #2563EB;
-  --chart-3: #167A4A;
-  --chart-4: #F5A524;
-  --chart-5: #6D28D9;
-  --chart-6: #0E7490;
-  --chart-7: #A8A8B3;
   --chart-phase-opening: #7C8DA6;
   --chart-phase-planning: #5B9BD5;
   --chart-phase-realization: #3B6EA8;
@@ -124,8 +107,6 @@
   --chart-phase-verification-bg: #E8F5F3;
   --chart-phase-closure-bg: #EAF2ED;
   --chart-phase-waiting-bg: #F1F2F4;
-  --chart-bar-top: #7799BF;
-  --chart-bar-bottom: #4E79A7;
 
   /* ---------- Divers ---------- */
   --focus-ring: rgb(227 0 15 / 25%);

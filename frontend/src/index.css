@@ -40,20 +40,11 @@ body {
 }
 
 /* Échelle typographique : à utiliser via ces classes ou les jetons --text-* */
-h1,
-.sar-h1 {
+h1 {
   font-size: var(--text-2xl);
   font-weight: var(--weight-semibold);
   line-height: var(--leading-h1);
   letter-spacing: -0.02em;
-}
-
-.sar-h2 {
-  margin: 0;
-  font-size: var(--text-xl);
-  font-weight: var(--weight-semibold);
-  line-height: 28px;
-  letter-spacing: -0.01em;
 }
 
 .sar-h3 {
@@ -61,17 +52,6 @@ h1,
   font-size: var(--text-lg);
   font-weight: var(--weight-semibold);
   line-height: 24px;
-}
-
-.sar-text {
-  font-size: var(--text-md);
-  line-height: var(--leading-normal);
-}
-
-.sar-label {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  line-height: 18px;
 }
 
 .sar-caption {
@@ -161,57 +141,8 @@ textarea {
   box-shadow: var(--shadow-card);
 }
 
-/* En-tête de page : titre à gauche, action principale à droite */
-.sar-page-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.sar-page-head h1 {
-  margin: 0;
-}
-
 .sar-muted {
   color: var(--text-muted);
-}
-
-/* Tableaux : en-têtes en capitales, lignes cliquables soulignées en rouge */
-.sar-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
-}
-
-.sar-table th {
-  padding: 10px 12px;
-  color: var(--gray-700);
-  background: var(--gray-100);
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-align: left;
-  text-transform: uppercase;
-}
-
-.sar-table td {
-  padding: 12px;
-  border-bottom: 1px solid var(--border);
-  vertical-align: middle;
-}
-
-.sar-table tbody tr {
-  transition: 0.12s;
-}
-
-.sar-table tbody tr.is-clickable {
-  cursor: pointer;
-}
-
-.sar-table tbody tr.is-clickable:hover {
-  background: var(--brand-50);
-  box-shadow: inset 3px 0 0 var(--brand-500);
 }
 
 /* Avatar à initiales */
@@ -272,39 +203,6 @@ textarea {
 
 .sar-timeline > li.is-ko::before {
   border-color: var(--error);
-}
-
-/* Ligne de liste (À traiter, notifications) */
-.sar-list-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.sar-list-item:last-child {
-  border-bottom: 0;
-}
-
-.sar-list-item.is-unread {
-  background: var(--brand-50);
-}
-
-.sar-tile {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  flex: none;
-  place-items: center;
-  border-radius: var(--radius-lg);
-  color: var(--brand-500);
-  background: var(--brand-50);
-}
-
-.sar-tile--alert {
-  color: var(--error);
-  background: var(--error-bg);
 }
 
 /* Texte lu par les lecteurs d'écran mais invisible à l'écran */

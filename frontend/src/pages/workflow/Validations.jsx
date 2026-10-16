@@ -11,13 +11,14 @@ import Badge from '../../components/ui/Badge.jsx'
 import DataTable from '../../components/ui/DataTable.jsx'
 import { FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../../components/shared/ListToolbar.jsx'
 import { refreshCounters } from '../../hooks/useCounters.js'
+import { useListFilters } from '../../hooks/useListFilters.js'
 import { describeError, ficheService } from '../../services/ficheService.js'
 import { toast } from '../../utils/toast.js'
-import { downloadExcel, matchesSearch } from '../../utils/listTools.js'
+import { downloadExcel, matchesSearch, paginate } from '../../utils/listTools.js'
 import './Validations.css'
 
 const SEUIL_ANCIENNETE = 7
-const PAGE_SIZE = 10
+const NO_FILTERS = { q: '', porte: '', anciennete: '' }
 
 /**
  * Demandes qui attendent le profil actif, les plus anciennes en premier (UX §9.1).
@@ -30,15 +31,12 @@ function Validations() {
   const [refus, setRefus] = useState(null)
   const [commentaire, setCommentaire] = useState('')
   const [busy, setBusy] = useState(null)
-  const [query, setQuery] = useState('')
-  const [porteFilter, setPorteFilter] = useState('')
-  const [ancienneteFilter, setAncienneteFilter] = useState('')
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(PAGE_SIZE)
+  const list = useListFilters(NO_FILTERS)
+  const { filters, setPage } = list
 
   const load = useCallback(() => ficheService.validations()
     .then((result) => { setDemandes(result); setPage(1) })
-    .catch((loadError) => setError(describeError(loadError))), [])
+    .catch((loadError) => setError(describeError(loadError))), [setPage])
 
   useEffect(() => { load() }, [load])
 
@@ -67,11 +65,11 @@ function Validations() {
       demande.role,
       `porte ${demande.porte}`,
       demande.anciennete_jours,
-    ], query)
-    && (!porteFilter || String(demande.porte) === porteFilter)
-    && (!ancienneteFilter || (ancienneteFilter === 'ancienne' ? demande.anciennete_jours >= SEUIL_ANCIENNETE : demande.anciennete_jours < SEUIL_ANCIENNETE))
+    ], filters.q)
+    && (!filters.porte || String(demande.porte) === filters.porte)
+    && (!filters.anciennete || (filters.anciennete === 'ancienne' ? demande.anciennete_jours >= SEUIL_ANCIENNETE : demande.anciennete_jours < SEUIL_ANCIENNETE))
   ))
-  const visibleDemandes = filteredDemandes.slice((page - 1) * pageSize, page * pageSize)
+  const visible = paginate(filteredDemandes, list.page, list.pageSize)
 
   return (
     <section className="validations-page">
@@ -87,12 +85,12 @@ function Validations() {
       {demandes?.length > 0 && (
         <>
           <ListToolbar className="validations-page__toolbar">
-            <SearchField placeholder="N°, titre, rôle…" value={query} onChange={(value) => { setQuery(value); setPage(1) }} />
-            <FilterSelect label="Porte" options={[['1', 'Porte 1'], ['2', 'Porte 2']]} value={porteFilter} onChange={(value) => { setPorteFilter(value); setPage(1) }} />
-            <FilterSelect label="Ancienneté" options={[['ancienne', `${SEUIL_ANCIENNETE} jours et plus`], ['recente', `Moins de ${SEUIL_ANCIENNETE} jours`]]} value={ancienneteFilter} onChange={(value) => { setAncienneteFilter(value); setPage(1) }} />
+            <SearchField placeholder="N°, titre, rôle…" value={filters.q} onChange={list.setFilter('q')} />
+            <FilterSelect label="Porte" options={[['1', 'Porte 1'], ['2', 'Porte 2']]} value={filters.porte} onChange={list.setFilter('porte')} />
+            <FilterSelect label="Ancienneté" options={[['ancienne', `${SEUIL_ANCIENNETE} jours et plus`], ['recente', `Moins de ${SEUIL_ANCIENNETE} jours`]]} value={filters.anciennete} onChange={list.setFilter('anciennete')} />
             <ToolbarActions>
               <ResultCount count={filteredDemandes.length} singular="demande" />
-              {(query || porteFilter || ancienneteFilter) && <Button type="button" variant="secondary" onClick={() => { setQuery(''); setPorteFilter(''); setAncienneteFilter(''); setPage(1) }}>Réinitialiser</Button>}
+              {list.active && <Button type="button" variant="secondary" onClick={list.reset}>Réinitialiser</Button>}
               <Button disabled={!filteredDemandes.length} icon="download" type="button" variant="export" onClick={() => downloadExcel('validations-a-traiter.xlsx', [
                 { label: 'N° A3', value: (demande) => demande.fiche.numero_a3 },
                 { label: 'Titre', value: (demande) => demande.fiche.titre },
@@ -126,18 +124,18 @@ function Validations() {
                   : <span className="sar-num">{demande.anciennete_jours} j</span>),
               },
             ]}
-            emptyAction={<Button type="button" variant="secondary" onClick={() => { setQuery(''); setPorteFilter(''); setAncienneteFilter(''); setPage(1) }}>Réinitialiser les filtres</Button>}
+            emptyAction={<Button type="button" variant="secondary" onClick={list.reset}>Réinitialiser les filtres</Button>}
             emptyMessage="Aucune demande ne correspond à ces critères"
-            rows={visibleDemandes}
+            rows={visible.rows}
             variant="compact"
           />
           {filteredDemandes.length > 0 && (
             <ListPagination
-              page={page}
-              pageSize={pageSize}
+              page={visible.page}
+              pageSize={list.pageSize}
               total={filteredDemandes.length}
               onPageChange={setPage}
-              onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
+              onPageSizeChange={list.changePageSize}
             />
           )}
         </>

@@ -1,6 +1,5 @@
 import AdminEntityPage from '../../components/admin/AdminEntityPage.jsx'
 import Badge from '../../components/ui/Badge.jsx'
-import './Equipements.css'
 
 const related = [{ key: 'units', endpoint: '/admin/units' }]
 
@@ -54,17 +53,15 @@ const exportColumns = [
 
 function Equipements() {
   return (
-    <div className="equipements-page">
-      <AdminEntityPage
-        columns={columns}
-        description="Maintenez les équipements par unité et leur référence SAP."
-        endpoint="/admin/equipment"
-        exportColumns={exportColumns}
-        fields={fields}
-        related={related}
-        title="Équipements"
-      />
-    </div>
+    <AdminEntityPage
+      columns={columns}
+      description="Maintenez les équipements par unité et leur référence SAP."
+      endpoint="/admin/equipment"
+      exportColumns={exportColumns}
+      fields={fields}
+      related={related}
+      title="Équipements"
+    />
   )
 }
 

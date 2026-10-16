@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { Buffer } from 'node:buffer'
-import { buildExcelArchive, matchesSearch } from '../src/utils/listTools.js'
+import { buildExcelArchive, matchesSearch, paginate } from '../src/utils/listTools.js'
 
 function readStoredZip(bytes) {
   const archive = Buffer.from(bytes)
@@ -25,6 +25,13 @@ function readStoredZip(bytes) {
 test('recherche multi-termes sans tenir compte des accents ou de la casse', () => {
   assert.equal(matchesSearch(['Équipement', 'Maintenance préventive'], 'equipement PREVENTIVE'), true)
   assert.equal(matchesSearch(['Équipement', 'Maintenance préventive'], 'equipement corrective'), false)
+})
+
+test('pagine une liste et ramène la page demandée dans les bornes', () => {
+  const rows = Array.from({ length: 23 }, (_, index) => index + 1)
+  assert.deepEqual(paginate(rows, 2, 10), { page: 2, rows: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20] })
+  assert.deepEqual(paginate(rows, 9, 10), { page: 3, rows: [21, 22, 23] })
+  assert.deepEqual(paginate([], 4, 10), { page: 1, rows: [] })
 })
 
 test('génère un classeur Excel avec filtres, largeurs et valeurs protégées', () => {

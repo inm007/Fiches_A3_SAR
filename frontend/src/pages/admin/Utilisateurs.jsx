@@ -1,7 +1,6 @@
 import { apiRequest } from '../../auth/api.js'
 import AdminEntityPage from '../../components/admin/AdminEntityPage.jsx'
 import Badge from '../../components/ui/Badge.jsx'
-import './Utilisateurs.css'
 
 const fields = [
   { name: 'identifiant', label: 'Identifiant', required: true, maxLength: 255 },
@@ -99,17 +98,15 @@ const extraActions = [{
 
 function Utilisateurs() {
   return (
-    <div className="utilisateurs-page">
-      <AdminEntityPage
-        columns={columns}
-        description="Créez les comptes métier, activez ou désactivez leur accès et envoyez un lien de définition du mot de passe."
-        endpoint="/admin/users"
-        exportColumns={exportColumns}
-        extraActions={extraActions}
-        fields={fields}
-        title="Administration des utilisateurs"
-      />
-    </div>
+    <AdminEntityPage
+      columns={columns}
+      description="Créez les comptes métier, activez ou désactivez leur accès et envoyez un lien de définition du mot de passe."
+      endpoint="/admin/users"
+      exportColumns={exportColumns}
+      extraActions={extraActions}
+      fields={fields}
+      title="Administration des utilisateurs"
+    />
   )
 }
 
