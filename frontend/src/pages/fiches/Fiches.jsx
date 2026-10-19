@@ -103,7 +103,7 @@ function useAdminRegistre({ enabled, filters, page, perPage }) {
   const visible = paginate(filtered, page, perPage)
 
   return {
-    rows: visible.rows.map((fiche) => ({ ...fiche, unite: fiche.unite?.libelle ?? '—', piloteNom: personName(fiche.pilote), source: fiche })),
+    rows: visible.rows.map((fiche) => ({ ...fiche, unite: fiche.unite?.libelle ?? '—', piloteNom: [personName(fiche.pilote), ...(fiche.copilotes ?? []).map(personName)].filter(Boolean).join(', ') || null, source: fiche })),
     total: filtered.length,
     currentPage: visible.page,
     loading: fiches === null && !error,
@@ -316,6 +316,7 @@ function Fiches() {
           users={admin.users}
           onClose={() => setManaged(null)}
           onSaved={(updated) => { admin.replace(updated); setManaged(null); toast('Modifications enregistrées') }}
+          onShared={(updated) => { admin.replace(updated); setManaged(updated) }}
         />
       )}
     </section>

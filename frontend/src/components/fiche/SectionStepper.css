@@ -70,3 +70,12 @@
 .section-stepper button span {
   display: none;
 }
+
+.section-stepper__etat--editable {
+  color: var(--brand-500);
+}
+
+.section-stepper__etat--a_venir,
+.section-stepper__etat--auto {
+  color: var(--gray-400, var(--text-muted));
+}

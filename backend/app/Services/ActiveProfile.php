@@ -77,7 +77,7 @@ class ActiveProfile
      */
     public function estPiloteDe(FicheA3 $fiche): bool
     {
-        return $this->is('PILOTE') && $fiche->pilote_id === $this->userId();
+        return $this->is('PILOTE') && $fiche->estPilote($this->userId());
     }
 
     /**

@@ -29,6 +29,8 @@ Une fiche peut être mise en attente avec un motif (« Mettre en attente »), pu
 ## Pilote
 
 - **Rédiger la fiche** : sections 1 à 7 à l'étape En cours. « Enregistrer » sauvegarde un brouillon ; l'état de sauvegarde s'affiche à côté du bouton.
+- **Lire les cadenas** : dans la liste des sections, un crayon marque ce que vous pouvez modifier maintenant, un cadenas une section figée (étape passée, validation en cours, fiche en attente ou clôturée), une horloge une section qui s'ouvrira plus tard. Survolez la section ou ouvrez-la pour lire la raison.
+- **Fiche partagée** : si l'administrateur vous associe à la fiche d'un collègue absent, vous la voyez et la faites avancer comme la vôtre. Chaque section indique qui l'a enregistrée en dernier, et l'onglet Historique montre tout ce que l'autre pilote a fait.
 - **Soumettre le plan** : si un élément manque, la liste des conditions manquantes s'affiche.
 - **Pendant la réalisation** :
   - « Replanifier » une action pour reporter son échéance ou changer son responsable, avec un motif ;
@@ -60,8 +62,9 @@ Une fiche peut être mise en attente avec un motif (« Mettre en attente »), pu
 - **Comptes** : « Administration → Utilisateurs ». Un nouveau compte local reçoit aussitôt son lien de définition du mot de passe ; « Envoyer le lien » le renvoie.
 - **Affectations** : un rôle est porté par une affectation (rôle, unité ou périmètre global, dates).
 - **Référentiels** : unités, équipements, listes de choix, paramètres fonctionnels (délai des rappels, préavis d'échéance, limites des pièces jointes).
-- **Pilote** : désigner le pilote d'une fiche ouverte, ou le changer à toute étape avant la clôture (motif obligatoire après l'étape Ouvert).
-- **Validation bloquée** : quand un valideur est absent ou n'a plus son affectation, la demande apparaît dans « À régulariser » sur le tableau de bord. Sur la fiche, « Réattribuer une validation » la passe à un autre titulaire du même rôle.
+- **Pilote** : désigner le pilote d'une fiche ouverte, ou le changer à toute étape avant la clôture en cas de départ définitif (motif obligatoire après l'étape Ouvert).
+- **Fiche partagée** : pour une absence (maladie, congé) ou un renfort, « Partager la fiche » associe un second pilote de l'unité. Les deux pilotes travaillent sur la même fiche ; retirez le partage quand il n'est plus utile.
+- **Validation bloquée** : quand un valideur est absent ou n'a plus son affectation, la demande apparaît dans « À régulariser » sur le tableau de bord. Sur la fiche, « Partager une validation » l'ouvre aussi à un autre titulaire du même rôle ; le premier qui décide la traite.
 - **Confidentialité** : passer une fiche en Restreint ou en Normal. L'administrateur ne modifie aucun autre contenu.
 
 ## Administrateur technique

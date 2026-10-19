@@ -88,7 +88,7 @@ export default function ValidationsTab({ fiche, onChange, onError }) {
               <Badge tone={tones[validation.decision]}>{DECISIONS[validation.decision]}</Badge>
             </span>
             <span className="fiche-tab__muted">
-              {validation.valideur?.nom} · demandé le {formatDate(validation.demandee_le)}
+              {validation.valideur?.nom}{validation.decision === 'EN_ATTENTE' && validation.partages?.length > 0 && ` (partagée avec ${validation.partages.map((person) => person.nom).join(', ')})`} · demandé le {formatDate(validation.demandee_le)}
               {validation.decidee_le && ` · décidé le ${formatDate(validation.decidee_le)}`}
               {validation.decision === 'EN_ATTENTE' && ` · ${validation.anciennete_jours} j`} · v{validation.version_fiche}
             </span>

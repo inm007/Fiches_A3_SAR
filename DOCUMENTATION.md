@@ -49,7 +49,7 @@ Un utilisateur peut porter plusieurs rôles, appelés affectations. Chaque affec
 | Valideurs HSE, Procédé / Technique, Maintenance, Inspection / Intégrité | Valident le plan quand leur domaine est coché en section 7. |
 | Contrôle de gestion | Valide ou refuse chaque ligne de gain, puis approuve la porte 2 si des gains sont chiffrés. |
 | Direction | Approuve la clôture, voit toutes les fiches, peut mettre en attente, reprendre et relancer. |
-| Administrateur fonctionnel | Gère les comptes, les affectations et les référentiels. Désigne ou change le pilote, réattribue une validation, change la confidentialité. Ne modifie aucun autre contenu. |
+| Administrateur fonctionnel | Gère les comptes, les affectations et les référentiels. Désigne ou change le pilote, partage une fiche ou une validation, change la confidentialité. Ne modifie aucun autre contenu. |
 | Administrateur technique | Consulte l'état technique et le journal d'administration. N'a accès à aucune fiche. |
 
 Le serveur reste la source de vérité. Masquer un bouton n'est qu'un confort : chaque opération est revérifiée côté serveur, et un refus renvoie la liste des conditions manquantes.
@@ -93,6 +93,14 @@ Toutes les transitions passent par un seul service, `FicheWorkflow`, sous verrou
 | 11 | Leçons apprises | Ce qui a marché, ce qui est à reproduire ailleurs | Mesure, Vérification |
 | 12 | Validation | Signatures des deux portes (lecture seule) | — |
 
+Chaque section indique pourquoi elle est modifiable ou non, par une icône dans la liste des sections et un message en tête de section :
+- **crayon** : modifiable maintenant ;
+- **cadenas** : figée (étape passée, validation en cours, fiche en attente ou clôturée) ;
+- **horloge** : s'ouvrira à une étape ultérieure, nommée dans le message ;
+- **coche** : section 12, remplie par les décisions des valideurs.
+
+Un profil qui ne rédige pas la fiche la voit en lecture seule, sans cadenas. Chaque section affiche aussi son dernier enregistrement (auteur et date).
+
 Chaque section s'enregistre explicitement avec le bouton « Enregistrer ». Chaque champ modifié est inscrit dans l'historique. La complétude de chaque section (vide, partielle ou complète) s'affiche dans la barre des sections.
 
 ## 5. Validations
@@ -105,7 +113,7 @@ Les règles du circuit sont les suivantes :
 - **Choix du valideur** : la demande va au titulaire du rôle dans l'unité de la fiche, sinon à un titulaire global. Ce n'est jamais le pilote de la fiche.
 - **Refus** : un commentaire est obligatoire (B6). La fiche retourne au pilote.
 - **Signatures conservées** : après un refus puis une nouvelle soumission, une signature déjà obtenue reste valable tant que le domaine du valideur n'a pas changé. On ne refait donc pas valider tout le monde.
-- **Validation bloquée** : si un valideur est absent, désactivé ou a perdu son affectation, sa demande apparaît dans « À régulariser » sur le tableau de bord de l'administrateur fonctionnel. Celui-ci la réattribue à un autre titulaire du même rôle, avec un motif inscrit dans l'historique.
+- **Validation partagée** : si un valideur est absent, malade, désactivé ou a perdu son affectation, sa demande apparaît dans « À régulariser » sur le tableau de bord de l'administrateur fonctionnel. Celui-ci la partage avec un autre titulaire du même rôle, avec un motif inscrit dans l'historique. Les deux valideurs voient la demande ; le premier qui décide la traite et signe, l'autre reste associé. Le partage se retire à tout moment.
 - **Soumission impossible** : si un rôle nécessaire n'a aucun titulaire disponible, la soumission est refusée et le rôle manquant est indiqué.
 
 ## 6. Actions, MOC et suivi
@@ -121,7 +129,9 @@ Une action suit les statuts À faire, En cours, Réalisée, Bloquée et Annulée
 
 Le nouveau responsable est notifié à chaque attribution ou réattribution, et le responsable est notifié quand son échéance est reportée.
 
-**Changement de pilote.** L'administrateur fonctionnel peut changer le pilote à toute étape avant la clôture. Après l'étape Ouvert, un motif est obligatoire. Le nouveau pilote doit avoir une affectation Pilote sur l'unité de la fiche, et il ne peut pas être le seul valideur disponible d'une demande en attente (B8). L'ancien et le nouveau pilote sont prévenus. Une demande de validation que le nouveau pilote détenait sur cette fiche passe au titulaire suivant.
+**Fiche partagée.** Quand le pilote est malade, en congé ou a besoin de renfort, l'administrateur fonctionnel partage la fiche avec un second pilote de l'unité, avec un motif obligatoire. Les deux pilotes ont exactement les mêmes droits : ils voient tout ce que l'autre a fait (historique, dernier enregistrement de chaque section avec son auteur) et poursuivent la fiche ensemble. Les notifications destinées au pilote vont aux deux. Au retour du pilote, le partage peut rester ou être retiré. Un pilote associé ne valide jamais la fiche (B8).
+
+**Changement de pilote.** Pour un départ définitif, l'administrateur fonctionnel peut changer le pilote à toute étape avant la clôture. Après l'étape Ouvert, un motif est obligatoire. Le nouveau pilote doit avoir une affectation Pilote sur l'unité de la fiche, et il ne peut pas être le seul valideur disponible d'une demande en attente (B8). L'ancien et le nouveau pilote sont prévenus. Une demande de validation que le nouveau pilote détenait sur cette fiche passe au titulaire suivant.
 
 ## 7. Contrôles d'efficacité
 
@@ -169,8 +179,8 @@ Une fiche est soit **Normal**, soit **Restreint**. Le pilote ou l'administrateur
 |---|---|
 | Direction, administrateur fonctionnel | Toutes |
 | Agent | Celles qu'il a déclarées et celles où il est responsable d'une action |
-| Pilote | Celles qu'il pilote, plus les fiches Normal qu'il a déclarées ou où il a une action |
-| Valideur | Fiches Normal de son unité dont son domaine est concerné (Production voit toutes celles de son unité), plus toute fiche où il est sollicité |
+| Pilote | Celles qu'il pilote, seul ou en partage, plus les fiches Normal qu'il a déclarées ou où il a une action |
+| Valideur | Fiches Normal de son unité dont son domaine est concerné (Production voit toutes celles de son unité), plus toute fiche où il est sollicité, seul ou en partage |
 | Contrôle de gestion | Fiches Normal avec des gains, fiches avec des gains à valider, fiches où il est sollicité |
 | Administrateur technique | Aucune |
 
@@ -183,7 +193,8 @@ Toutes les notifications arrivent dans la cloche en haut à droite et sur la pag
 | Événement | Destinataire |
 |---|---|
 | Désignation ou changement de pilote | Nouveau pilote, ancien pilote |
-| Demande de validation, réattribution d'une demande | Valideur |
+| Partage ou fin de partage d'une fiche | Pilote associé, pilote désigné |
+| Demande de validation, partage d'une demande | Valideur, valideur associé |
 | Approbation, refus | Pilote |
 | Plan approuvé, action attribuée ou réattribuée, échéance reportée | Responsable de l'action |
 | Changement de statut d'une action | Pilote et responsable |
@@ -199,7 +210,7 @@ La relance manuelle (bouton « Relancer ») est ouverte au pilote, à la Directi
 
 ## 12. Historique, commentaires et pièces jointes
 
-**Historique.** Il garde, pour chaque changement, l'auteur, la date, l'ancienne et la nouvelle valeur, et le motif. Cela couvre les changements d'étape, chaque champ modifié, les décisions, les reports, les réattributions et les changements de pilote. L'historique est immuable : un déclencheur PostgreSQL interdit toute modification ou suppression, même en SQL direct. Il est visible par le pilote, la Direction et l'administrateur fonctionnel.
+**Historique.** Il garde, pour chaque changement, l'auteur, la date, l'ancienne et la nouvelle valeur, et le motif. Cela couvre les changements d'étape, chaque champ modifié, les décisions, les reports, les partages et les changements de pilote. L'historique est immuable : un déclencheur PostgreSQL interdit toute modification ou suppression, même en SQL direct. Il est visible par le pilote, la Direction et l'administrateur fonctionnel.
 
 **Commentaires.** On peut les rattacher à la fiche, à une action ou à une validation.
 
@@ -218,7 +229,7 @@ Chaque profil a son propre tableau de bord :
   - gain net annuel validé ;
   - répartition par unité, type d'amélioration et origine ;
   - portefeuille par étape et déclarations des six derniers mois.
-- **Administrateur fonctionnel** : les pilotes à désigner et les validations à réattribuer, dans le bloc « À régulariser ».
+- **Administrateur fonctionnel** : les pilotes à désigner et les validations bloquées à partager, dans le bloc « À régulariser ».
 
 Le sélecteur d'année permet de consulter l'année en cours et les années précédentes. La consolidation de l'année écoulée reste donc accessible après le 1er janvier.
 
@@ -239,7 +250,7 @@ Le sélecteur d'année permet de consulter l'année en cours et les années pré
 | Unités, Équipements | Référentiels du site |
 | Listes | Origines, types d'action, catégories de gain, types de pérennisation…, avec ordre d'affichage et désactivation |
 | Paramètres fonctionnels | Délai des relances, préavis d'échéance, rappels de validation, limites des pièces jointes |
-| Fiches | Désigner ou changer le pilote, réattribuer une validation, passer en Normal ou Restreint |
+| Fiches | Désigner ou changer le pilote, partager la fiche avec un second pilote, partager une validation, passer en Normal ou Restreint |
 
 Les données ne sont jamais supprimées, seulement désactivées. Chaque opération d'administration est inscrite au journal d'administration.
 
@@ -266,7 +277,7 @@ Les règles métier vivent dans `backend/app/Services` :
 | Service | Rôle |
 |---|---|
 | `FicheWorkflow` | Seul service qui change l'étape (T1 à T13), sous verrou |
-| `ValidationCircuit` | Portes 1 et 2, titulaires, signatures, réattribution |
+| `ValidationCircuit` | Portes 1 et 2, titulaires, signatures, partage des demandes |
 | `FicheSectionService` | Enregistrement des sections selon l'étape |
 | `ActionService` | Statuts, MOC, replanification, ajout, actions correctives |
 | `ControleEfficaciteService` | Contrôles J+30/60/90 et contrôle correctif |
@@ -294,7 +305,7 @@ Toutes les routes sont préfixées par `/api`.
 | Workflow | `GET /validations`, `POST /validations/{id}/decision`, `POST /actions/{id}/statut`, `PATCH /actions/{id}`, `POST /fiches/{id}/actions`, `PATCH /controles/{id}`, `POST /gains/{id}/decision`, `POST /relances` |
 | Pièces jointes, commentaires | `GET/POST /fiches/{id}/pieces-jointes`, `GET /pieces-jointes/{id}/telechargement`, `GET/POST /fiches/{id}/commentaires` |
 | Transversal | `GET /referentiels`, `GET /tableau-de-bord?annee=`, `GET /notifications`, `GET /notifications/non-lues`, `POST /notifications/{id}/lu`, `POST /notifications/tout-lu` |
-| Administration fonctionnelle | `/admin/users`, `/admin/assignments`, `/admin/units`, `/admin/equipment`, `/admin/lists`, `/admin/settings`, `/admin/roles`, `/admin/fiches`, `/admin/fiches/{id}/validations`, `PATCH /admin/validations/{id}` |
+| Administration fonctionnelle | `/admin/users`, `/admin/assignments`, `/admin/units`, `/admin/equipment`, `/admin/lists`, `/admin/settings`, `/admin/roles`, `/admin/fiches`, `/admin/fiches/{id}/validations`, `POST/DELETE /admin/fiches/{id}/copilotes`, `POST/DELETE /admin/validations/{id}/partages` |
 | Administration technique | `GET /technique`, `GET /technique/logs` |
 
 Les codes d'erreur sont les suivants :

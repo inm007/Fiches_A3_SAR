@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Enums\StatutAction;
 use App\Enums\StatutEtape;
 use App\Models\ActionA3;
+use App\Models\EvenementHistorique;
 use App\Models\FicheA3;
 use App\Models\FicheA3Indicateur;
 use App\Models\Relance;
@@ -37,10 +38,10 @@ class FicheResource extends JsonResource
         /** @var FicheA3 $fiche */
         $fiche = $this->resource->loadMissing([
             'unite:id,code,libelle', 'equipement:id,code,libelle,reference_sap', 'origine:id,code,libelle', 'frequence:id,code,libelle',
-            'declarant:id,nom,prenom', 'pilote:id,nom,prenom', 'sponsor:id,nom,prenom', 'referenceSap',
+            'declarant:id,nom,prenom', 'pilote:id,nom,prenom', 'copilotes:id,nom,prenom', 'sponsor:id,nom,prenom', 'referenceSap',
             'impacts', 'indicateurs.mesures', 'causes', 'domaines.roleValideur:id,code,libelle', 'risques.responsable:id,nom,prenom',
             'actions.responsable:id,nom,prenom', 'actions.controles', 'actions.cause:id,numero', 'gains', 'perennisations.responsable:id,nom,prenom',
-            'lecons', 'validations.role:id,code,libelle', 'validations.valideur:id,nom,prenom',
+            'lecons', 'validations.role:id,code,libelle', 'validations.valideur:id,nom,prenom', 'validations.partages:id,nom,prenom',
         ]);
 
         $calculs = app(Calculs::class);
@@ -68,6 +69,12 @@ class FicheResource extends JsonResource
             'date_cloture' => $fiche->date_cloture?->toDateString(),
             'declarant' => $this->personne($fiche->declarant),
             'pilote' => $this->personne($fiche->pilote),
+            'copilotes' => $fiche->copilotes->sortBy('pivot.created_at')->values()->map(fn (User $user) => [
+                ...$this->personne($user),
+                'depuis' => $user->pivot->created_at?->toIso8601String(),
+                'motif' => $user->pivot->motif,
+            ]),
+            'derniers_enregistrements' => $this->derniersEnregistrements($fiche, $profile),
 
             'identification' => [
                 'unite' => $fiche->unite?->only(['id', 'code', 'libelle']),
@@ -199,15 +206,16 @@ class FicheResource extends JsonResource
     {
         $derniere = $relances[Validation::class.':'.$validation->id] ?? null;
         $actionnable = $validation->decision === 'EN_ATTENTE'
-            && $validation->valideur_id === $profile->userId()
+            && $validation->estValideur($profile->userId())
             && $validation->role_id === $profile->roleId()
-            && $fiche->pilote_id !== $profile->userId()
+            && ! $fiche->estPilote($profile->userId())
             && app(ValidationCircuit::class)->estActionnable($validation, $fiche);
 
         return [
             ...$validation->only(['id', 'porte', 'decision', 'commentaire', 'version_fiche', 'ordre']),
             'role' => $validation->role?->only(['code', 'libelle']),
             'valideur' => $this->personne($validation->valideur),
+            'partages' => $validation->partages->map(fn (User $user) => $this->personne($user))->values(),
             'demandee_le' => $validation->demandee_le?->toIso8601String(),
             'decidee_le' => $validation->decidee_le?->toIso8601String(),
             'anciennete_jours' => (int) $validation->demandee_le?->startOfDay()->diffInDays(($validation->decidee_le ?? now())->startOfDay()),
@@ -277,6 +285,7 @@ class FicheResource extends JsonResource
 
         return [
             'sections_editables' => app(FicheSectionService::class)->sectionsEditables($fiche, $profile),
+            'sections_etat' => app(FicheSectionService::class)->etatsSections($fiche, $profile),
             'transitions' => array_values(array_unique($transitions)),
             'est_pilote' => $estPilote,
             'peut_designer_pilote' => $profile->is('ADMIN_FONCTIONNEL') && $etape !== StatutEtape::Cloture,
@@ -286,7 +295,7 @@ class FicheResource extends JsonResource
             'peut_voir_historique' => $profile->peutVoirHistorique(),
             'peut_enregistrer_controles' => $estPilote && in_array($etape, StatutEtape::etapesDeSuivi(), true),
             'peut_decider_gains' => $profile->is(ValidationCircuit::CONTROLE_GESTION) && $fiche->validations->contains(
-                fn (Validation $validation) => $validation->porte === 2 && $validation->valideur_id === $userId && app(ValidationCircuit::class)->estActionnable($validation, $fiche)
+                fn (Validation $validation) => $validation->porte === 2 && $validation->estValideur($userId) && app(ValidationCircuit::class)->estActionnable($validation, $fiche)
             ),
             'actions_modifiables' => $fiche->actions
                 ->filter(fn (ActionA3 $action) => app(ActionService::class)->peutModifier($action, $fiche, $profile))
@@ -330,6 +339,34 @@ class FicheResource extends JsonResource
     /**
      * @return array{id: int, nom: string}|null
      */
+    /**
+     * Dernier enregistrement de chaque section (auteur et date) : sur une fiche partagée,
+     * chaque pilote voit ce que l'autre a fait. Réservé aux profils qui voient l'historique.
+     *
+     * @return array<int, array{numero: int, par: string|null, le: string|null}>
+     */
+    private function derniersEnregistrements(FicheA3 $fiche, ActiveProfile $profile): array
+    {
+        if (! $profile->estPiloteDe($fiche) && ! $profile->peutVoirHistorique()) {
+            return [];
+        }
+
+        return EvenementHistorique::query()
+            ->with('user:id,nom,prenom')
+            ->where('fiche_id', $fiche->id)
+            ->where('type', 'ENREGISTREMENT_SECTION')
+            ->orderBy('id')
+            ->get()
+            ->keyBy('champ')
+            ->map(fn (EvenementHistorique $evenement) => [
+                'numero' => (int) str_replace('section_', '', (string) $evenement->champ),
+                'par' => $evenement->user?->nom_complet,
+                'le' => $evenement->created_at?->toIso8601String(),
+            ])
+            ->values()
+            ->all();
+    }
+
     private function personne(?User $user): ?array
     {
         return $user === null ? null : ['id' => $user->id, 'nom' => $user->nom_complet];

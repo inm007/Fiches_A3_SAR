@@ -3,6 +3,8 @@ import Button from '../ui/Button.jsx'
 import SaveIndicator from '../ui/SaveIndicator.jsx'
 import { describeError, ficheService } from '../../services/ficheService.js'
 import { SECTIONS } from '../../utils/constants.js'
+import { formatDateTime } from '../../utils/format.js'
+import Icon from '../ui/Icon.jsx'
 import { toast } from '../../utils/toast.js'
 import Section01Identification from './sections/Section01Identification.jsx'
 import Section02Contexte from './sections/Section02Contexte.jsx'
@@ -19,6 +21,13 @@ import Section12Validation from './sections/Section12Validation.jsx'
 import { sectionModel } from './sections/sectionModel.js'
 import './SectionEditor.css'
 
+const ETATS = {
+  fige: { label: 'Figée', icon: 'lock' },
+  a_venir: { label: 'À venir', icon: 'clock' },
+  auto: { label: 'Automatique', icon: 'validation' },
+  lecture: { label: 'Lecture seule', icon: 'eye' },
+}
+
 const components = {
   1: Section01Identification, 2: Section02Contexte, 3: Section03SituationActuelle, 4: Section04Objectif,
   5: Section05Causes, 6: Section06Actions, 7: Section07RisquesMoc, 8: Section08Resultats,
@@ -34,6 +43,9 @@ function SectionEditor({ fiche, section, refs, options, onSaved, onError, onNavi
   const [state, setState] = useState('idle')
   const [failure, setFailure] = useState('')
   const editable = fiche.droits.sections_editables.includes(section)
+  const etat = fiche.droits.sections_etat?.find((item) => item.numero === section)
+  const badge = editable ? null : ETATS[etat?.etat] ?? ETATS.lecture
+  const dernier = fiche.derniers_enregistrements?.find((item) => item.numero === section)
   const Component = components[section]
 
   useEffect(() => {
@@ -73,8 +85,14 @@ function SectionEditor({ fiche, section, refs, options, onSaved, onError, onNavi
     <section className={`section-editor${editable ? '' : ' section-editor--readonly'}`} aria-labelledby="section-editor-title">
       <header>
         <h2 id="section-editor-title">{section}. {SECTIONS[section - 1]}</h2>
-        {!editable && <span className="section-editor__readonly">Lecture seule</span>}
+        {badge && <span className="section-editor__readonly"><Icon name={badge.icon} size={13} />{badge.label}</span>}
       </header>
+      {(etat?.raison || dernier) && (
+        <p className="section-editor__context">
+          {etat?.raison && etat.etat !== 'lecture' && <span>{etat.raison}</span>}
+          {dernier && <span>Dernier enregistrement : {dernier.par ?? 'inconnu'}, le {formatDateTime(dernier.le)}.</span>}
+        </p>
+      )}
       <Component draft={draft} fiche={fiche} options={options} readOnly={!editable} refs={refs} set={set} />
       <footer>
         {editable && state !== 'idle' && <SaveIndicator state={state === 'error' ? 'error' : state} />}

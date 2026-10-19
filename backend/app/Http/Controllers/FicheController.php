@@ -55,7 +55,7 @@ class FicheController extends Controller
         ]);
 
         $query = $this->visibility->apply(FicheA3::query(), $profile)
-            ->with(['unite:id,code,libelle', 'pilote:id,nom,prenom', 'equipement:id,code,libelle'])
+            ->with(['unite:id,code,libelle', 'pilote:id,nom,prenom', 'copilotes:id,nom,prenom', 'equipement:id,code,libelle'])
             ->when($filters['date_debut'] ?? null, fn (Builder $q, string $date) => $q->whereDate('created_at', '>=', $date))
             ->when($filters['date_fin'] ?? null, fn (Builder $q, string $date) => $q->whereDate('created_at', '<=', $date))
             ->when($filters['sans_pilote'] ?? false, fn (Builder $q) => $q->whereNull('pilote_id'));
@@ -67,7 +67,8 @@ class FicheController extends Controller
             ->orWhereHas('equipement', fn (Builder $equipement) => $equipement->where('code', 'ilike', $motif)->orWhere('libelle', 'ilike', $motif))
             ->orWhereHas('pilote', fn (Builder $pilot) => $pilot->where('prenom', 'ilike', $motif)->orWhere('nom', 'ilike', $motif)));
 
-        foreach (['statut_etape', 'statut_general', 'unite_id', 'pilote_id', 'origine_id', 'type_amelioration', 'equipement_id', 'confidentialite'] as $field) {
+        $query->when($filters['pilote_id'] ?? null, fn (Builder $q, mixed $value) => $q->pilotePar((int) $value));
+        foreach (['statut_etape', 'statut_general', 'unite_id', 'origine_id', 'type_amelioration', 'equipement_id', 'confidentialite'] as $field) {
             $query->when($filters[$field] ?? null, fn (Builder $q, mixed $value) => $q->where($field, $value));
         }
 
@@ -83,7 +84,7 @@ class FicheController extends Controller
                 'titre' => $fiche->titre,
                 'unite' => $fiche->unite?->libelle,
                 'equipement' => $fiche->equipement ? trim($fiche->equipement->code.' — '.$fiche->equipement->libelle, ' —') : null,
-                'pilote' => $fiche->pilote?->nom_complet,
+                'pilote' => collect([$fiche->pilote?->nom_complet])->merge($fiche->copilotes->map->nom_complet)->filter()->join(', '),
                 'statut_etape' => $fiche->statut_etape,
                 'statut_etape_libelle' => $fiche->etape()->libelle(),
                 'statut_general' => $fiche->statut_general,
