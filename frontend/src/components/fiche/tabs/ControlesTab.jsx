@@ -49,7 +49,7 @@ export default function ControlesTab({ fiche, options, onChange, onError }) {
   }
 
   return (
-    <section className="fiche-tab">
+    <section className="fiche-tab" data-fiche-tab="controles">
       <h2>Contrôles d’efficacité</h2>
       <p className="fiche-tab__help">
         Trois contrôles par action réalisée, à J+30, J+60 et J+90 de sa réalisation. Un contrôle non conforme exige une action corrective,
@@ -57,7 +57,7 @@ export default function ControlesTab({ fiche, options, onChange, onError }) {
       </p>
       {actions.length === 0 && <p className="fiche-tab__muted">Aucun contrôle : ils sont créés quand une action passe à « Réalisée ».</p>}
       {actions.map((action) => (
-        <div key={action.id}>
+        <div data-action-description={action.description} key={action.id}>
           <h3>{action.action_origine_id ? 'Action corrective — ' : ''}{action.description}</h3>
           <div className="fiche-tab__grid">
             {action.controles.map((item) => {

@@ -82,6 +82,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/fiches', [FicheController::class, 'index']);
     Route::post('/fiches', [FicheController::class, 'store']);
     Route::get('/fiches/{fiche}', [FicheController::class, 'show']);
+    Route::post('/fiches/{fiche}/me-designer', [FicheController::class, 'meDesigner']);
     Route::put('/fiches/{fiche}/sections/{section}', [FicheController::class, 'updateSection'])->whereNumber('section');
     Route::post('/fiches/{fiche}/confidentialite', [FicheController::class, 'updateConfidentialite']);
     Route::get('/fiches/{fiche}/historique', [FicheController::class, 'historique']);

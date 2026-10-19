@@ -36,7 +36,8 @@ class FicheWorkflowTest extends TestCase
         $this->transition($fiche, 'PILOTE', 'T3')
             ->assertUnprocessable()
             ->assertJsonPath('code', 'CONDITIONS_MANQUANTES')
-            ->assertJsonFragment(['Section 5 : méthode d’analyse.']);
+            ->assertJsonFragment(['Section 5 : méthode d’analyse.'])
+            ->assertJsonFragment(['type' => 'section', 'section' => 5, 'label' => 'Ouvrir la section 5']);
 
         $ids = $this->completerPlan($fiche);
         $this->transition($fiche, 'PILOTE', 'T3')->assertOk()->assertJsonPath('data.statut_etape', 'EN_VALIDATION_PLAN');
@@ -97,7 +98,13 @@ class FicheWorkflowTest extends TestCase
 
         $this->transition($fiche, 'PILOTE', 'T8')
             ->assertUnprocessable()
-            ->assertJsonFragment(['Action « Remplacer les purgeurs restants » : elle doit être réalisée avant ses contrôles.']);
+            ->assertJsonFragment(['Action « Remplacer les purgeurs restants » : elle doit être réalisée avant ses contrôles.'])
+            ->assertJsonFragment([
+                'type' => 'tab',
+                'tab' => 'actions',
+                'label' => 'Ouvrir les actions',
+                'detail' => 'Remplacer les purgeurs restants',
+            ]);
 
         $corrective = ActionA3::where('action_origine_id', $action->id)->firstOrFail();
         $this->statutAction($corrective, 'REALISE', ['date_realisation' => today()->subDays(40)->toDateString()])->assertOk();
@@ -123,6 +130,51 @@ class FicheWorkflowTest extends TestCase
             ->assertJsonPath('data.gains.gain_net', 7_300_000);
 
         $this->assertTrue(EvenementHistorique::where('fiche_id', $fiche->id)->where('commentaire', 'like', 'T9%')->whereNull('user_id')->exists());
+    }
+
+    public function test_closure_explains_that_future_effectiveness_checks_must_be_waited_for(): void
+    {
+        $fiche = $this->declarer();
+        $this->designerPilote($fiche);
+        $this->transition($fiche, 'PILOTE', 'T2')->assertOk();
+        $ids = $this->completerPlan($fiche);
+        $this->transition($fiche, 'PILOTE', 'T3')->assertOk();
+        $this->decider($this->demande($fiche, 'VALIDEUR_PRODUCTION'), 'VALIDEUR_PRODUCTION', 'VALIDE')->assertOk();
+        $this->decider($this->demande($fiche, 'VALIDEUR_HSE'), 'VALIDEUR_HSE', 'VALIDE')->assertOk();
+
+        $this->section($fiche, 7, [
+            'domaines' => [['domaine' => 'QHSE']],
+            'risques' => [[
+                'id' => $ids['risque'],
+                'domaine' => 'QHSE',
+                'description' => 'Fuite vapeur',
+                'moc_reference' => 'MOC-2026-01',
+                'moc_statut' => 'CLOTURE',
+                'moc_preuve' => 'PV de clôture',
+            ]],
+        ])->assertOk();
+
+        $action = ActionA3::findOrFail($ids['action']);
+        $this->statutAction($action, 'REALISE', ['date_realisation' => today()->toDateString()])->assertOk();
+        $this->transition($fiche, 'PILOTE', 'T6')->assertOk();
+        $this->section($fiche, 8, [
+            'mesures' => [['indicateur_id' => $ids['indicateur'], 'valeur' => 75, 'date_mesure' => today()->toDateString()]],
+            'objectif_atteint' => 'OUI',
+        ])->assertOk();
+        $this->transition($fiche, 'PILOTE', 'T7')->assertOk();
+        $this->completerCloture($fiche);
+
+        $response = $this->transition($fiche, 'PILOTE', 'T8')
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'CONDITIONS_MANQUANTES')
+            ->assertJsonPath('emplacements.0.tab', 'controles')
+            ->assertJsonPath('emplacements.0.detail', 'Remplacer 14 purgeurs');
+
+        foreach ([30, 60, 90] as $jours) {
+            $response->assertJsonFragment([
+                "Action « Remplacer 14 purgeurs » : contrôle J+{$jours} à venir (échéance le ".today()->addDays($jours)->format('d/m/Y')."). La clôture attendra ce contrôle.",
+            ]);
+        }
     }
 
     public function test_numbering_restarts_each_year(): void

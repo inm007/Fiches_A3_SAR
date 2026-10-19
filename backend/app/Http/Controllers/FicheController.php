@@ -20,6 +20,7 @@ use App\Services\HistoryLogger;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -125,6 +126,36 @@ class FicheController extends Controller
     public function show(FicheA3 $fiche, ActiveProfile $profile): FicheResource
     {
         return new FicheResource($this->visible($fiche, $profile));
+    }
+
+    public function meDesigner(FicheA3 $fiche, ActiveProfile $profile, HistoryLogger $history): FicheResource
+    {
+        if (! $profile->is('PILOTE')
+            || $profile->userId() !== $fiche->declarant_id
+            || $profile->uniteId() !== $fiche->unite_id
+            || $fiche->pilote_id !== null
+            || $fiche->etape() !== StatutEtape::Ouvert) {
+            throw RegleMetierException::interdit('Seul le pilote déclarant affecté à l’unité peut se désigner sur sa fiche encore ouverte.');
+        }
+
+        $fiche = DB::transaction(function () use ($fiche, $profile, $history): FicheA3 {
+            /** @var FicheA3 $fiche */
+            $fiche = FicheA3::query()->whereKey($fiche->id)->lockForUpdate()->firstOrFail();
+
+            if ($fiche->declarant_id !== $profile->userId()
+                || $fiche->pilote_id !== null
+                || $fiche->etape() !== StatutEtape::Ouvert
+                || $profile->uniteId() !== $fiche->unite_id) {
+                throw RegleMetierException::conflit('Cette fiche a déjà été attribuée ou son étape a changé.');
+            }
+
+            $fiche->update(['pilote_id' => $profile->userId()]);
+            $history->log($fiche, $profile->userId(), 'DESIGNATION_PILOTE', 'pilote_id', null, $profile->userId(), 'Auto-désignation par le pilote déclarant');
+
+            return $fiche->refresh();
+        });
+
+        return new FicheResource($fiche);
     }
 
     public function updateSection(Request $request, FicheA3 $fiche, int $section, ActiveProfile $profile, FicheSectionService $sections): FicheResource

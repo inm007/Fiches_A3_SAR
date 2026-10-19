@@ -74,6 +74,13 @@ class ControleEfficaciteService
 
             if ($controle === null || $controle->resultat === null) {
                 $echeance = $controle?->date_echeance?->format('d/m/Y');
+
+                if ($controle?->date_echeance?->isAfter(today())) {
+                    $manques[] = "Action {$libelle} : contrôle {$nom} à venir (échéance le {$echeance}). La clôture attendra ce contrôle.";
+
+                    continue;
+                }
+
                 $manques[] = "Action {$libelle} : contrôle {$nom} non renseigné".($echeance ? " (échéance {$echeance})." : '.');
 
                 continue;

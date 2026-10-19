@@ -46,7 +46,7 @@ export default function ValidationsTab({ fiche, onChange, onError }) {
   }), decision === 'VALIDE' ? 'Demande approuvée' : 'Refus enregistré — le pilote est notifié')
 
   return (
-    <section className="fiche-tab">
+    <section className="fiche-tab" data-fiche-tab="validations">
       <h2>Validations</h2>
       {plusAncienne && (
         <Alert severity="warning">

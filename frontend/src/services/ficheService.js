@@ -11,6 +11,7 @@ export const ficheService = {
   list: (params) => apiRequest(`/fiches?${new URLSearchParams(params)}`),
   create: (data) => send('/fiches', 'POST', data).then((result) => result.data),
   get: (id) => apiRequest(`/fiches/${id}`).then((result) => result.data),
+  meDesignerPilote: (id) => send(`/fiches/${id}/me-designer`, 'POST').then((result) => result.data),
   options: (id) => apiRequest(`/fiches/${id}/options`).then((result) => result.data),
   saveSection: (id, section, data) => send(`/fiches/${id}/sections/${section}`, 'PUT', data).then((result) => result.data),
   transition: (id, code, etape, motif) => send(`/fiches/${id}/transitions`, 'POST', { code, etape, motif }).then((result) => result.data),
@@ -50,6 +51,7 @@ export function describeError(error) {
   return {
     message: error?.status === 409 ? `${error.message}` : (error?.message || 'Une erreur est survenue.'),
     manques: [...(data.manques ?? []), ...fieldMessages],
+    emplacements: data.emplacements ?? [],
     conflict: error?.status === 409,
   }
 }

@@ -41,6 +41,7 @@ function FicheDetail() {
   const [tab, setTab] = useState('fiche')
   const [panel, setPanel] = useState(null)
   const [dirty, setDirty] = useState(false)
+  const [pendingLocation, setPendingLocation] = useState(null)
 
   const load = useCallback(() => Promise.all([ficheService.get(id), ficheService.referentiels(), ficheService.options(id)])
     .then(([loaded, referentiels, ficheOptions]) => {
@@ -88,6 +89,41 @@ function FicheDetail() {
     setDirty(false)
     setTab(key)
   }
+  const navigateToLocation = (location) => {
+    if (!confirmLeave()) return
+    setDirty(false)
+    setPendingLocation(location)
+    if (location.type === 'section') {
+      setTab('fiche')
+      setSection(location.section)
+    } else {
+      setTab(location.tab)
+    }
+  }
+
+  useEffect(() => {
+    if (!pendingLocation) return undefined
+    if (pendingLocation.type === 'section' && tab !== 'fiche') return undefined
+    if (pendingLocation.type === 'tab' && tab !== pendingLocation.tab) return undefined
+
+    const frame = window.requestAnimationFrame(() => {
+      let target
+      if (pendingLocation.type === 'section') {
+        target = document.querySelector(`[data-fiche-section="${pendingLocation.section}"]`)
+      } else if (pendingLocation.detail) {
+        const prefix = pendingLocation.detail.replace(/(?:…|\.{3})\s*$/, '')
+        target = [...document.querySelectorAll('[data-action-description]')]
+          .find((element) => element.dataset.actionDescription.startsWith(prefix))
+      } else {
+        target = [...document.querySelectorAll('[data-fiche-tab]')]
+          .find((element) => element.dataset.ficheTab === pendingLocation.tab)
+      }
+      target?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+      setPendingLocation(null)
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [pendingLocation, section, tab])
 
   if (status === 'loading') return <PageLoader label="Chargement de la fiche…" />
   if (status === 'not-found') {
@@ -122,7 +158,7 @@ function FicheDetail() {
         <Button type="button" variant="secondary" onClick={exportPdf}><Icon name="pdf" />Exporter en PDF A3</Button>
         <WorkflowActions fiche={fiche} options={options} onChange={onChange} onError={onError} />
       </FicheHeader>
-      <MissingConditionsPanel error={panel} onClose={() => setPanel(null)} onReload={reload} />
+      <MissingConditionsPanel error={panel} onClose={() => setPanel(null)} onNavigate={navigateToLocation} onReload={reload} />
       <Tabs active={tab} idPrefix="fiche-tab" label="Rubriques de la fiche" tabs={tabs} onChange={goToTab} />
       <div aria-labelledby={`fiche-tab-${tab}`} id={`fiche-tab-panel-${tab}`} role="tabpanel">
         {tab === 'fiche' ? (

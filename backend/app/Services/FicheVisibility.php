@@ -32,7 +32,12 @@ class FicheVisibility
                 $q->pilotePar($userId)
                     ->orWhere(fn (Builder $normal) => $normal
                         ->where('confidentialite', 'NORMAL')
-                        ->where(fn (Builder $agent) => $this->agentScope($agent, $userId)));
+                        ->where(fn (Builder $agent) => $this->agentScope($agent, $userId)))
+                    ->orWhere(fn (Builder $ownRestrictedDraft) => $ownRestrictedDraft
+                        ->where('confidentialite', 'RESTREINT')
+                        ->where('declarant_id', $userId)
+                        ->whereNull('pilote_id')
+                        ->where('statut_etape', 'OUVERT'));
             }),
             in_array($role, Domaine::rolesValideurs(), true) => $this->validatorScope($query, $profile),
             $role === 'CONTROLE_GESTION' => $query->where(function (Builder $q) use ($userId): void {

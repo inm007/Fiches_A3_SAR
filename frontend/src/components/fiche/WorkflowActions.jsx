@@ -49,6 +49,10 @@ function WorkflowActions({ fiche, options, onChange, onError }) {
     }, fiche.pilote ? 'Pilote changé' : 'Pilote désigné')
   }
 
+  async function meDesigner() {
+    await run(() => ficheService.meDesignerPilote(fiche.id), 'Vous êtes désigné pilote')
+  }
+
   async function basculerConfidentialite() {
     const cible = fiche.confidentialite === 'RESTREINT' ? 'NORMAL' : 'RESTREINT'
     await run(async () => {
@@ -65,6 +69,9 @@ function WorkflowActions({ fiche, options, onChange, onError }) {
       )}
       {droits.peut_designer_pilote && (
         <Button type="button" variant={fiche.pilote ? 'secondary' : 'primary'} onClick={() => setDialog({ type: 'pilote' })}>{fiche.pilote ? 'Changer le pilote' : 'Désigner le pilote'}</Button>
+      )}
+      {droits.peut_se_designer_pilote && (
+        <Button disabled={busy} type="button" variant="primary" onClick={meDesigner}>Me désigner comme pilote</Button>
       )}
       {droits.peut_designer_pilote && fiche.validations?.some((validation) => validation.decision === 'EN_ATTENTE') && (
         <Button type="button" variant="secondary" onClick={() => setDialog({ type: 'partage-validation' })}>Partager une validation</Button>

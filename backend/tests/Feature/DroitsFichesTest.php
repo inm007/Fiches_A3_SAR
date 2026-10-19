@@ -74,6 +74,48 @@ class DroitsFichesTest extends TestCase
             ->assertOk()->assertJsonPath('data.pilote.id', $autrePilote[0]->id);
     }
 
+    public function test_pilot_who_declares_a_restricted_fiche_can_self_designate_for_their_unit(): void
+    {
+        [$pilote] = $this->acteurs['PILOTE'];
+        $ficheId = $this->agir('PILOTE')->postJson('/api/fiches', [
+            ...$this->declaration(),
+            'confidentialite' => 'RESTREINT',
+        ])->assertCreated()->json('data.id');
+
+        $this->agir('PILOTE')->getJson("/api/fiches/{$ficheId}")
+            ->assertOk()
+            ->assertJsonPath('data.droits.peut_se_designer_pilote', true)
+            ->assertJsonPath('data.pilote', null);
+
+        $this->agir('PILOTE')->postJson("/api/fiches/{$ficheId}/me-designer")
+            ->assertOk()
+            ->assertJsonPath('data.pilote.id', $pilote->id)
+            ->assertJsonPath('data.droits.est_pilote', true)
+            ->assertJsonPath('data.droits.peut_se_designer_pilote', false);
+
+        $this->assertTrue(EvenementHistorique::where('fiche_id', $ficheId)
+            ->where('type', 'DESIGNATION_PILOTE')
+            ->where('user_id', $pilote->id)
+            ->exists());
+    }
+
+    public function test_pilot_cannot_self_designate_on_another_persons_fiche_or_an_unassigned_unit(): void
+    {
+        $fiche = $this->declarer();
+        $this->agir('PILOTE')->postJson("/api/fiches/{$fiche->id}/me-designer")->assertForbidden();
+
+        $autreUnite = Unite::create(['code' => 'U-'.Str::random(6), 'libelle' => 'Autre', 'actif' => true]);
+        $piloteAutreUnite = $this->acteur('PILOTE', $autreUnite->id);
+        $ficheId = $this->actingAs($piloteAutreUnite[0])->withSession(['auth.active_assignment_id' => $piloteAutreUnite[1]->id])
+            ->postJson('/api/fiches', $this->declaration())
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->actingAs($piloteAutreUnite[0])->withSession(['auth.active_assignment_id' => $piloteAutreUnite[1]->id])
+            ->postJson("/api/fiches/{$ficheId}/me-designer")
+            ->assertForbidden();
+    }
+
     public function test_only_the_designated_pilot_edits_sections_and_starts_the_analysis(): void
     {
         $fiche = $this->declarer();

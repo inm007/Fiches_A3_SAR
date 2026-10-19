@@ -173,11 +173,8 @@ export default function ActionsTab({ fiche, options, refs, onChange, onError }) 
 
   return (
     <section className="fiche-tab">
-      <div className="fiche-tab__title">
-        <h2>Actions</h2>
-        {fiche.droits.peut_ajouter_action && <Button icon="plus" size="small" type="button" variant="secondary" onClick={() => setAjout(true)}>Ajouter une action</Button>}
-      </div>
-      <p className="fiche-tab__help">Une action sous MOC ne démarre qu’avec un MOC clôturé, référencé et prouvé (B1). Réaliser une action crée ses contrôles J+30, J+60 et J+90. Le pilote peut reporter une échéance ou changer un responsable avec un motif.</p>
+      <h2>Actions</h2>
+      <p className="fiche-tab__help">Une action sous MOC ne démarre qu’avec un MOC clôturé, référencé et prouvé (B1). Réaliser une action crée ses contrôles J+30, J+60 et J+90.</p>
       <table>
         <thead>
           <tr><th>Cause</th><th>Action</th><th>Responsable</th><th>Échéance</th><th>Coût</th><th>Statut</th><th>Suivi</th></tr>
@@ -187,7 +184,7 @@ export default function ActionsTab({ fiche, options, refs, onChange, onError }) 
           {fiche.actions.map((action) => {
             const statut = STATUTS_ACTION[action.statut]
             return (
-              <tr key={action.id}>
+              <tr data-action-description={action.description} key={action.id}>
                 <td>{action.cause_numero ?? '—'}</td>
                 <td>
                   {action.action_origine_id && <span className="fiche-tab__muted">Action corrective · </span>}

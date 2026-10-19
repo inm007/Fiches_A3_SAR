@@ -82,7 +82,7 @@ function SectionEditor({ fiche, section, refs, options, onSaved, onError, onNavi
   }
 
   return (
-    <section className={`section-editor${editable ? '' : ' section-editor--readonly'}`} aria-labelledby="section-editor-title">
+    <section className={`section-editor${editable ? '' : ' section-editor--readonly'}`} aria-labelledby="section-editor-title" data-fiche-section={section}>
       <header>
         <h2 id="section-editor-title">{section}. {SECTIONS[section - 1]}</h2>
         {badge && <span className="section-editor__readonly"><Icon name={badge.icon} size={13} />{badge.label}</span>}

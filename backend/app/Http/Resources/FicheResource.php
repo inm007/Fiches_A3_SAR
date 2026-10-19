@@ -289,6 +289,11 @@ class FicheResource extends JsonResource
             'transitions' => array_values(array_unique($transitions)),
             'est_pilote' => $estPilote,
             'peut_designer_pilote' => $profile->is('ADMIN_FONCTIONNEL') && $etape !== StatutEtape::Cloture,
+            'peut_se_designer_pilote' => $profile->is('PILOTE')
+                && $fiche->declarant_id === $userId
+                && $fiche->unite_id === $profile->uniteId()
+                && $fiche->pilote_id === null
+                && $etape === StatutEtape::Ouvert,
             'peut_changer_confidentialite' => $estPilote || $profile->is('ADMIN_FONCTIONNEL'),
             'peut_commenter' => $profile->peutCommenter(),
             'peut_ajouter_piece_jointe' => $estPilote || ($profile->is('AGENT') && $fiche->actions->contains('responsable_id', $userId)),
