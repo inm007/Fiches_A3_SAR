@@ -56,7 +56,10 @@ class UserController extends AdminController
             return $user;
         });
 
-        return response()->json(['data' => $this->userData($user->load(['affectations.role', 'affectations.unite']))], 201);
+        return response()->json(['data' => [
+            ...$this->userData($user->load(['affectations.role', 'affectations.unite'])),
+            'lien_envoye' => $this->envoyerLienCreation($request, $user),
+        ]], 201);
     }
 
     public function update(Request $request, User $user): JsonResponse
@@ -131,6 +134,32 @@ class UserController extends AdminController
         $this->audit($request, 'ENVOI_LIEN_MOT_DE_PASSE', 'user', $user->id, ['email' => $user->email]);
 
         return response()->json(['data' => ['message' => 'Le lien de réinitialisation a été envoyé.']]);
+    }
+
+    /**
+     * Un nouveau compte local et actif reçoit aussitôt son lien de définition du mot de passe
+     * (PRD §13.1). Un échec d'envoi ne bloque pas la création : l'administrateur renvoie le lien.
+     */
+    private function envoyerLienCreation(Request $request, User $user): bool
+    {
+        if (! $user->actif || $user->auth_source !== 'local') {
+            return false;
+        }
+
+        try {
+            $envoye = Password::broker()->sendResetLink(['email' => $user->email]) === Password::RESET_LINK_SENT;
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return false;
+        }
+
+        if ($envoye) {
+            RateLimiter::hit(AuthController::passwordResetKey($user->email), 3600);
+            $this->audit($request, 'ENVOI_LIEN_MOT_DE_PASSE', 'user', $user->id, ['email' => $user->email, 'creation' => true]);
+        }
+
+        return $envoye;
     }
 
     /**

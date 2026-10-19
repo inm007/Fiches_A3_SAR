@@ -143,7 +143,7 @@ function FicheDetail() {
             />
           </div>
         ) : (
-          <TabComponent fiche={fiche} options={options} onChange={onChange} onError={onError} />
+          <TabComponent fiche={fiche} options={options} refs={refs} onChange={onChange} onError={onError} />
         )}
       </div>
       <FichePrintView fiche={fiche} refs={refs} />

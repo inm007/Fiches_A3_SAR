@@ -41,3 +41,34 @@
 .dash-money__main--panel {
   padding: 24px;
 }
+
+.dash-money__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dash-year,
+.dash-year select {
+  color: var(--white);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.dash-year select {
+  padding: 2px 6px;
+  border: 1px solid rgb(255 255 255 / 45%);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+}
+
+.dash-year select option {
+  color: var(--text);
+}
+
+.dash-year select:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}

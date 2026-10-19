@@ -7,6 +7,7 @@ import { TRANSITIONS } from '../../utils/constants.js'
 import { toast } from '../../utils/toast.js'
 import { refreshCounters } from '../../hooks/useCounters.js'
 import { peopleOptions } from './sections/options.js'
+import ReattributionValidations from './ReattributionValidations.jsx'
 import './WorkflowActions.css'
 
 /**
@@ -42,9 +43,9 @@ function WorkflowActions({ fiche, options, onChange, onError }) {
 
   async function designer() {
     await run(async () => {
-      await ficheService.designerPilote(fiche.id, Number(pilote))
+      await ficheService.designerPilote(fiche.id, Number(pilote), motif || null)
       return ficheService.get(fiche.id)
-    }, 'Pilote désigné')
+    }, fiche.pilote ? 'Pilote changé' : 'Pilote désigné')
   }
 
   async function basculerConfidentialite() {
@@ -59,6 +60,9 @@ function WorkflowActions({ fiche, options, onChange, onError }) {
   return (
     <div aria-label="Actions sur la fiche" className="workflow-actions">
       {droits.peut_designer_pilote && <Button type="button" onClick={() => setDialog({ type: 'pilote' })}>{fiche.pilote ? 'Changer le pilote' : 'Désigner le pilote'}</Button>}
+      {droits.peut_designer_pilote && fiche.validations?.some((validation) => validation.decision === 'EN_ATTENTE') && (
+        <Button type="button" variant="secondary" onClick={() => setDialog({ type: 'reattribution' })}>Réattribuer une validation</Button>
+      )}
       {droits.transitions.map((code) => (
         <Button disabled={busy} key={code} type="button" variant={TRANSITIONS[code].primary ? 'primary' : 'secondary'} onClick={() => startTransition(code)}>
           {TRANSITIONS[code].label}
@@ -85,10 +89,10 @@ function WorkflowActions({ fiche, options, onChange, onError }) {
 
       <ConfirmDialog
         busy={busy}
-        confirmLabel="Désigner le pilote"
-        disabled={!pilote}
+        confirmLabel={fiche.pilote ? 'Changer le pilote' : 'Désigner le pilote'}
+        disabled={!pilote || (fiche.statut_etape !== 'OUVERT' && !motif.trim())}
         open={dialog?.type === 'pilote'}
-        title="Désigner le pilote"
+        title={fiche.pilote ? 'Changer le pilote' : 'Désigner le pilote'}
         variant="primary"
         onCancel={() => setDialog(null)}
         onConfirm={designer}
@@ -96,11 +100,26 @@ function WorkflowActions({ fiche, options, onChange, onError }) {
         <Select
           hint="Titulaires du rôle Pilote dans l’unité de la fiche."
           label="Pilote"
-          options={peopleOptions(options?.pilotes)}
+          options={peopleOptions(options?.pilotes?.filter((person) => person.id !== fiche.pilote?.id))}
           required
           value={pilote}
           onChange={setPilote}
         />
+        {fiche.statut_etape !== 'OUVERT' && (
+          <TextArea hint="Départ, mutation, absence longue… Inscrit dans l’historique." label="Motif du changement" required value={motif} onChange={setMotif} />
+        )}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        confirmLabel="Fermer"
+        open={dialog?.type === 'reattribution'}
+        title="Réattribuer une validation"
+        variant="primary"
+        onCancel={() => setDialog(null)}
+        onConfirm={async () => { setDialog(null); onChange(await ficheService.get(fiche.id)) }}
+      >
+        <p>Une demande bloquée par une absence ou un départ passe à un autre titulaire du même rôle.</p>
+        <ReattributionValidations ficheId={fiche.id} />
       </ConfirmDialog>
 
       <ConfirmDialog

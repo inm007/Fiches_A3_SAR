@@ -22,6 +22,7 @@ class FicheWorkflow
         private readonly ControleEfficaciteService $controles,
         private readonly HistoryLogger $history,
         private readonly NotificationService $notifications,
+        private readonly ActionService $actions,
     ) {}
 
     /**
@@ -310,6 +311,9 @@ class FicheWorkflow
 
         if ($porte === 1) {
             $this->changerEtape($fiche, StatutEtape::RealisationActions, null, 'T4 — Plan approuvé');
+            foreach ($fiche->actions()->whereNotIn('statut', StatutAction::terminees())->get() as $action) {
+                $this->actions->notifierAttribution($action, $fiche, null);
+            }
 
             return;
         }

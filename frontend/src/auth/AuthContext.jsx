@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import AuthContext from './auth-context.js'
+import AuthContext, { SESSION_WARNING_DELAY } from './auth-context.js'
 import { apiRequest } from './api.js'
 
 const SESSION_IDLE_LIMIT = 30 * 60 * 1000
@@ -10,6 +10,7 @@ export function AuthProvider({ children }) {
   const [activeProfile, setActiveProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [sessionExpired, setSessionExpired] = useState(false)
+  const [sessionWarning, setSessionWarning] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -46,9 +47,14 @@ export function AuthProvider({ children }) {
     if (!user) return undefined
 
     let idleTimeout
+    let warningTimeout
     const resetIdleTimeout = () => {
       window.clearTimeout(idleTimeout)
+      window.clearTimeout(warningTimeout)
+      setSessionWarning(false)
+      warningTimeout = window.setTimeout(() => setSessionWarning(true), SESSION_IDLE_LIMIT - SESSION_WARNING_DELAY)
       idleTimeout = window.setTimeout(() => {
+        setSessionWarning(false)
         setUser(null)
         setProfiles([])
         setActiveProfile(null)
@@ -69,6 +75,7 @@ export function AuthProvider({ children }) {
 
     return () => {
       window.clearTimeout(idleTimeout)
+      window.clearTimeout(warningTimeout)
       window.removeEventListener('sar:api-activity', resetIdleTimeout)
       window.removeEventListener('sar:session-expired', expireSession)
     }
@@ -80,6 +87,11 @@ export function AuthProvider({ children }) {
     activeProfile,
     loading,
     sessionExpired,
+    sessionWarning,
+    // Une requête active prolonge la session côté serveur et relance les minuteurs.
+    async stayConnected() {
+      await apiRequest('/auth/moi')
+    },
     async login(credentials) {
       const session = await apiRequest('/auth/connexion', {
         method: 'POST',
@@ -115,7 +127,7 @@ export function AuthProvider({ children }) {
       setActiveProfile(session.profil_actif)
       return session.redirect_to
     },
-  }), [activeProfile, loading, profiles, sessionExpired, user])
+  }), [activeProfile, loading, profiles, sessionExpired, sessionWarning, user])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

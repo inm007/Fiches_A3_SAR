@@ -71,6 +71,16 @@ class ValidationCircuit
      */
     public function titulaire(string $roleCode, FicheA3 $fiche): ?int
     {
+        return $this->titulaires($roleCode, $fiche)->first();
+    }
+
+    /**
+     * Titulaires actifs du rôle, ceux de l'unité de la fiche d'abord, puis ceux du périmètre global.
+     *
+     * @return Collection<int, int> identifiants des utilisateurs
+     */
+    public function titulaires(string $roleCode, FicheA3 $fiche): Collection
+    {
         $base = Affectation::query()
             ->enCours()
             ->whereHas('role', fn ($query) => $query->where('code', $roleCode))
@@ -78,8 +88,52 @@ class ValidationCircuit
             ->when($fiche->pilote_id !== null, fn ($query) => $query->where('user_id', '!=', $fiche->pilote_id))
             ->orderBy('id');
 
-        return (clone $base)->where('unite_id', $fiche->unite_id)->value('user_id')
-            ?? (clone $base)->whereNull('unite_id')->value('user_id');
+        return (clone $base)->where('unite_id', $fiche->unite_id)->pluck('user_id')
+            ->concat((clone $base)->whereNull('unite_id')->pluck('user_id'))
+            ->unique()
+            ->values();
+    }
+
+    /**
+     * Une demande en attente dont le valideur n'est plus titulaire actif du rôle (compte
+     * désactivé, affectation terminée, devenu pilote) ne peut plus aboutir sans réattribution.
+     */
+    public function valideurIndisponible(Validation $validation, FicheA3 $fiche): bool
+    {
+        $code = $validation->role()->value('code');
+
+        return $validation->valideur_id === null
+            || ! $this->titulaires($code, $fiche)->contains($validation->valideur_id);
+    }
+
+    /**
+     * Réattribution d'une demande en attente à un autre titulaire du même rôle, par
+     * l'administrateur fonctionnel (absence, départ, changement d'affectation).
+     */
+    public function reattribuer(Validation $validation, int $valideurId, ?int $auteurId, ?string $motif = null): Validation
+    {
+        return DB::transaction(function () use ($validation, $valideurId, $auteurId, $motif): Validation {
+            /** @var Validation $validation */
+            $validation = Validation::query()->whereKey($validation->id)->lockForUpdate()->firstOrFail();
+            $fiche = FicheA3::query()->whereKey($validation->fiche_id)->firstOrFail();
+
+            if ($validation->decision !== 'EN_ATTENTE') {
+                throw RegleMetierException::conflit('Cette demande n’est plus en attente.');
+            }
+            $code = $validation->role()->value('code');
+            if (! $this->titulaires($code, $fiche)->contains($valideurId)) {
+                throw RegleMetierException::conditionsManquantes('Réattribution impossible.', ['Le nouveau valideur doit être titulaire actif du rôle, dans l’unité de la fiche ou au périmètre global, et ne pas être le pilote.']);
+            }
+            if ($validation->valideur_id === $valideurId) {
+                return $validation;
+            }
+
+            $ancien = $validation->valideur_id;
+            $validation->update(['valideur_id' => $valideurId]);
+            $this->history->log($fiche, $auteurId, 'REATTRIBUTION_VALIDATION', 'validation_'.$validation->id, $ancien, $valideurId, $motif ?: null);
+
+            return $validation->refresh();
+        });
     }
 
     /**

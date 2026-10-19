@@ -1,4 +1,8 @@
+import { JALONS } from '../../utils/constants.js'
+import { formatDate } from '../../utils/format.js'
 import './FichePrintView.css'
+
+const RESULTATS = { CONFORME: 'Conforme', NON_CONFORME: 'Non conforme' }
 
 function referenceLabel(refs, list, id) {
   return refs?.listes?.[list]?.find((item) => item.id === id)?.libelle ?? id
@@ -155,6 +159,11 @@ function FichePrintView({ fiche, refs }) {
             id: item.id,
             values: [item.type_libelle, item.responsable?.nom ?? null, item.date, item.statut, item.preuve],
           }))} />
+          <h3 className="fiche-print__subtitle">Contrôles d’efficacité J+30, J+60, J+90</h3>
+          <Table headers={['Action', 'Contrôle', 'Échéance', 'Réalisé le', 'Résultat', 'Commentaire']} rows={fiche.actions.flatMap((action) => action.controles.map((controle) => ({
+            id: controle.id,
+            values: [action.description, JALONS[controle.jalon] ?? controle.jalon, formatDate(controle.date_echeance), controle.date_effective ? formatDate(controle.date_effective) : null, RESULTATS[controle.resultat] ?? 'À renseigner', controle.commentaire],
+          })))} />
         </Section>
         <Section number={11} title="Leçons apprises">
           <Fields values={Object.entries(fiche.lecons).map(([rubrique, texte]) => [rubrique.replaceAll('_', ' '), texte])} />

@@ -7,7 +7,9 @@ use App\Enums\StatutEtape;
 use App\Exceptions\RegleMetierException;
 use App\Models\ActionA3;
 use App\Models\Affectation;
+use App\Models\Controle;
 use App\Models\FicheA3;
+use App\Models\NotificationInterne;
 use App\Models\Parametre;
 use App\Models\Relance;
 use App\Models\User;
@@ -20,7 +22,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * Relances (PRD §9) : manuelles depuis la fiche, automatiques par la commande a3:relances.
  * Une cible est une action en retard ou une validation en attente ; au plus une relance
- * par 24 heures et par cible.
+ * par 24 heures et par cible. La même commande prévient aussi des échéances proches et
+ * des contrôles d'efficacité devenus disponibles. Tout rappel arrive dans les notifications.
  */
 class RelanceService
 {
@@ -76,13 +79,13 @@ class RelanceService
      * Rappels automatiques : une fois tous les « reminder_interval_days » jours tant que
      * l'élément est en retard ou en attente, et que le destinataire a encore accès.
      *
-     * @return int nombre de relances créées
+     * @return int nombre de rappels envoyés
      */
     public function rappels(): int
     {
         $parametres = Parametre::fonctionnels();
         $intervalle = (int) $parametres['reminder_interval_days'];
-        $creees = 0;
+        $creees = $this->echeancesProches((int) $parametres['due_soon_days']) + $this->controlesDisponibles();
 
         $actions = ActionA3::query()
             ->with('fiche')
@@ -113,6 +116,73 @@ class RelanceService
         }
 
         return $creees;
+    }
+
+    /**
+     * Prévient le responsable, une seule fois par échéance, qu'une action arrive à échéance
+     * dans les « jours » prochains jours. Un report d'échéance déclenche un nouveau rappel.
+     */
+    private function echeancesProches(int $jours): int
+    {
+        $envoyes = 0;
+        $actions = ActionA3::query()
+            ->with('fiche')
+            ->whereNotIn('statut', StatutAction::terminees())
+            ->whereDate('echeance', '>=', today())
+            ->whereDate('echeance', '<=', today()->addDays($jours))
+            ->whereHas('fiche', fn (Builder $fiche) => $fiche->whereIn('statut_etape', array_map(fn (StatutEtape $etape) => $etape->value, StatutEtape::etapesDeSuivi())))
+            ->get();
+
+        foreach ($actions as $action) {
+            $echeance = $action->echeance->format('d/m/Y');
+            $dejaPrevenu = NotificationInterne::query()
+                ->where('type', 'ECHEANCE_PROCHE')
+                ->where('cible_type', 'action')
+                ->where('cible_id', $action->id)
+                ->where('message', 'like', '%'.$echeance.'%')
+                ->exists();
+            if ($dejaPrevenu || ! $this->aAcces($action->responsable_id)) {
+                continue;
+            }
+
+            $message = 'Rappel : l’action « '.str($action->description)->limit(50).' » arrive à échéance le '.$echeance.'.';
+            $this->notifications->notify([$action->responsable_id], $action->fiche, 'ECHEANCE_PROCHE', $message, 'action', $action->id);
+            $envoyes++;
+        }
+
+        return $envoyes;
+    }
+
+    /**
+     * Prévient le pilote, une seule fois, qu'un contrôle d'efficacité est disponible (PRD §8.3).
+     */
+    private function controlesDisponibles(): int
+    {
+        $envoyes = 0;
+        $controles = Controle::query()
+            ->with('action.fiche')
+            ->whereNull('resultat')
+            ->whereDate('date_echeance', '<=', today())
+            ->whereHas('action.fiche', fn (Builder $fiche) => $fiche->whereIn('statut_etape', array_map(fn (StatutEtape $etape) => $etape->value, StatutEtape::etapesDeSuivi())))
+            ->get();
+
+        foreach ($controles as $controle) {
+            $fiche = $controle->action->fiche;
+            $dejaPrevenu = NotificationInterne::query()
+                ->where('type', 'CONTROLE_DISPONIBLE')
+                ->where('cible_type', 'controle')
+                ->where('cible_id', $controle->id)
+                ->exists();
+            if ($dejaPrevenu || ! $this->aAcces($fiche->pilote_id)) {
+                continue;
+            }
+
+            $message = 'Rappel : contrôle '.Controle::nomJalon($controle->jalon).' disponible pour l’action « '.str($controle->action->description)->limit(50).' ».';
+            $this->notifications->notify([$fiche->pilote_id], $fiche, 'CONTROLE_DISPONIBLE', $message, 'controle', $controle->id);
+            $envoyes++;
+        }
+
+        return $envoyes;
     }
 
     /**

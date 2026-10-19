@@ -25,7 +25,7 @@ import './Fiches.css'
 
 const ETAPE_OPTIONS = Object.entries(ETAPES).map(([code, etape]) => [code, etape.label])
 const CONFIDENTIALITE_OPTIONS = [['NORMAL', 'Normal'], ['RESTREINT', 'Restreint']]
-const REGISTRE_FILTERS = { q: '', statut_etape: '', unite_id: '', type_amelioration: '', origine_id: '', confidentialite: '', date_debut: '', date_fin: '' }
+const REGISTRE_FILTERS = { q: '', statut_etape: '', unite_id: '', equipement_id: '', type_amelioration: '', origine_id: '', confidentialite: '', date_debut: '', date_fin: '' }
 const ADMIN_FILTERS = { q: '', statut_etape: '', confidentialite: '' }
 
 const personName = (pilote) => (pilote ? `${pilote.prenom} ${pilote.nom}` : null)
@@ -68,6 +68,7 @@ function useRegistre({ enabled, filters, sort, page, perPage }) {
       { label: 'N° A3', value: (fiche) => fiche.numero_a3 },
       { label: 'Titre', value: (fiche) => fiche.titre },
       { label: 'Unité', value: (fiche) => fiche.unite },
+      { label: 'Équipement', value: (fiche) => fiche.equipement ?? '—' },
       { label: 'Pilote', value: (fiche) => fiche.pilote ?? 'Non désigné' },
       { label: 'Étape', value: (fiche) => fiche.statut_etape_libelle },
       { label: 'Date cible', value: (fiche) => fiche.date_cible ? formatDate(fiche.date_cible) : '—' },
@@ -139,7 +140,11 @@ function Fiches() {
   const canDeclare = ['AGENT', 'PILOTE'].includes(activeProfile?.role_code)
   const initialFilters = isAdmin ? ADMIN_FILTERS : REGISTRE_FILTERS
 
-  const list = useListFilters(initialFilters, () => ({ ...initialFilters, q: searchParams.get('q') ?? '' }))
+  const list = useListFilters(initialFilters, () => ({
+    ...initialFilters,
+    q: searchParams.get('q') ?? '',
+    ...(isAdmin ? {} : { unite_id: searchParams.get('unite_id') ?? '', equipement_id: searchParams.get('equipement_id') ?? '' }),
+  }))
   const { filters, page, pageSize: perPage, setFilter, setPage } = list
   const [sort, setSort] = useState({ tri: 'created_at', ordre: 'desc' })
   const [refs, setRefs] = useState(null)
@@ -155,6 +160,10 @@ function Fiches() {
     if (isAdmin) return
     ficheService.referentiels().then(setRefs).catch(() => setRefs(null))
   }, [isAdmin])
+
+  const equipementOptions = (refs?.equipements ?? [])
+    .filter((equipement) => !filters.unite_id || String(equipement.unite_id) === String(filters.unite_id))
+    .map((equipement) => [equipement.id, `${equipement.code} — ${equipement.libelle}`])
 
   const toggleSort = (tri) => setSort((current) => ({ tri, ordre: current.tri === tri && current.ordre === 'desc' ? 'asc' : 'desc' }))
 
@@ -184,7 +193,7 @@ function Fiches() {
       render: (fiche) => (
         <span className="fiches-page__titre">
           <strong title={fiche.titre}>{fiche.titre}</strong>
-          <small>{fiche.unite}</small>
+          <small>{fiche.equipement ? `${fiche.unite} · ${fiche.equipement}` : fiche.unite}</small>
         </span>
       ),
     },
@@ -238,11 +247,12 @@ function Fiches() {
       />
 
       <ListToolbar>
-        <SearchField id="fiches-search" label="Recherche" placeholder="N°, titre, unité, pilote…" value={filters.q} onChange={setFilter('q')} />
+        <SearchField id="fiches-search" label="Recherche" placeholder="N°, titre, unité, équipement, pilote…" value={filters.q} onChange={setFilter('q')} />
         <FilterSelect label="Étape" options={ETAPE_OPTIONS} value={filters.statut_etape} onChange={setFilter('statut_etape')} />
         {!isAdmin && (
           <>
-            <FilterSelect label="Unité" options={(refs?.unites ?? []).map((unite) => [unite.id, unite.libelle])} value={filters.unite_id} onChange={setFilter('unite_id')} />
+            <FilterSelect label="Unité" options={(refs?.unites ?? []).map((unite) => [unite.id, unite.libelle])} value={filters.unite_id} onChange={(value) => list.updateFilters({ unite_id: value, equipement_id: '' })} />
+            <FilterSelect label="Équipement" options={equipementOptions} value={filters.equipement_id} onChange={setFilter('equipement_id')} />
             <FilterSelect allLabel="Tous" label="Type" options={(refs?.listes?.type_amelioration ?? []).map((valeur) => [valeur.code, valeur.libelle])} value={filters.type_amelioration} onChange={setFilter('type_amelioration')} />
             <FilterSelect label="Origine" options={(refs?.listes?.origine ?? []).map((valeur) => [valeur.id, valeur.libelle])} value={filters.origine_id} onChange={setFilter('origine_id')} />
           </>

@@ -60,6 +60,8 @@ Route::prefix('admin')
 
         Route::get('/fiches', [FicheAdminController::class, 'index']);
         Route::patch('/fiches/{fiche}', [FicheAdminController::class, 'update']);
+        Route::get('/fiches/{fiche}/validations', [FicheAdminController::class, 'validations']);
+        Route::patch('/validations/{validation}', [FicheAdminController::class, 'reattribuerValidation']);
     });
 
 Route::prefix('technique')
@@ -96,6 +98,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/validations', [WorkflowController::class, 'validations']);
     Route::post('/validations/{validation}/decision', [WorkflowController::class, 'decision']);
     Route::post('/actions/{action}/statut', [WorkflowController::class, 'actionStatut']);
+    Route::patch('/actions/{action}', [WorkflowController::class, 'modifierAction']);
+    Route::post('/fiches/{fiche}/actions', [WorkflowController::class, 'ajouterAction']);
     Route::patch('/controles/{controle}', [WorkflowController::class, 'controle']);
     Route::post('/gains/{gain}/decision', [WorkflowController::class, 'gain']);
     Route::post('/relances', [RelanceController::class, 'store']);

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import Badge from '../ui/Badge.jsx'
 import Icon from '../ui/Icon.jsx'
 import { ETAPES, PARCOURS, STATUTS_GENERAUX } from '../../utils/constants.js'
@@ -30,7 +31,12 @@ function FicheHeader({ fiche, children }) {
         <li><Icon name="unit" size={15} />{identification.unite?.libelle}</li>
         <li><Icon name="user" size={15} />Pilote : {fiche.pilote?.nom ?? 'non désigné'}</li>
         <li><Icon name="calendar" size={15} />Cible : {formatDate(identification.date_cible)}</li>
-        {identification.equipement && <li><Icon name="equipment" size={15} />Équipement : {identification.equipement.code}</li>}
+        {identification.equipement && (
+          <li>
+            <Icon name="equipment" size={15} />Équipement : {identification.equipement.code}
+            <Link className="fiche-header__link" title="Toutes les fiches visibles sur cet équipement" to={`/fiches?equipement_id=${identification.equipement.id}&unite_id=${identification.unite?.id ?? ''}`}>historique</Link>
+          </li>
+        )}
         {sap.length > 0 && <li><Icon name="lists" size={15} />SAP : {sap.join(', ')}</li>}
       </ul>
       {fiche.statut_etape === 'EN_ATTENTE' && (

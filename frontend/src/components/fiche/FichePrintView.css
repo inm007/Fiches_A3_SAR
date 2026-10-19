@@ -157,3 +157,9 @@
     text-align: right;
   }
 }
+
+.fiche-print__subtitle {
+  margin: 6px 0 4px;
+  font-size: 9pt;
+  font-weight: 600;
+}
