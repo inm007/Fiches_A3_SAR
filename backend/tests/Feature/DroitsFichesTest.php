@@ -52,7 +52,7 @@ class DroitsFichesTest extends TestCase
             ->assertUnprocessable()->assertJsonValidationErrors('equipement_id');
     }
 
-    public function test_only_functional_admin_designates_an_eligible_pilot_while_open(): void
+    public function test_only_functional_admin_designates_an_eligible_pilot(): void
     {
         $fiche = $this->declarer();
         [$pilote] = $this->acteurs['PILOTE'];
@@ -69,7 +69,9 @@ class DroitsFichesTest extends TestCase
         $this->transition($fiche, 'PILOTE', 'T2')->assertOk();
         $autrePilote = $this->acteur('PILOTE', $this->unite->id);
         $this->agir('ADMIN_FONCTIONNEL')->patchJson("/api/admin/fiches/{$fiche->id}", ['pilote_id' => $autrePilote[0]->id])
-            ->assertUnprocessable()->assertJsonValidationErrors('pilote_id');
+            ->assertUnprocessable()->assertJsonValidationErrors('motif');
+        $this->agir('ADMIN_FONCTIONNEL')->patchJson("/api/admin/fiches/{$fiche->id}", ['pilote_id' => $autrePilote[0]->id, 'motif' => 'Mutation'])
+            ->assertOk()->assertJsonPath('data.pilote.id', $autrePilote[0]->id);
     }
 
     public function test_only_the_designated_pilot_edits_sections_and_starts_the_analysis(): void

@@ -322,7 +322,7 @@ class AdminAdministrationTest extends TestCase
         ]);
     }
 
-    public function test_admin_cannot_assign_a_pilot_outside_the_fiche_unit_or_after_open_stage(): void
+    public function test_admin_cannot_assign_a_pilot_outside_the_fiche_unit_at_any_stage(): void
     {
         $this->asAdmin();
         $unit = Unite::create(['code' => 'U1', 'libelle' => 'Unité 1']);
@@ -352,7 +352,7 @@ class AdminAdministrationTest extends TestCase
             ->assertJsonValidationErrors('pilote_id');
 
         $fiche->update(['statut_etape' => 'EN_COURS']);
-        $this->patchJson('/api/admin/fiches/'.$fiche->id, ['pilote_id' => $pilot->id])
+        $this->patchJson('/api/admin/fiches/'.$fiche->id, ['pilote_id' => $pilot->id, 'motif' => 'Mutation'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('pilote_id');
     }
@@ -400,11 +400,13 @@ class AdminAdministrationTest extends TestCase
         $this->putJson('/api/admin/settings', [
             'reminder_interval_days' => 14,
             'validation_reminders_enabled' => false,
+            'due_soon_days' => 5,
             'attachment_max_size_mb' => 15,
             'attachment_max_files' => 3,
         ])->assertOk()
             ->assertJsonPath('data.reminder_interval_days', 14)
-            ->assertJsonPath('data.validation_reminders_enabled', false);
+            ->assertJsonPath('data.validation_reminders_enabled', false)
+            ->assertJsonPath('data.due_soon_days', 5);
     }
 
     public function test_password_link_uses_local_password_broker_only(): void

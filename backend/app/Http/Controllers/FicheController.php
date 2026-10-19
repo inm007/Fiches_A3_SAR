@@ -55,7 +55,7 @@ class FicheController extends Controller
         ]);
 
         $query = $this->visibility->apply(FicheA3::query(), $profile)
-            ->with(['unite:id,code,libelle', 'pilote:id,nom,prenom'])
+            ->with(['unite:id,code,libelle', 'pilote:id,nom,prenom', 'equipement:id,code,libelle'])
             ->when($filters['date_debut'] ?? null, fn (Builder $q, string $date) => $q->whereDate('created_at', '>=', $date))
             ->when($filters['date_fin'] ?? null, fn (Builder $q, string $date) => $q->whereDate('created_at', '<=', $date))
             ->when($filters['sans_pilote'] ?? false, fn (Builder $q) => $q->whereNull('pilote_id'));
@@ -64,6 +64,7 @@ class FicheController extends Controller
             ->where('numero_a3', 'ilike', $motif)
             ->orWhere('titre', 'ilike', $motif)
             ->orWhereHas('unite', fn (Builder $unit) => $unit->where('libelle', 'ilike', $motif)->orWhere('code', 'ilike', $motif))
+            ->orWhereHas('equipement', fn (Builder $equipement) => $equipement->where('code', 'ilike', $motif)->orWhere('libelle', 'ilike', $motif))
             ->orWhereHas('pilote', fn (Builder $pilot) => $pilot->where('prenom', 'ilike', $motif)->orWhere('nom', 'ilike', $motif)));
 
         foreach (['statut_etape', 'statut_general', 'unite_id', 'pilote_id', 'origine_id', 'type_amelioration', 'equipement_id', 'confidentialite'] as $field) {
@@ -81,6 +82,7 @@ class FicheController extends Controller
                 'numero_a3' => $fiche->numero_a3,
                 'titre' => $fiche->titre,
                 'unite' => $fiche->unite?->libelle,
+                'equipement' => $fiche->equipement ? trim($fiche->equipement->code.' — '.$fiche->equipement->libelle, ' —') : null,
                 'pilote' => $fiche->pilote?->nom_complet,
                 'statut_etape' => $fiche->statut_etape,
                 'statut_etape_libelle' => $fiche->etape()->libelle(),

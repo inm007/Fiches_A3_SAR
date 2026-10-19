@@ -198,13 +198,14 @@ function AdminEntityPage({
       return [field.name, field.type === 'number' ? Number(value) : value]
     }))
     try {
-      await apiRequest(editing ? `${endpoint}/${editing.id}` : endpoint, {
+      const result = await apiRequest(editing ? `${endpoint}/${editing.id}` : endpoint, {
         method: editing ? 'PATCH' : 'POST',
         body: JSON.stringify(payload),
       })
       setModalOpen(false)
       setEditing(null)
-      toast.success(editing ? messages.updated : messages.created)
+      const created = typeof messages.created === 'function' ? messages.created(result?.data) : messages.created
+      toast.success(editing ? messages.updated : created)
       await load()
     } catch (saveError) {
       // Erreurs Laravel : sous chaque champ affiché ; celles sans champ visible restent en tête du formulaire.

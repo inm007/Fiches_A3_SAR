@@ -181,6 +181,28 @@ function BarList({ items, unit = 'élément' }) {
   )
 }
 
+/** Répartition des fiches visibles selon un axe (unité, type d'amélioration, origine). */
+export function RepartitionBars({ data, axe }) {
+  if (!data) return <Skeleton height={120} />
+  const items = (data.repartition?.[axe] ?? []).slice(0, 7)
+  if (!items.length) return <EmptyNote>Aucune fiche visible.</EmptyNote>
+  return <BarList items={items.map((item) => ({ code: item.libelle, label: item.libelle, count: item.total, color: 'var(--chart-phase-realization)' }))} unit="fiche" />
+}
+
+/** Choix de l'année des indicateurs annuels (consolidation des gains en fin d'année). */
+export function YearSelect({ data, onChange }) {
+  const annees = data?.annees_disponibles ?? []
+  if (annees.length < 2) return data?.annee ? <span className="dash-year">{data.annee}</span> : null
+  return (
+    <label className="dash-year">
+      <span className="sar-sr-only">Année des indicateurs</span>
+      <select value={data.annee} onChange={(event) => onChange(Number(event.target.value))}>
+        {annees.map((annee) => <option key={annee} value={annee}>{annee}</option>)}
+      </select>
+    </label>
+  )
+}
+
 export function ActionStatusBars({ data }) {
   if (!data) return <Skeleton height={120} />
   const statuses = actionStatuses(data).filter((status) => status.count > 0)
@@ -236,10 +258,10 @@ export function TodoList({ data, types, emptyText = 'Tout est à jour : rien ne 
       )}
       {filtered.length === 0 && <p className="sar-muted">Aucun élément ne correspond à la recherche.</p>}
       <ul className="dash-todo__list">
-        {filtered.map((item) => {
+        {filtered.map((item, index) => {
           const meta = TODO_TYPES[item.type] ?? { label: item.type, icon: 'file', tone: 'neutral' }
           return (
-            <li key={`${item.type}-${item.fiche_id}-${item.libelle}`}>
+            <li key={`${item.type}-${item.fiche_id}-${item.libelle}-${index}`}>
               <Link className={`dash-todo__item dash-todo__item--${meta.tone}`} to={`/fiches/${item.fiche_id}`}>
                 <span aria-hidden="true" className="dash-todo__icon"><Icon name={meta.icon} size={17} /></span>
                 <span className="dash-todo__text">

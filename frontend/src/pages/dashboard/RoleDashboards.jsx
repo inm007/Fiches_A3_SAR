@@ -3,7 +3,7 @@ import Button from '../../components/ui/Button.jsx'
 import { plural } from '../../utils/format.js'
 import { ageTone, days, percent, shortFcfa } from './dashboardData.js'
 import {
-  ActionStatusBars, KpiCard, KpiRow, MonthlyBars, Panel, PhaseDonut, Ring, Shortcuts, StageFlow, Steps, TodoList, TodoTypeSummary,
+  ActionStatusBars, KpiCard, KpiRow, MonthlyBars, Panel, PhaseDonut, RepartitionBars, Ring, Shortcuts, StageFlow, Steps, TodoList, TodoTypeSummary, YearSelect,
 } from './widgets.jsx'
 
 // Un tableau de bord par profil. Les liens et boutons ne mènent qu'aux pages déjà ouvertes
@@ -187,7 +187,7 @@ export function ValideurDashboard({ data, hello, roleLabel }) {
   )
 }
 
-export function ControleDashboard({ data, hello }) {
+export function ControleDashboard({ data, hello, onAnneeChange }) {
   const loading = !data
   return (
     <>
@@ -200,11 +200,11 @@ export function ControleDashboard({ data, hello }) {
       />
       <div className="dash-money">
         <article className="dash-money__main">
-          <span>Gain net annuel validé</span>
+          <span className="dash-money__head">Gain net annuel validé<YearSelect data={data} onChange={onAnneeChange} /></span>
           <strong>{data ? shortFcfa(data.gain_net_annuel_valide ?? 0) : '—'}</strong>
-          <small>Somme des gains nets validés, en année pleine.</small>
+          <small>Somme des gains nets des fiches dont tous les gains sont validés, par année de validation.</small>
         </article>
-        <KpiCard format={shortFcfa} icon="ok" label="Gains validés de l’année" loading={loading} to="/fiches" tone="success" value={data?.gains_valides_annee} />
+        <KpiCard format={shortFcfa} icon="ok" label={`Gains validés en ${data?.annee ?? 'cours d’année'}`} loading={loading} to="/fiches" tone="success" value={data?.gains_valides_annee} />
         <KpiCard icon="validation" label="Gains à valider" loading={loading} to="/validations" tone={alertTone(data?.gains_a_valider)} value={data?.gains_a_valider} />
         <KpiCard format={days} icon="clock" label="Plus ancienne demande" loading={loading} to="/validations" tone="neutral" value={data?.plus_ancienne_demande_jours} />
       </div>
@@ -226,7 +226,7 @@ export function ControleDashboard({ data, hello }) {
   )
 }
 
-export function DirectionDashboard({ data, hello }) {
+export function DirectionDashboard({ data, hello, onAnneeChange }) {
   const loading = !data
   return (
     <>
@@ -244,17 +244,29 @@ export function DirectionDashboard({ data, hello }) {
         <KpiCard icon="users" label="Fiches sans pilote" loading={loading} to="/fiches" tone={alertTone(data?.fiches_sans_pilote)} value={data?.fiches_sans_pilote} />
       </KpiRow>
       <div className="dash-grid">
-        <Panel className="dash-span-4" title="Taux de clôture">
-          <Ring caption="des fiches clôturées" label={percent(data?.taux_cloture)} tone="success" value={data?.taux_cloture} />
+        <Panel className="dash-span-3" title={`Taux de clôture ${data?.annee ?? ''}`}>
+          <Ring caption={`des fiches créées en ${data?.annee ?? 'cours d’année'}`} label={percent(data?.taux_cloture)} tone="success" value={data?.taux_cloture} />
         </Panel>
-        <Panel className="dash-span-4" title="Délai moyen de clôture">
+        <Panel className="dash-span-3" title={`Délai moyen de clôture ${data?.annee ?? ''}`}>
           <Ring caption="de la déclaration à la clôture" label={days(data?.delai_moyen_cloture_jours)} tone="info" value={data?.delai_moyen_cloture_jours ? Math.min(data.delai_moyen_cloture_jours / 180 * 100, 100) : 0} />
         </Panel>
-        <article className="dash-span-4 dash-money__main dash-money__main--panel">
-          <span>Gain net annuel validé</span>
+        <Panel className="dash-span-3" title="Vérification d’efficacité">
+          <Ring caption="des fiches mesurées ont leurs contrôles à jour" label={percent(data?.part_verification_efficacite)} tone="brand" value={data?.part_verification_efficacite} />
+        </Panel>
+        <article className="dash-span-3 dash-money__main dash-money__main--panel">
+          <span className="dash-money__head">Gain net annuel validé<YearSelect data={data} onChange={onAnneeChange} /></span>
           <strong>{data ? shortFcfa(data.gain_net_annuel_valide ?? 0) : '—'}</strong>
-          <small>{data ? `${shortFcfa(data.gains_valides_annee ?? 0)} de gains validés cette année` : ''}</small>
+          <small>{data ? `${shortFcfa(data.gains_valides_annee ?? 0)} de gains validés en ${data.annee}` : ''}</small>
         </article>
+        <Panel className="dash-span-4" title="Fiches par unité">
+          <RepartitionBars axe="unite" data={data} />
+        </Panel>
+        <Panel className="dash-span-4" title="Par type d’amélioration">
+          <RepartitionBars axe="type_amelioration" data={data} />
+        </Panel>
+        <Panel className="dash-span-4" title="Par origine">
+          <RepartitionBars axe="origine" data={data} />
+        </Panel>
         <Panel className="dash-span-12" subtitle="Toutes les fiches, étape par étape." title="Portefeuille des fiches">
           <StageFlow data={data} />
         </Panel>
@@ -305,8 +317,8 @@ export function AdminDashboard({ data, hello }) {
         <Panel className="dash-span-8" title="Référentiel">
           <Shortcuts items={ADMIN_SHORTCUTS} />
         </Panel>
-        <Panel className="dash-span-4" title="Pilotes à désigner">
-          <TodoList data={data} emptyText="Toutes les fiches ont un pilote." types={['pilote']} />
+        <Panel className="dash-span-4" title="À régulariser">
+          <TodoList data={data} emptyText="Toutes les fiches ont un pilote et un valideur disponible." types={['reattribution', 'pilote']} />
         </Panel>
         <Panel className="dash-span-12" title="Parcours des fiches">
           <StageFlow data={data} />

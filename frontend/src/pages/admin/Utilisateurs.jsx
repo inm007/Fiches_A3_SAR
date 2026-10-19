@@ -100,11 +100,12 @@ function Utilisateurs() {
   return (
     <AdminEntityPage
       columns={columns}
-      description="Créez les comptes métier, activez ou désactivez leur accès et envoyez un lien de définition du mot de passe."
+      description="Créez les comptes métier (un compte local reçoit aussitôt son lien de définition du mot de passe), activez ou désactivez leur accès et renvoyez un lien si besoin."
       endpoint="/admin/users"
       exportColumns={exportColumns}
       extraActions={extraActions}
       fields={fields}
+      messages={{ created: (user) => (user?.lien_envoye ? 'Compte créé : le lien de définition du mot de passe est envoyé.' : 'Compte créé.') }}
       title="Administration des utilisateurs"
     />
   )

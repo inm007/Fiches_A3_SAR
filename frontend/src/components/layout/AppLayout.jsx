@@ -5,6 +5,7 @@ import { Maintenance } from '../../pages/system/ErrorPages.jsx'
 import ErrorBoundary from '../shared/ErrorBoundary.jsx'
 import PageLoader from '../shared/PageLoader.jsx'
 import ToastHost from '../ui/ToastHost.jsx'
+import SessionWarning from './SessionWarning.jsx'
 import Sidebar from './Sidebar.jsx'
 import Topbar from './Topbar.jsx'
 import './AppLayout.css'
@@ -37,6 +38,7 @@ function AppLayout() {
         </main>
       </div>
       <ToastHost />
+      <SessionWarning />
     </div>
   )
 }

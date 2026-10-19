@@ -6,7 +6,9 @@ import Button from '../ui/Button.jsx'
 import { Select } from '../ui/FormControls.jsx'
 import Icon from '../ui/Icon.jsx'
 import Modal from '../ui/Modal.jsx'
+import { TextArea } from '../ui/FormControls.jsx'
 import EtapeBadge from './EtapeBadge.jsx'
+import ReattributionValidations from './ReattributionValidations.jsx'
 import './AdminFicheModal.css'
 
 function assignmentIsCurrent(assignment) {
@@ -17,12 +19,14 @@ function assignmentIsCurrent(assignment) {
 }
 
 /**
- * Administrateur fonctionnel : désignation du pilote (étape Ouvert) et confidentialité.
+ * Administrateur fonctionnel : pilote (à toute étape avant la clôture, avec motif après
+ * l'étape Ouvert), confidentialité et réattribution des validations en attente.
  * Le serveur (FicheAdminController) reste seul juge des droits et des valeurs autorisées.
  */
 function AdminFicheModal({ fiche, users, onClose, onSaved }) {
   const [piloteId, setPiloteId] = useState(fiche?.pilote ? String(fiche.pilote.id) : '')
   const [confidentialite, setConfidentialite] = useState(fiche?.confidentialite ?? 'NORMAL')
+  const [motif, setMotif] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -34,10 +38,10 @@ function AdminFicheModal({ fiche, users, onClose, onSaved }) {
       && assignmentIsCurrent(assignment)
     )))
   }, [fiche, users])
-  const hasChanges = Boolean(fiche && (
-    confidentialite !== fiche.confidentialite
-    || (fiche.statut_etape === 'OUVERT' && piloteId !== (fiche.pilote ? String(fiche.pilote.id) : ''))
-  ))
+  const piloteModifiable = fiche?.statut_etape !== 'CLOTURE'
+  const piloteChange = Boolean(fiche && piloteModifiable && piloteId !== (fiche.pilote ? String(fiche.pilote.id) : ''))
+  const motifRequis = piloteChange && fiche?.statut_etape !== 'OUVERT'
+  const hasChanges = Boolean(fiche && (confidentialite !== fiche.confidentialite || piloteChange))
 
   async function save(event) {
     event.preventDefault()
@@ -45,8 +49,9 @@ function AdminFicheModal({ fiche, users, onClose, onSaved }) {
     setSaving(true)
     setError('')
     const changes = { confidentialite }
-    if (fiche.statut_etape === 'OUVERT') {
+    if (piloteChange) {
       changes.pilote_id = piloteId ? Number(piloteId) : null
+      changes.motif = motif.trim() || null
     }
     try {
       const result = await apiRequest(`/admin/fiches/${fiche.id}`, {
@@ -68,12 +73,12 @@ function AdminFicheModal({ fiche, users, onClose, onSaved }) {
       footer={({ requestClose }) => (
         <>
           <Button disabled={saving} onClick={requestClose} type="button" variant="secondary">Annuler</Button>
-          <Button disabled={!hasChanges} form="admin-fiche-form" loading={saving} loadingLabel="Enregistrement…" type="submit">Enregistrer</Button>
+          <Button disabled={!hasChanges || (motifRequis && !motif.trim())} form="admin-fiche-form" loading={saving} loadingLabel="Enregistrement…" type="submit">Enregistrer</Button>
         </>
       )}
       onClose={onClose}
       open={fiche !== null}
-      size="sm"
+      size="md"
       title={fiche ? `Gérer la fiche ${fiche.numero_a3}` : 'Gérer la fiche'}
     >
       {fiche && (
@@ -95,19 +100,31 @@ function AdminFicheModal({ fiche, users, onClose, onSaved }) {
             wide
             onChange={setConfidentialite}
           />
-          {fiche.statut_etape === 'OUVERT' ? (
-            <Select
-              hint={eligiblePilots.length === 0 ? 'Aucun pilote actif n’est affecté à cette unité.' : undefined}
-              label="Pilote"
-              options={eligiblePilots.map((user) => [String(user.id), `${user.prenom} ${user.nom} — ${user.identifiant}`])}
-              placeholder="Non désigné"
-              value={piloteId}
-              wide
-              onChange={setPiloteId}
-            />
+          {piloteModifiable ? (
+            <>
+              <Select
+                hint={eligiblePilots.length === 0 ? 'Aucun pilote actif n’est affecté à cette unité.' : undefined}
+                label="Pilote"
+                options={eligiblePilots.map((user) => [String(user.id), `${user.prenom} ${user.nom} — ${user.identifiant}`])}
+                placeholder={fiche.statut_etape === 'OUVERT' ? 'Non désigné' : 'Choisir…'}
+                value={piloteId}
+                wide
+                onChange={setPiloteId}
+              />
+              {motifRequis && (
+                <TextArea
+                  hint="Départ, mutation, absence longue… Le motif est inscrit dans l’historique."
+                  label="Motif du changement de pilote"
+                  required
+                  value={motif}
+                  onChange={setMotif}
+                />
+              )}
+            </>
           ) : (
-            <p className="admin-fiche-form__note">Le pilote ne peut être changé qu’à l’étape Ouvert.</p>
+            <p className="admin-fiche-form__note">Le pilote d’une fiche clôturée ne change plus.</p>
           )}
+          {['EN_VALIDATION_PLAN', 'EN_VALIDATION_CLOTURE', 'EN_ATTENTE'].includes(fiche.statut_etape) && <ReattributionValidations ficheId={fiche.id} />}
           <p className="admin-fiche-form__note">
             <Icon name="info" size={16} />
             <span>Les autres données de la fiche restent en lecture seule.</span>

@@ -86,18 +86,19 @@ Mot de passe de tous les comptes de démonstration : `Azerty123` (liste en §6).
 | `ValidationCircuit` | Portes 1 et 2, titulaires (unité puis global, jamais le pilote), B7, empreinte des signatures |
 | `FicheSectionService` | Enregistrement des sections 1 à 11 par le pilote, selon l'étape, historique champ par champ |
 | `FicheSectionRules` | Format attendu des champs de chaque section (validation Laravel) |
-| `ActionService` | Statuts d'action, B1 (MOC), motifs, blocage et reprise, actions correctives |
+| `ActionService` | Statuts d'action, B1 (MOC), motifs, blocage et reprise, actions correctives ; report d'échéance, changement de responsable et ajout d'action pendant le suivi |
 | `ControleEfficaciteService` | Contrôles J+30/60/90, contrôle correctif à 30 jours, B4 |
 | `Calculs` | Formules PRD §6.2 ; `null` = « Non calculable » |
 | `HistoryLogger`, `NotificationService` | Historique métier immuable, notifications internes |
-| `TechnicalSettingsService` | Paramètres SMTP (liste blanche, mot de passe chiffré) |
+| `RelanceService` | Relances manuelles (une par 24 h) et commande `a3:relances` : retards, échéances proches, validations en attente, contrôles disponibles |
+| `PieceJointeService` | Dépôt (type réel, taille, nombre) et téléchargement authentifié |
 
 ### 4.2 API (préfixe `/api`, sans version)
 
 | Domaine | Routes |
 |---|---|
 | Authentification | `POST /auth/connexion`, `/auth/deconnexion`, `/auth/profil-actif`, `/auth/mot-de-passe-oublie`, `/auth/mot-de-passe` ; `GET /auth/moi` |
-| Administration fonctionnelle (`ADMIN_FONCTIONNEL`) | `/admin/users`, `/admin/assignments`, `/admin/units`, `/admin/equipment`, `/admin/lists`, `/admin/settings`, `/admin/roles`, `/admin/fiches` (pilote et confidentialité seulement) |
+| Administration fonctionnelle (`ADMIN_FONCTIONNEL`) | `/admin/users`, `/admin/assignments`, `/admin/units`, `/admin/equipment`, `/admin/lists`, `/admin/settings`, `/admin/roles`, `/admin/fiches` (pilote et confidentialité seulement), `/admin/fiches/{id}/validations`, `PATCH /admin/validations/{id}` (réattribution) |
 | Administration technique (`ADMIN_TECHNIQUE`) | `GET /technique`, `PUT /technique/settings` |
 | Fiches | `GET/POST /fiches`, `GET /fiches/{id}`, `PUT /fiches/{id}/sections/{n}`, `POST /fiches/{id}/transitions`, `POST /fiches/{id}/confidentialite`, `GET /fiches/{id}/historique`, `GET /fiches/{id}/options`, `GET/POST /fiches/{id}/commentaires` |
 | Workflow | `GET /validations`, `POST /validations/{id}/decision`, `POST /actions/{id}/statut`, `PATCH /controles/{id}`, `POST /gains/{id}/decision` |
@@ -152,7 +153,7 @@ Corrections de sécurité du 14 octobre :
 - Mot de passe PostgreSQL retiré de `.env.example` (il reste dans l'historique Git, commit `2219fc9`).
 - Le frontend plantait au chargement (`Technique` non importé dans `App.jsx`, import `G` inexistant) : corrigé.
 
-Administration technique : fournisseur d'authentification et SAP en lecture seule (`config/a3.php`), paramètres SMTP sur liste blanche, mot de passe SMTP chiffré, jamais renvoyé et masqué dans le journal. Rôle `ADMIN_TECHNIQUE` ajouté aux seeders.
+Administration technique : fournisseur d'authentification et SAP en lecture seule (`config/a3.php`). Les paramètres SMTP en base ont ensuite été retirés : le courriel se règle dans `.env`. Rôle `ADMIN_TECHNIQUE` ajouté aux seeders.
 
 ### Étape 3 — Fiche A3 et workflow ✅
 
@@ -194,9 +195,18 @@ Refonte autour de la fiche A3 elle-même (`AuthPage`, `A3Sheet`, `Login`) :
 - `AdminController` (700 lignes) découpé en un contrôleur par écran dans `Http/Controllers/Admin/` : `UserController`, `AffectationController`, `UniteController`, `EquipementController`, `ListeController`, `ParametreController`, `FicheAdminController`, sur une base commune `AdminController` (journal d'administration). Les 23 routes `/api/admin/*` sont inchangées.
 - Règles de validation des 11 sections sorties de `FicheSectionService` (614 → 480 lignes) dans `FicheSectionRules` : la forme des champs d'un côté, les règles métier de l'autre.
 
-### Étape 4 — Finitions ⏳
+### Étape 4 — Finitions et suivi dans la durée ✅
 
-Voir §10.
+- Relances manuelles et automatiques, listes administrables (catégories de gain, types de pérennisation), commentaires rattachés à une action ou une validation, suppression des paramètres SMTP en base (PR #6 à #9).
+- Bilan d'expert du 19 octobre, puis corrections :
+  - le pilote se change à toute étape avant la clôture, avec motif après l'étape Ouvert ; ses demandes de validation éventuelles passent au titulaire suivant (B8) ;
+  - pendant la réalisation, le pilote reporte une échéance, change un responsable ou ajoute une action, avec motif et trace ;
+  - l'administrateur fonctionnel réattribue une demande de validation en attente ; les demandes dont le valideur n'est plus disponible apparaissent dans « À régulariser » ;
+  - notifications : action attribuée (dès la validation du plan), échéance proche, contrôle disponible ; tous les rappels arrivent dans les notifications ;
+  - tableau de bord : choix de l'année des indicateurs annuels, part des fiches avec vérification d'efficacité, répartition par unité, type et origine ;
+  - registre : filtre et recherche par équipement, lien « historique » depuis la fiche ;
+  - avertissement 2 minutes avant l'expiration de la session ; contrôles J+30/60/90 dans l'impression A3 ; lien de mot de passe envoyé à la création d'un compte local ;
+  - guide d'utilisation par profil (`docs/guide-utilisateur.md`).
 
 ## 6. Données de démonstration
 
@@ -241,19 +251,21 @@ Recréées par `php artisan migrate:fresh --seed` (environnement `local`).
 
 ## 7. Tests
 
-86 tests, 1 109 assertions, sur PostgreSQL, isolés par transactions (aucune table créée ni supprimée par les tests).
+107 tests, 1 513 assertions, sur PostgreSQL, isolés par transactions (aucune table créée ni supprimée par les tests).
 
 | Fichier | Couverture |
 |---|---|
 | `AuthSessionTest` | Connexion, limitation, profils, session |
 | `AdminAdministrationTest` | Administration fonctionnelle, accès réservé |
-| `TechnicalAdministrationTest` (5) | Accès réservé, SMTP chiffré et masqué, liste blanche |
+| `TechnicalAdministrationTest` | Accès réservé à l'administrateur technique, journal |
 | `FicheWorkflowTest` (9) | Parcours complet de la déclaration à la clôture, numérotation annuelle, B8, 409, mise en attente |
 | `VisibiliteFichesTest` (7) | Visibilité PRD §2.4 par rôle, 404 sur toutes les ressources d'une fiche invisible |
 | `DroitsFichesTest` (9) | Matrice des droits PRD §2.3 |
 | `ReglesMetierTest` (25) | B1 à B8, T2 à T13, domaines → valideurs, signatures, actions, contrôles, gains, porte 2, concurrence, historique immuable même en SQL direct |
 | `NotificationTest` | Compteur, lecture, isolation par utilisateur |
 | `CalculsTest` (5) | Formules et « Non calculable » |
+| `RelancesTest`, `PiecesJointesTest` | Relances manuelles et automatiques, dépôt et téléchargement des pièces jointes |
+| `SuiviTerrainTest` (9) | Changement de pilote, replanification et ajout d'action, réattribution d'une validation, échéances proches et contrôles disponibles, année des indicateurs, recherche par équipement, lien à la création d'un compte |
 
 Outil commun : trait `tests/Concerns/SimuleFiches` (acteurs par rôle, amener une fiche à une étape donnée).
 
@@ -287,22 +299,18 @@ Frontend : `npm run lint` sans erreur, `npm run build` réussi. Aucune vérifica
 | Police | UX §2.5 : Inter via `@fontsource/inter` | Polices système (dépendance à valider) |
 | Maquette | Courbes d'évolution « +12 % ce mois » | Non reprises : aucun historique d'indicateurs |
 | Messages d'erreur | UX §10.1 : français partout | Validation Laravel encore en anglais (`APP_LOCALE=en`) |
+| Export Excel | PRD D12 : pas d'export Excel | Export Excel des listes (registre, validations, notifications, administration), utile au Contrôle de gestion et à la Direction |
+| Export PDF A3 | PRD §10.4 : route serveur avec Dompdf | Vue A3 paysage imprimée par le navigateur (« Enregistrer au format PDF ») |
+| Changement de pilote | PRD : pilote désigné à l'étape Ouvert | Changement possible à toute étape avant la clôture, motif obligatoire |
 
 ## 10. Reste à faire
 
-Par ordre du plan d'implémentation :
-
-1. **Pièces jointes** (L10) : dépôt (type réel, 10 Mo, 20 fichiers), téléchargement authentifié ; l'onglet est affiché vide.
-2. **Relances** : bouton « Relancer » (une par 24 h et par cible, 429) et commande `a3:relances` planifiée (7 jours).
-3. **Mot de passe et SMTP** (L12) : bouton d'envoi de courriel d'essai.
-4. **Export PDF A3** (L13) : `PdfExporter`, Dompdf ; le bouton est affiché mais inactif.
-5. **Indicateurs complets de la Direction** (L9) : répartitions par unité, type et origine.
-6. **Points d'extension** : `AuthProvider` / `LdapAuthProvider`, `SapGateway` / `NullSapGateway` / `FakeSapGateway`.
-7. **Finitions** : messages Laravel en français, avertissement de session 2 minutes avant l'expiration, README d'installation, document des points d'extension.
+1. **Contrainte PHP** : le `composer.lock` exige PHP 8.4 alors que le README annonce 8.3 (laissé en l'état à la demande du binôme).
+2. **Raccordements par la SAR** : annuaire (`AUTH_PROVIDER`), SAP (`SAP_ENABLED`), serveur de courriel (`MAIL_*`) dans `.env`.
+3. **Points à confirmer avec le métier** : règle de re-vérification après échec (D2), formules de gains, types d'action.
 
 ## 11. Points de vigilance
 
 - **Secret exposé** : l'ancien mot de passe PostgreSQL figure dans le commit `2219fc9`. Le changer, surtout si le dépôt a été poussé.
 - **`migrate:fresh` efface toute la base locale**, y compris les fiches saisies à la main, puis recrée les données de démonstration.
-- **Rien n'est commité** depuis le commit `2219fc9` : une grande partie du travail n'est suivie par aucun commit.
 - **Avant la livraison** : retirer ou désactiver les comptes à mot de passe partagé et `DemoFichesSeeder` hors démonstration.

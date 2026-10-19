@@ -80,6 +80,35 @@ class WorkflowController extends Controller
         return new FicheResource($actions->changerStatut($action, $data, $profile)->fiche()->firstOrFail());
     }
 
+    public function modifierAction(Request $request, ActionA3 $action, ActiveProfile $profile, ActionService $actions): FicheResource
+    {
+        $this->visible($action->fiche, $profile);
+        $data = $request->validate([
+            'echeance' => ['nullable', 'date'],
+            'responsable_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('actif', true)],
+            'motif' => ['required', 'string', 'max:2000'],
+        ]);
+
+        return new FicheResource($actions->modifier($action, $data, $profile)->fiche()->firstOrFail());
+    }
+
+    public function ajouterAction(Request $request, FicheA3 $fiche, ActiveProfile $profile, ActionService $actions): FicheResource
+    {
+        $this->visible($fiche, $profile);
+        $data = $request->validate([
+            'cause_id' => ['required', 'integer'],
+            'description' => ['required', 'string', 'max:2000'],
+            'type_action' => ['required', 'string', 'max:50'],
+            'responsable_id' => ['required', 'integer', Rule::exists('users', 'id')->where('actif', true)],
+            'echeance' => ['required', 'date'],
+            'cout_estime' => ['nullable', 'integer', 'min:0'],
+            'risque_id' => ['nullable', 'integer'],
+            'motif' => ['required', 'string', 'max:2000'],
+        ]);
+
+        return new FicheResource($actions->ajouter($fiche, $data, $profile)->fiche()->firstOrFail());
+    }
+
     public function controle(Request $request, Controle $controle, ActiveProfile $profile, ActionService $actions): FicheResource
     {
         $fiche = $controle->action->fiche;

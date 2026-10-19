@@ -9,6 +9,8 @@ use App\Models\Affectation;
 use App\Models\Controle;
 use App\Models\FicheA3;
 use App\Models\Gain;
+use App\Models\Unite;
+use App\Models\ValeurListe;
 use App\Models\Validation;
 use App\Services\ActiveProfile;
 use App\Services\Calculs;
@@ -16,20 +18,25 @@ use App\Services\FicheVisibility;
 use App\Services\ValidationCircuit;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
 /**
  * Indicateurs du tableau de bord (PRD §10), calculés par le serveur et limités
  * à la visibilité du profil actif : une fiche invisible n'entre dans aucun total.
+ * Les indicateurs annuels (taux et délai de clôture, gains validés) portent sur l'année
+ * choisie, l'année en cours par défaut, pour consolider les gains en fin d'année.
  */
 class TableauDeBordController extends Controller
 {
-    public function index(ActiveProfile $profile, FicheVisibility $visibility, ValidationCircuit $circuit, Calculs $calculs): JsonResponse
+    public function index(Request $request, ActiveProfile $profile, FicheVisibility $visibility, ValidationCircuit $circuit, Calculs $calculs): JsonResponse
     {
+        $annee = (int) ($request->validate([
+            'annee' => ['nullable', 'integer', 'min:2000', 'max:'.now()->year],
+        ])['annee'] ?? now()->year);
         $userId = $profile->userId();
         $visibles = fn (): Builder => $visibility->apply(FicheA3::query(), $profile);
         $visibleIds = $visibles()->select('id');
-        $annee = (int) now()->year;
 
         $parEtape = $visibles()->selectRaw('statut_etape, count(*) as total')->groupBy('statut_etape')->pluck('total', 'statut_etape');
         $actionsParStatut = ActionA3::query()
@@ -47,10 +54,14 @@ class TableauDeBordController extends Controller
         $validations = $circuit->aTraiterPar($profile);
 
         $creesCetteAnnee = $visibles()->whereYear('created_at', $annee);
-        $cloturees = $visibles()->where('statut_etape', StatutEtape::Cloture->value)->whereNotNull('date_cloture')->get(['created_at', 'date_cloture']);
+        $cloturees = $visibles()->where('statut_etape', StatutEtape::Cloture->value)->whereYear('date_cloture', $annee)->get(['created_at', 'date_cloture']);
 
         return response()->json(['data' => [
             'role' => $profile->roleCode(),
+            'annee' => $annee,
+            'annees_disponibles' => $this->anneesDisponibles($visibles()),
+            'part_verification_efficacite' => $this->partVerificationEfficacite($visibles()),
+            'repartition' => $this->repartition($visibles),
             'par_etape' => collect(StatutEtape::cases())->mapWithKeys(fn (StatutEtape $etape) => [$etape->value => (int) ($parEtape[$etape->value] ?? 0)]),
             'actions_par_statut' => collect(StatutAction::cases())->mapWithKeys(fn (StatutAction $statut) => [$statut->value => (int) ($actionsParStatut[$statut->value] ?? 0)]),
             'fiches_creees_par_mois' => collect(range(0, 5))->map(function (int $offset) use ($debutPeriode, $fichesParMois) {
@@ -84,8 +95,75 @@ class TableauDeBordController extends Controller
                 : null,
             'delai_moyen_cloture_jours' => $cloturees->isEmpty() ? null : (int) round($cloturees->avg(fn (FicheA3 $fiche) => $fiche->created_at->startOfDay()->diffInDays($fiche->date_cloture))),
             'affectations_actives' => $profile->is('ADMIN_FONCTIONNEL') ? Affectation::where('actif', true)->count() : null,
-            'a_traiter' => $this->aTraiter($validations, $profile, $visibles),
+            'a_traiter' => $this->aTraiter($validations, $profile, $visibles, $circuit),
         ]]);
+    }
+
+    /**
+     * Années proposées au sélecteur : de la première fiche visible à l'année en cours.
+     *
+     * @param  Builder<FicheA3>  $visibles
+     * @return array<int, int>
+     */
+    private function anneesDisponibles(Builder $visibles): array
+    {
+        // L'année précédente reste toujours consultable : c'est elle qu'on consolide en janvier.
+        $courante = (int) now()->year;
+        $premiere = $visibles->min('created_at');
+        $debut = $premiere ? (int) substr((string) $premiere, 0, 4) : $courante;
+
+        return range($courante, min($debut, $courante - 1));
+    }
+
+    /**
+     * Part des fiches avec vérification d'efficacité renseignée (cahier de stage, PRD §10.1) :
+     * parmi les fiches arrivées à la mesure des résultats ou au-delà, celles dont au moins un
+     * contrôle est enregistré et dont aucun contrôle échu ne reste à renseigner.
+     *
+     * @param  Builder<FicheA3>  $visibles
+     */
+    private function partVerificationEfficacite(Builder $visibles): ?float
+    {
+        $etapes = [StatutEtape::MesureResultats->value, StatutEtape::VerificationMaintien->value, StatutEtape::EnValidationCloture->value, StatutEtape::Cloture->value];
+        $concernees = $visibles->where(fn (Builder $q) => $q->whereIn('statut_etape', $etapes)
+            ->orWhere(fn (Builder $attente) => $attente->where('statut_etape', StatutEtape::EnAttente->value)->whereIn('etape_avant_attente', $etapes)));
+
+        $total = (clone $concernees)->count();
+        if ($total === 0) {
+            return null;
+        }
+
+        $verifiees = (clone $concernees)
+            ->whereHas('actions.controles', fn (Builder $q) => $q->whereNotNull('resultat'))
+            ->whereDoesntHave('actions.controles', fn (Builder $q) => $q->whereNull('resultat')->whereDate('date_echeance', '<=', today()))
+            ->count();
+
+        return round($verifiees / $total * 100, 1);
+    }
+
+    /**
+     * Répartition des fiches visibles par unité, type d'amélioration et origine (PRD §10.2).
+     *
+     * @param  callable(): Builder<FicheA3>  $visibles
+     * @return array<string, array<int, array{libelle: string, total: int}>>
+     */
+    private function repartition(callable $visibles): array
+    {
+        $compter = fn (string $colonne) => $visibles()->selectRaw("{$colonne} as cle, count(*) as total")->groupBy($colonne)->pluck('total', 'cle');
+        $libelles = fn (string $liste) => ValeurListe::query()->deLaListe($liste);
+        $formater = fn (Collection $totaux, Collection $noms) => $totaux
+            ->map(fn ($total, $cle) => ['libelle' => $noms[$cle] ?? ($cle === '' ? 'Non renseigné' : (string) $cle), 'total' => (int) $total])
+            ->sortByDesc('total')
+            ->values()
+            ->all();
+
+        $parType = $compter('type_amelioration')->mapWithKeys(fn ($total, $cle) => [(string) $cle => $total]);
+
+        return [
+            'unite' => $formater($compter('unite_id'), Unite::query()->pluck('libelle', 'id')),
+            'type_amelioration' => $formater($parType, $libelles('type_amelioration')->pluck('libelle', 'code')->put('', 'Non renseigné')),
+            'origine' => $formater($compter('origine_id'), $libelles('origine')->pluck('libelle', 'id')),
+        ];
     }
 
     /**
@@ -111,7 +189,7 @@ class TableauDeBordController extends Controller
      * @param  callable(): Builder<FicheA3>  $visibles
      * @return array<int, array<string, mixed>>
      */
-    private function aTraiter($validations, ActiveProfile $profile, callable $visibles): array
+    private function aTraiter($validations, ActiveProfile $profile, callable $visibles, ValidationCircuit $circuit): array
     {
         $userId = $profile->userId();
         $items = $validations->map(fn (Validation $validation) => [
@@ -166,6 +244,25 @@ class TableauDeBordController extends Controller
                 ])
             : collect();
 
-        return $items->concat($actions)->concat($controles)->concat($sansPilote)->take(8)->values()->all();
+        // Une demande dont le valideur n'est plus disponible attend une réattribution.
+        $bloquees = $profile->is('ADMIN_FONCTIONNEL')
+            ? Validation::query()
+                ->with(['fiche', 'role:id,code'])
+                ->where('decision', 'EN_ATTENTE')
+                ->whereIn('fiche_id', $visibles()->select('id'))
+                ->orderBy('demandee_le')
+                ->get()
+                ->filter(fn (Validation $validation) => $circuit->valideurIndisponible($validation, $validation->fiche))
+                ->take(5)
+                ->map(fn (Validation $validation) => [
+                    'fiche_id' => $validation->fiche_id,
+                    'numero_a3' => $validation->fiche->numero_a3,
+                    'libelle' => 'Réattribuer une validation : valideur indisponible',
+                    'delai' => (int) $validation->demandee_le->startOfDay()->diffInDays(today()).' j',
+                    'type' => 'reattribution',
+                ])
+            : collect();
+
+        return $bloquees->concat($items)->concat($actions)->concat($controles)->concat($sansPilote)->take(8)->values()->all();
     }
 }

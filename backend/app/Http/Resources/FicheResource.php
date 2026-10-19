@@ -279,7 +279,7 @@ class FicheResource extends JsonResource
             'sections_editables' => app(FicheSectionService::class)->sectionsEditables($fiche, $profile),
             'transitions' => array_values(array_unique($transitions)),
             'est_pilote' => $estPilote,
-            'peut_designer_pilote' => $profile->is('ADMIN_FONCTIONNEL') && $etape === StatutEtape::Ouvert,
+            'peut_designer_pilote' => $profile->is('ADMIN_FONCTIONNEL') && $etape !== StatutEtape::Cloture,
             'peut_changer_confidentialite' => $estPilote || $profile->is('ADMIN_FONCTIONNEL'),
             'peut_commenter' => $profile->peutCommenter(),
             'peut_ajouter_piece_jointe' => $estPilote || ($profile->is('AGENT') && $fiche->actions->contains('responsable_id', $userId)),
@@ -292,6 +292,11 @@ class FicheResource extends JsonResource
                 ->filter(fn (ActionA3 $action) => app(ActionService::class)->peutModifier($action, $fiche, $profile))
                 ->pluck('id')
                 ->values(),
+            'actions_replanifiables' => $fiche->actions
+                ->filter(fn (ActionA3 $action) => app(ActionService::class)->peutReplanifier($action, $fiche, $profile))
+                ->pluck('id')
+                ->values(),
+            'peut_ajouter_action' => $estPilote && $etape === StatutEtape::RealisationActions,
         ];
     }
 

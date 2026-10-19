@@ -19,6 +19,7 @@ class Parametre extends Model
     public const array DEFAUTS_FONCTIONNELS = [
         'reminder_interval_days' => 7,
         'validation_reminders_enabled' => true,
+        'due_soon_days' => 3,
         'attachment_max_size_mb' => 10,
         'attachment_max_files' => 20,
     ];

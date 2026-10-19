@@ -103,3 +103,27 @@
   padding: 12px 0;
   border-bottom: 1px solid var(--border);
 }
+
+.fiche-tab__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fiche-tab__form {
+  display: grid;
+  gap: 16px;
+}
+
+.fiche-tab__form > p {
+  margin: 0;
+}
+
+.fiche-tab__form--grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.fiche-tab__form-wide {
+  grid-column: 1 / -1;
+}

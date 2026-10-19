@@ -14,6 +14,7 @@ export const TODO_TYPES = {
   retard: { label: 'Action en retard', plural: 'Actions en retard', icon: 'al', tone: 'red' },
   controle: { label: 'Contrôle', plural: 'Contrôles', icon: 'clock', tone: 'teal' },
   pilote: { label: 'Désignation pilote', plural: 'Pilotes à désigner', icon: 'users', tone: 'green' },
+  reattribution: { label: 'Validation bloquée', plural: 'Validations à réattribuer', icon: 'validation', tone: 'red' },
 }
 
 const PHASES = [

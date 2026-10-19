@@ -11,6 +11,7 @@ import './ParametresFonctionnels.css'
 const defaults = {
   reminder_interval_days: 7,
   validation_reminders_enabled: true,
+  due_soon_days: 3,
   attachment_max_size_mb: 10,
   attachment_max_files: 20,
 }
@@ -40,6 +41,7 @@ function ParametresFonctionnels() {
         body: JSON.stringify({
           ...values,
           reminder_interval_days: Number(values.reminder_interval_days),
+          due_soon_days: Number(values.due_soon_days),
           attachment_max_size_mb: Number(values.attachment_max_size_mb),
           attachment_max_files: Number(values.attachment_max_files),
         }),
@@ -68,6 +70,8 @@ function ParametresFonctionnels() {
             <legend>Relances</legend>
             <TextInput error={fieldErrors.reminder_interval_days} label="Cadence des rappels automatiques (jours)" min={1} required type="number" value={values.reminder_interval_days} onChange={set('reminder_interval_days')} />
             <Checkbox checked={Boolean(values.validation_reminders_enabled)} label="Activer les rappels pour les validations en attente" onChange={set('validation_reminders_enabled')} />
+            <TextInput error={fieldErrors.due_soon_days} hint="Le responsable reçoit une notification quand l’échéance de son action approche." label="Prévenir avant l’échéance d’une action (jours)" max={30} min={1} required type="number" value={values.due_soon_days} onChange={set('due_soon_days')} />
+            <p>Tous les rappels arrivent dans les notifications : actions en retard ou proches de l’échéance, validations en attente, contrôles d’efficacité disponibles. Ils partent chaque jour à 7 h.</p>
           </fieldset>
           <fieldset disabled={saving}>
             <legend>Pièces jointes</legend>

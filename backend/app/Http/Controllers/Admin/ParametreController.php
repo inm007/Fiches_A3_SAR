@@ -22,6 +22,7 @@ class ParametreController extends AdminController
         $validated = $request->validate([
             'reminder_interval_days' => ['required', 'integer', 'min:1'],
             'validation_reminders_enabled' => ['required', 'boolean'],
+            'due_soon_days' => ['required', 'integer', 'min:1', 'max:30'],
             'attachment_max_size_mb' => ['required', 'integer', 'min:1'],
             'attachment_max_files' => ['required', 'integer', 'min:1'],
         ]);
