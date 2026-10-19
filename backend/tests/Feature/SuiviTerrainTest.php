@@ -68,10 +68,12 @@ class SuiviTerrainTest extends TestCase
         $cumul = $this->acteur('PILOTE', $this->unite->id);
         Affectation::create(['user_id' => $cumul[0]->id, 'role_id' => $this->roleId('VALIDEUR_PRODUCTION'), 'unite_id' => $this->unite->id, 'actif' => true]);
 
-        $this->agir('ADMIN_FONCTIONNEL')->patchJson("/api/admin/validations/{$production->id}", ['valideur_id' => $cumul[0]->id, 'motif' => 'Congés'])->assertOk();
+        $this->agir('ADMIN_FONCTIONNEL')->postJson("/api/admin/validations/{$production->id}/partages", ['valideur_id' => $cumul[0]->id, 'motif' => 'Congés'])->assertOk();
         $this->agir('ADMIN_FONCTIONNEL')->patchJson("/api/admin/fiches/{$fiche->id}", ['pilote_id' => $cumul[0]->id, 'motif' => 'Nouveau pilote'])->assertOk();
 
-        $this->assertSame($valideurProduction->id, $production->refresh()->valideur_id);
+        $production->refresh();
+        $this->assertSame($valideurProduction->id, $production->valideur_id);
+        $this->assertFalse($production->estValideur($cumul[0]->id), 'Un pilote quitte les demandes partagées de sa fiche (B8).');
     }
 
     public function test_pilot_reschedules_an_action_or_changes_its_owner_with_a_reason(): void
@@ -136,13 +138,14 @@ class SuiviTerrainTest extends TestCase
         $this->assertTrue(NotificationInterne::where('user_id', $agent->id)->where('type', 'ACTION_ATTRIBUEE')->where('cible_id', $ajoutee->id)->exists());
     }
 
-    public function test_admin_reassigns_a_validation_whose_validator_is_unavailable(): void
+    public function test_admin_shares_a_validation_whose_validator_is_unavailable(): void
     {
         $fiche = $this->ficheEnValidationPlan();
         $production = $this->demande($fiche, 'VALIDEUR_PRODUCTION');
         [$absent] = $this->acteurs['VALIDEUR_PRODUCTION'];
         $remplacant = $this->acteur('VALIDEUR_PRODUCTION', null);
         [$agent] = $this->acteurs['AGENT'];
+        $url = "/api/admin/validations/{$production->id}/partages";
 
         $absent->update(['actif' => false]);
 
@@ -153,15 +156,99 @@ class SuiviTerrainTest extends TestCase
         $aTraiter = collect($this->agir('ADMIN_FONCTIONNEL')->getJson('/api/tableau-de-bord')->assertOk()->json('data.a_traiter'));
         $this->assertTrue($aTraiter->contains(fn ($item) => $item['type'] === 'reattribution' && $item['fiche_id'] === $fiche->id));
 
-        $this->agir('PILOTE')->patchJson("/api/admin/validations/{$production->id}", ['valideur_id' => $remplacant[0]->id])->assertForbidden();
-        $this->agir('ADMIN_FONCTIONNEL')->patchJson("/api/admin/validations/{$production->id}", ['valideur_id' => $agent->id])->assertUnprocessable();
+        $this->agir('PILOTE')->postJson($url, ['valideur_id' => $remplacant[0]->id, 'motif' => 'Absence'])->assertForbidden();
+        $this->agir('ADMIN_FONCTIONNEL')->postJson($url, ['valideur_id' => $remplacant[0]->id])->assertUnprocessable()->assertJsonValidationErrors('motif');
+        $this->agir('ADMIN_FONCTIONNEL')->postJson($url, ['valideur_id' => $agent->id, 'motif' => 'Absence'])->assertUnprocessable();
 
-        $this->agir('ADMIN_FONCTIONNEL')->patchJson("/api/admin/validations/{$production->id}", ['valideur_id' => $remplacant[0]->id, 'motif' => 'Départ du titulaire'])
-            ->assertOk()->assertJsonPath('data.valideur.id', $remplacant[0]->id)->assertJsonPath('data.valideur_indisponible', false);
+        $this->agir('ADMIN_FONCTIONNEL')->postJson($url, ['valideur_id' => $remplacant[0]->id, 'motif' => 'Départ du titulaire'])
+            ->assertOk()
+            ->assertJsonPath('data.valideur.id', $absent->id)
+            ->assertJsonPath('data.partages.0.id', $remplacant[0]->id)
+            ->assertJsonPath('data.valideur_indisponible', false);
 
         $this->assertTrue(NotificationInterne::where('user_id', $remplacant[0]->id)->where('type', 'DEMANDE_VALIDATION')->where('cible_id', $production->id)->exists());
-        $this->assertTrue(EvenementHistorique::where('fiche_id', $fiche->id)->where('type', 'REATTRIBUTION_VALIDATION')->exists());
+        $this->assertTrue(EvenementHistorique::where('fiche_id', $fiche->id)->where('type', 'PARTAGE_VALIDATION')->exists());
+        $this->agirComme($remplacant)->getJson('/api/validations')->assertOk()->assertJsonPath('data.0.id', $production->id);
         $this->agirComme($remplacant)->postJson("/api/validations/{$production->id}/decision", ['decision' => 'VALIDE'])->assertOk();
+
+        $production->refresh();
+        $this->assertSame($remplacant[0]->id, $production->valideur_id, 'Celui qui décide signe la demande.');
+        $this->assertTrue($production->estValideur($absent->id), 'Le valideur d’origine reste associé à la demande.');
+    }
+
+    public function test_shared_validation_stays_with_the_original_validator_who_can_still_decide(): void
+    {
+        $fiche = $this->ficheEnValidationPlan();
+        $production = $this->demande($fiche, 'VALIDEUR_PRODUCTION');
+        $titulaire = $this->acteurs['VALIDEUR_PRODUCTION'];
+        $renfort = $this->acteur('VALIDEUR_PRODUCTION', null);
+
+        $this->agir('ADMIN_FONCTIONNEL')->postJson("/api/admin/validations/{$production->id}/partages", ['valideur_id' => $renfort[0]->id, 'motif' => 'Arrêt maladie'])->assertOk();
+
+        $this->agirComme($titulaire)->getJson("/api/fiches/{$fiche->id}")->assertOk()
+            ->assertJsonPath('data.validations.0.partages.0.id', $renfort[0]->id);
+        $this->agirComme($renfort)->getJson("/api/fiches/{$fiche->id}")->assertOk();
+        $this->agirComme($titulaire)->postJson("/api/validations/{$production->id}/decision", ['decision' => 'VALIDE'])->assertOk();
+        $this->agirComme($renfort)->postJson("/api/validations/{$production->id}/decision", ['decision' => 'VALIDE'])->assertConflict();
+
+        $this->agir('ADMIN_FONCTIONNEL')->deleteJson("/api/admin/validations/{$production->id}/partages/{$renfort[0]->id}")->assertOk()
+            ->assertJsonPath('data.partages', []);
+    }
+
+    public function test_admin_shares_a_fiche_and_both_pilots_continue_it(): void
+    {
+        $fiche = $this->declarer();
+        $ids = $this->amenerEnRealisation($fiche);
+        $titulaire = $this->acteurs['PILOTE'];
+        $renfort = $this->acteur('PILOTE', $this->unite->id);
+        $url = "/api/admin/fiches/{$fiche->id}/copilotes";
+        $action = ActionA3::findOrFail($ids['action']);
+
+        $this->agirComme($renfort)->getJson("/api/fiches/{$fiche->id}")->assertNotFound();
+        $this->agir('PILOTE')->postJson($url, ['user_id' => $renfort[0]->id, 'motif' => 'Congé'])->assertForbidden();
+        $this->agir('ADMIN_FONCTIONNEL')->postJson($url, ['user_id' => $renfort[0]->id])->assertUnprocessable()->assertJsonValidationErrors('motif');
+        $this->agir('ADMIN_FONCTIONNEL')->postJson($url, ['user_id' => $titulaire[0]->id, 'motif' => 'Congé'])->assertUnprocessable();
+
+        $this->agir('ADMIN_FONCTIONNEL')->postJson($url, ['user_id' => $renfort[0]->id, 'motif' => 'Arrêt maladie du pilote'])
+            ->assertOk()
+            ->assertJsonPath('data.pilote.id', $titulaire[0]->id)
+            ->assertJsonPath('data.copilotes.0.id', $renfort[0]->id);
+        $this->assertTrue(EvenementHistorique::where('fiche_id', $fiche->id)->where('type', 'PARTAGE_FICHE')->where('commentaire', 'Arrêt maladie du pilote')->exists());
+        $this->assertTrue(NotificationInterne::where('user_id', $renfort[0]->id)->where('type', 'PARTAGE_FICHE')->exists());
+        $this->assertTrue(NotificationInterne::where('user_id', $titulaire[0]->id)->where('type', 'PARTAGE_FICHE')->exists());
+
+        // Le pilote associé poursuit la fiche, le titulaire voit ce qu'il a fait à son retour.
+        $this->agirComme($renfort)->getJson("/api/fiches/{$fiche->id}")->assertOk()
+            ->assertJsonPath('data.droits.est_pilote', true)
+            ->assertJsonPath('data.copilotes.0.id', $renfort[0]->id);
+        $this->agirComme($renfort)->patchJson("/api/actions/{$action->id}", ['echeance' => today()->addMonths(2)->toDateString(), 'motif' => 'Pièce en commande'])->assertOk();
+        $retour = $this->agirComme($titulaire)->getJson("/api/fiches/{$fiche->id}")->assertOk();
+        $this->assertSame(today()->addMonths(2)->toDateString(), $retour->json('data.actions.0.echeance'));
+        $this->agirComme($titulaire)->patchJson("/api/actions/{$action->id}", ['echeance' => today()->addMonths(3)->toDateString(), 'motif' => 'Retour de congé'])->assertOk();
+        $this->assertGreaterThanOrEqual(1, $this->agirComme($renfort)->getJson('/api/tableau-de-bord')->json('data.mes_fiches'));
+        $this->assertTrue(EvenementHistorique::where('fiche_id', $fiche->id)->where('type', 'REPORT_ECHEANCE')->where('user_id', $renfort[0]->id)->exists());
+
+        $this->agir('ADMIN_FONCTIONNEL')->deleteJson("{$url}/{$renfort[0]->id}")->assertOk()->assertJsonPath('data.copilotes', []);
+        $this->agirComme($renfort)->getJson("/api/fiches/{$fiche->id}")->assertNotFound();
+    }
+
+    public function test_sections_explain_why_they_are_locked(): void
+    {
+        $fiche = $this->declarer();
+        $this->amenerEnRealisation($fiche);
+
+        $pilote = $this->agir('PILOTE')->getJson("/api/fiches/{$fiche->id}")->assertOk()->json('data.droits.sections_etat');
+        $pilote = collect($pilote)->keyBy('numero');
+        $this->assertSame('fige', $pilote[1]['etat']);
+        $this->assertSame('editable', $pilote[7]['etat']);
+        $this->assertSame('a_venir', $pilote[8]['etat']);
+        $this->assertStringContainsString('Mesure des résultats', $pilote[8]['raison']);
+        $this->assertSame('auto', $pilote[12]['etat']);
+
+        $this->assertSame('lecture', $this->agir('DIRECTION')->getJson("/api/fiches/{$fiche->id}")->json('data.droits.sections_etat.0.etat'));
+
+        $this->transition($fiche, 'PILOTE', 'T12', 'Pompe indisponible')->assertOk();
+        $this->assertSame('fige', $this->agir('PILOTE')->getJson("/api/fiches/{$fiche->id}")->json('data.droits.sections_etat.6.etat'));
     }
 
     public function test_daily_reminders_announce_close_deadlines_and_available_controls_once(): void

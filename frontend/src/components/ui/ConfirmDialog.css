@@ -19,6 +19,12 @@
   box-shadow: var(--shadow-modal);
 }
 
+.confirm-dialog--wide {
+  width: min(100%, 760px);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+
 .confirm-dialog h2 {
   margin: 0;
   font-size: var(--text-lg);

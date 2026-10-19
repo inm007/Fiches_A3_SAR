@@ -8,7 +8,8 @@ import Icon from '../ui/Icon.jsx'
 import Modal from '../ui/Modal.jsx'
 import { TextArea } from '../ui/FormControls.jsx'
 import EtapeBadge from './EtapeBadge.jsx'
-import ReattributionValidations from './ReattributionValidations.jsx'
+import PartageFiche from './PartageFiche.jsx'
+import PartageValidations from './PartageValidations.jsx'
 import './AdminFicheModal.css'
 
 function assignmentIsCurrent(assignment) {
@@ -20,10 +21,13 @@ function assignmentIsCurrent(assignment) {
 
 /**
  * Administrateur fonctionnel : pilote (à toute étape avant la clôture, avec motif après
- * l'étape Ouvert), confidentialité et réattribution des validations en attente.
+ * l'étape Ouvert), partage de la fiche avec un second pilote, confidentialité et partage
+ * des validations en attente.
  * Le serveur (FicheAdminController) reste seul juge des droits et des valeurs autorisées.
  */
-function AdminFicheModal({ fiche, users, onClose, onSaved }) {
+const userLabel = (user) => `${user.prenom} ${user.nom} — ${user.identifiant}`
+
+function AdminFicheModal({ fiche, users, onClose, onSaved, onShared }) {
   const [piloteId, setPiloteId] = useState(fiche?.pilote ? String(fiche.pilote.id) : '')
   const [confidentialite, setConfidentialite] = useState(fiche?.confidentialite ?? 'NORMAL')
   const [motif, setMotif] = useState('')
@@ -113,7 +117,7 @@ function AdminFicheModal({ fiche, users, onClose, onSaved }) {
               />
               {motifRequis && (
                 <TextArea
-                  hint="Départ, mutation, absence longue… Le motif est inscrit dans l’historique."
+                  hint="Départ définitif, mutation… Le motif est inscrit dans l’historique. Pour une absence, partagez plutôt la fiche ci-dessous."
                   label="Motif du changement de pilote"
                   required
                   value={motif}
@@ -124,7 +128,16 @@ function AdminFicheModal({ fiche, users, onClose, onSaved }) {
           ) : (
             <p className="admin-fiche-form__note">Le pilote d’une fiche clôturée ne change plus.</p>
           )}
-          {['EN_VALIDATION_PLAN', 'EN_VALIDATION_CLOTURE', 'EN_ATTENTE'].includes(fiche.statut_etape) && <ReattributionValidations ficheId={fiche.id} />}
+          {piloteModifiable && fiche.pilote && (
+            <PartageFiche
+              candidats={eligiblePilots.map((user) => [String(user.id), userLabel(user)])}
+              copilotes={(fiche.copilotes ?? []).map((user) => ({ id: user.id, label: userLabel(user) }))}
+              ficheId={fiche.id}
+              pilote={{ id: fiche.pilote.id, label: userLabel(fiche.pilote) }}
+              onChange={(updated) => onShared?.(updated.data ?? updated)}
+            />
+          )}
+          {['EN_VALIDATION_PLAN', 'EN_VALIDATION_CLOTURE', 'EN_ATTENTE'].includes(fiche.statut_etape) && <PartageValidations ficheId={fiche.id} />}
           <p className="admin-fiche-form__note">
             <Icon name="info" size={16} />
             <span>Les autres données de la fiche restent en lecture seule.</span>

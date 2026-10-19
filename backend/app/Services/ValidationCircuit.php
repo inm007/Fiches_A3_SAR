@@ -85,7 +85,7 @@ class ValidationCircuit
             ->enCours()
             ->whereHas('role', fn ($query) => $query->where('code', $roleCode))
             ->whereHas('user', fn ($query) => $query->where('actif', true))
-            ->when($fiche->pilote_id !== null, fn ($query) => $query->where('user_id', '!=', $fiche->pilote_id))
+            ->when($fiche->pilotesIds() !== [], fn ($query) => $query->whereNotIn('user_id', $fiche->pilotesIds()))
             ->orderBy('id');
 
         return (clone $base)->where('unite_id', $fiche->unite_id)->pluck('user_id')
@@ -96,14 +96,60 @@ class ValidationCircuit
 
     /**
      * Une demande en attente dont le valideur n'est plus titulaire actif du rôle (compte
-     * désactivé, affectation terminée, devenu pilote) ne peut plus aboutir sans réattribution.
+     * désactivé, affectation terminée, devenu pilote) ne peut plus aboutir sans partage :
+     * aucun des valideurs de la demande n'est encore titulaire actif du rôle.
      */
     public function valideurIndisponible(Validation $validation, FicheA3 $fiche): bool
     {
-        $code = $validation->role()->value('code');
+        $titulaires = $this->titulaires($validation->role()->value('code'), $fiche);
 
-        return $validation->valideur_id === null
-            || ! $this->titulaires($code, $fiche)->contains($validation->valideur_id);
+        return collect($validation->valideursIds())->intersect($titulaires)->isEmpty();
+    }
+
+    /**
+     * Partage d'une demande en attente avec un autre titulaire du même rôle, par
+     * l'administrateur fonctionnel (absence, maladie, départ) : les deux valideurs voient
+     * la demande et le premier qui décide la traite. Le valideur d'origine la garde.
+     */
+    public function partager(Validation $validation, int $valideurId, ?int $auteurId, ?string $motif = null): Validation
+    {
+        return DB::transaction(function () use ($validation, $valideurId, $auteurId, $motif): Validation {
+            /** @var Validation $validation */
+            $validation = Validation::query()->whereKey($validation->id)->lockForUpdate()->firstOrFail();
+            $fiche = FicheA3::query()->whereKey($validation->fiche_id)->firstOrFail();
+
+            if ($validation->decision !== 'EN_ATTENTE') {
+                throw RegleMetierException::conflit('Cette demande n’est plus en attente.');
+            }
+            if (! $this->titulaires($validation->role()->value('code'), $fiche)->contains($valideurId)) {
+                throw RegleMetierException::conditionsManquantes('Partage impossible.', ['Le valideur associé doit être titulaire actif du rôle, dans l’unité de la fiche ou au périmètre global, et ne pas être pilote de la fiche.']);
+            }
+            if ($validation->estValideur($valideurId)) {
+                return $validation;
+            }
+
+            $validation->partages()->attach($valideurId, ['ajoute_par' => $auteurId, 'motif' => $motif ?: null]);
+            $this->history->log($fiche, $auteurId, 'PARTAGE_VALIDATION', 'validation_'.$validation->id, null, $valideurId, $motif ?: null);
+
+            return $validation->refresh();
+        });
+    }
+
+    /**
+     * Retire un valideur associé d'une demande partagée.
+     */
+    public function retirerPartage(Validation $validation, int $valideurId, ?int $auteurId): Validation
+    {
+        return DB::transaction(function () use ($validation, $valideurId, $auteurId): Validation {
+            /** @var Validation $validation */
+            $validation = Validation::query()->whereKey($validation->id)->lockForUpdate()->firstOrFail();
+
+            if ($validation->partages()->detach($valideurId) > 0) {
+                $this->history->log($validation->fiche, $auteurId, 'FIN_PARTAGE_VALIDATION', 'validation_'.$validation->id, $valideurId, null, null);
+            }
+
+            return $validation->refresh();
+        });
     }
 
     /**
@@ -130,6 +176,7 @@ class ValidationCircuit
 
             $ancien = $validation->valideur_id;
             $validation->update(['valideur_id' => $valideurId]);
+            $validation->partages()->detach($valideurId);
             $this->history->log($fiche, $auteurId, 'REATTRIBUTION_VALIDATION', 'validation_'.$validation->id, $ancien, $valideurId, $motif ?: null);
 
             return $validation->refresh();
@@ -244,12 +291,12 @@ class ValidationCircuit
     {
         return Validation::query()
             ->with(['fiche:id,numero_a3,titre,statut_etape,pilote_id,unite_id,sans_gain_chiffre', 'role:id,code,libelle'])
-            ->where('valideur_id', $profile->userId())
+            ->pourValideur($profile->userId())
             ->where('role_id', $profile->roleId())
             ->where('decision', 'EN_ATTENTE')
             ->orderBy('demandee_le')
             ->get()
-            ->filter(fn (Validation $validation) => $validation->fiche->pilote_id !== $profile->userId()
+            ->filter(fn (Validation $validation) => ! $validation->fiche->estPilote($profile->userId())
                 && $this->estActionnable($validation, $validation->fiche))
             ->values();
     }
@@ -338,7 +385,7 @@ class ValidationCircuit
             $demande = Validation::query()
                 ->where('fiche_id', $fiche->id)
                 ->where('porte', 2)
-                ->where('valideur_id', $profile->userId())
+                ->pourValideur($profile->userId())
                 ->where('decision', 'EN_ATTENTE')
                 ->first();
 

@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Enums\StatutEtape;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -93,6 +95,47 @@ class FicheA3 extends Model
     public function pilote(): BelongsTo
     {
         return $this->belongsTo(User::class, 'pilote_id');
+    }
+
+    /**
+     * Pilotes associés : la fiche est partagée, chacun voit et poursuit le travail de l'autre.
+     */
+    public function copilotes(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'fiche_copilotes', 'fiche_id', 'user_id')
+            ->withPivot(['ajoute_par', 'motif'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Pilote désigné puis pilotes associés.
+     *
+     * @return array<int, int>
+     */
+    public function pilotesIds(): array
+    {
+        return collect([$this->pilote_id])
+            ->merge($this->copilotes->pluck('id'))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function estPilote(?int $userId): bool
+    {
+        return $userId !== null && in_array($userId, $this->pilotesIds(), true);
+    }
+
+    /**
+     * Fiches pilotées par l'utilisateur, seul ou en partage.
+     *
+     * @param  Builder<FicheA3>  $query
+     */
+    public function scopePilotePar(Builder $query, int $userId): void
+    {
+        $query->where(fn (Builder $q) => $q->where('pilote_id', $userId)
+            ->orWhereHas('copilotes', fn (Builder $c) => $c->where('users.id', $userId)));
     }
 
     public function sponsor(): BelongsTo

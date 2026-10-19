@@ -7,7 +7,8 @@ import { TRANSITIONS } from '../../utils/constants.js'
 import { toast } from '../../utils/toast.js'
 import { refreshCounters } from '../../hooks/useCounters.js'
 import { peopleOptions } from './sections/options.js'
-import ReattributionValidations from './ReattributionValidations.jsx'
+import PartageFiche from './PartageFiche.jsx'
+import PartageValidations from './PartageValidations.jsx'
 import './WorkflowActions.css'
 
 /**
@@ -59,9 +60,14 @@ function WorkflowActions({ fiche, options, onChange, onError }) {
 
   return (
     <div aria-label="Actions sur la fiche" className="workflow-actions">
-      {droits.peut_designer_pilote && <Button type="button" onClick={() => setDialog({ type: 'pilote' })}>{fiche.pilote ? 'Changer le pilote' : 'Désigner le pilote'}</Button>}
+      {droits.peut_designer_pilote && fiche.pilote && (
+        <Button icon="users" type="button" onClick={() => setDialog({ type: 'partage' })}>Partager la fiche</Button>
+      )}
+      {droits.peut_designer_pilote && (
+        <Button type="button" variant={fiche.pilote ? 'secondary' : 'primary'} onClick={() => setDialog({ type: 'pilote' })}>{fiche.pilote ? 'Changer le pilote' : 'Désigner le pilote'}</Button>
+      )}
       {droits.peut_designer_pilote && fiche.validations?.some((validation) => validation.decision === 'EN_ATTENTE') && (
-        <Button type="button" variant="secondary" onClick={() => setDialog({ type: 'reattribution' })}>Réattribuer une validation</Button>
+        <Button type="button" variant="secondary" onClick={() => setDialog({ type: 'partage-validation' })}>Partager une validation</Button>
       )}
       {droits.transitions.map((code) => (
         <Button disabled={busy} key={code} type="button" variant={TRANSITIONS[code].primary ? 'primary' : 'secondary'} onClick={() => startTransition(code)}>
@@ -106,20 +112,41 @@ function WorkflowActions({ fiche, options, onChange, onError }) {
           onChange={setPilote}
         />
         {fiche.statut_etape !== 'OUVERT' && (
-          <TextArea hint="Départ, mutation, absence longue… Inscrit dans l’historique." label="Motif du changement" required value={motif} onChange={setMotif} />
+          <TextArea hint="Départ définitif, mutation… Inscrit dans l’historique. Pour une absence, préférez « Partager la fiche »." label="Motif du changement" required value={motif} onChange={setMotif} />
         )}
       </ConfirmDialog>
 
       <ConfirmDialog
         confirmLabel="Fermer"
-        open={dialog?.type === 'reattribution'}
-        title="Réattribuer une validation"
+        hideCancel
+        open={dialog?.type === 'partage'}
+        wide
+        title="Partager la fiche"
         variant="primary"
         onCancel={() => setDialog(null)}
         onConfirm={async () => { setDialog(null); onChange(await ficheService.get(fiche.id)) }}
       >
-        <p>Une demande bloquée par une absence ou un départ passe à un autre titulaire du même rôle.</p>
-        <ReattributionValidations ficheId={fiche.id} />
+        <PartageFiche
+          candidats={peopleOptions(options?.pilotes)}
+          copilotes={(fiche.copilotes ?? []).map((person) => ({ id: person.id, label: person.nom }))}
+          ficheId={fiche.id}
+          pilote={fiche.pilote ? { id: fiche.pilote.id, label: fiche.pilote.nom } : null}
+          onChange={async () => onChange(await ficheService.get(fiche.id))}
+        />
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        confirmLabel="Fermer"
+        hideCancel
+        open={dialog?.type === 'partage-validation'}
+        wide
+        title="Partager une validation"
+        variant="primary"
+        onCancel={() => setDialog(null)}
+        onConfirm={async () => { setDialog(null); onChange(await ficheService.get(fiche.id)) }}
+      >
+        <p>Quand un valideur est absent, malade ou parti, partagez sa demande avec un autre titulaire du même rôle. Les deux la voient ; le premier qui décide la traite.</p>
+        <PartageValidations ficheId={fiche.id} />
       </ConfirmDialog>
 
       <ConfirmDialog

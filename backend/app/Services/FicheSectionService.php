@@ -71,6 +71,59 @@ class FicheSectionService
     }
 
     /**
+     * État de chaque section pour le profil actif, avec la raison affichée à l'écran :
+     * modifiable, figée (étape passée, validation en cours, attente, clôture), à venir
+     * (s'ouvre à une étape ultérieure), automatique (signatures) ou lecture seule
+     * (profil qui ne rédige pas la fiche).
+     *
+     * @return array<int, array{numero: int, etat: string, raison: string|null}>
+     */
+    public function etatsSections(FicheA3 $fiche, ActiveProfile $profile): array
+    {
+        $editables = $this->sectionsEditables($fiche, $profile);
+        $estPilote = $profile->estPiloteDe($fiche);
+        $etape = $fiche->etape();
+        $ordre = [
+            StatutEtape::Ouvert, StatutEtape::EnCours, StatutEtape::EnValidationPlan, StatutEtape::RealisationActions,
+            StatutEtape::MesureResultats, StatutEtape::VerificationMaintien, StatutEtape::EnValidationCloture, StatutEtape::Cloture,
+        ];
+        $position = array_search($etape, $ordre, true);
+
+        $etats = [];
+        foreach (range(1, 12) as $section) {
+            $etats[] = ['numero' => $section, ...match (true) {
+                $section === 12 => ['etat' => 'auto', 'raison' => 'Remplie par les décisions des valideurs.'],
+                in_array($section, $editables, true) => ['etat' => 'editable', 'raison' => null],
+                ! $estPilote => ['etat' => 'lecture', 'raison' => 'Seul le pilote de la fiche modifie cette section.'],
+                $etape === StatutEtape::Cloture => ['etat' => 'fige', 'raison' => 'Fiche clôturée : plus aucune modification.'],
+                $etape === StatutEtape::EnAttente => ['etat' => 'fige', 'raison' => 'Fiche en attente : levez le blocage pour reprendre la saisie.'],
+                in_array($etape, [StatutEtape::EnValidationPlan, StatutEtape::EnValidationCloture], true) => ['etat' => 'fige', 'raison' => 'En validation : la saisie reprend après la décision des valideurs.'],
+                default => $this->etatHorsEtape($section, $ordre, $position),
+            }];
+        }
+
+        return $etats;
+    }
+
+    /**
+     * @param  array<int, StatutEtape>  $ordre
+     * @return array{etat: string, raison: string}
+     */
+    private function etatHorsEtape(int $section, array $ordre, int|false $position): array
+    {
+        $etapes = self::etapesEditables()[$section];
+        $premiere = min(array_map(fn (StatutEtape $etape) => array_search($etape, $ordre, true), $etapes));
+
+        if ($position === false || $premiere > $position) {
+            return ['etat' => 'a_venir', 'raison' => 'S’ouvre à l’étape « '.$ordre[$premiere]->libelle().' ».'];
+        }
+
+        $libelles = implode(' » et « ', array_map(fn (StatutEtape $etape) => $etape->libelle(), $etapes));
+
+        return ['etat' => 'fige', 'raison' => 'Figée : modifiable seulement à l’étape « '.$libelles.' ». Une nouvelle boucle la rouvre.'];
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      */
     public function enregistrer(FicheA3 $fiche, int $section, array $data, ActiveProfile $profile): FicheA3

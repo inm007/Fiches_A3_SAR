@@ -96,11 +96,11 @@ class FicheWorkflow
             $validation = Validation::query()->whereKey($validation->id)->lockForUpdate()->firstOrFail();
             $userId = $profile->userId();
 
-            if ($validation->valideur_id !== $userId || $validation->role_id !== $profile->roleId()) {
+            if (! $validation->estValideur($userId) || $validation->role_id !== $profile->roleId()) {
                 throw RegleMetierException::interdit('Cette demande de validation ne vous est pas adressée sur le profil actif.');
             }
 
-            if ($fiche->pilote_id === $userId) {
+            if ($fiche->estPilote($userId)) {
                 throw RegleMetierException::conditionsManquantes('Décision refusée.', ['B8 : le pilote ne valide pas sa propre fiche.']);
             }
 
@@ -118,6 +118,15 @@ class FicheWorkflow
                 if ($enAttente > 0) {
                     throw RegleMetierException::conditionsManquantes('Approbation impossible.', ["{$enAttente} gain(s) restent à valider ou refuser."]);
                 }
+            }
+
+            // Demande partagée : celui qui décide signe ; l'autre valideur reste associé.
+            if ($validation->valideur_id !== $userId) {
+                $validation->partages()->detach($userId);
+                if ($validation->valideur_id !== null) {
+                    $validation->partages()->syncWithoutDetaching([$validation->valideur_id => ['motif' => 'Valideur d’origine de la demande']]);
+                }
+                $validation->valideur_id = $userId;
             }
 
             $validation->update([
@@ -278,7 +287,7 @@ class FicheWorkflow
                 && $this->circuit->estActionnable($autre, $fiche));
 
         $this->notifierDemandes($fiche, $suivantes, $validation->porte === 1 ? 'Validation du plan demandée' : 'Validation de la clôture demandée');
-        $this->notifications->notify([$fiche->pilote_id], $fiche, 'APPROBATION', 'Approbation : '.$validation->role()->value('libelle'), 'validation', $validation->id);
+        $this->notifications->notify($fiche->pilotesIds(), $fiche, 'APPROBATION', 'Approbation : '.$validation->role()->value('libelle'), 'validation', $validation->id);
         $this->avancerSiPorteApprouvee($fiche, $validation->porte);
     }
 
@@ -296,7 +305,7 @@ class FicheWorkflow
             $this->changerEtape($fiche, $cible, $userId, 'T10 — Clôture refusée', $commentaire);
         }
 
-        $this->notifications->notify([$fiche->pilote_id], $fiche, 'REFUS', 'Refus : '.$commentaire, 'validation', $validation->id, $userId);
+        $this->notifications->notify($fiche->pilotesIds(), $fiche, 'REFUS', 'Refus : '.$commentaire, 'validation', $validation->id, $userId);
     }
 
     /**
@@ -331,7 +340,7 @@ class FicheWorkflow
 
         $this->history->log($fiche, $auteurId, 'CHANGEMENT_STATUT', 'statut_etape', $ancienne, $nouvelle->value, trim($libelle.($commentaire ? ' : '.$commentaire : '')));
         $this->notifications->notify(
-            [$fiche->pilote_id, $fiche->declarant_id],
+            [...$fiche->pilotesIds(), $fiche->declarant_id],
             $fiche,
             'CHANGEMENT_STATUT',
             'La fiche passe à l’étape « '.$nouvelle->libelle().' ».',

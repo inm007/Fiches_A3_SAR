@@ -29,7 +29,7 @@ class FicheVisibility
             $role === 'DIRECTION', $role === 'ADMIN_FONCTIONNEL' => $query,
             $role === 'AGENT' => $query->where(fn (Builder $q) => $this->agentScope($q, $userId)),
             $role === 'PILOTE' => $query->where(function (Builder $q) use ($userId): void {
-                $q->where('pilote_id', $userId)
+                $q->pilotePar($userId)
                     ->orWhere(fn (Builder $normal) => $normal
                         ->where('confidentialite', 'NORMAL')
                         ->where(fn (Builder $agent) => $this->agentScope($agent, $userId)));
@@ -40,7 +40,7 @@ class FicheVisibility
                     ->where('confidentialite', 'NORMAL')
                     ->whereHas('gains'))
                     ->orWhereHas('gains', fn (Builder $gain) => $gain->where('statut', 'PROPOSE'))
-                    ->orWhereHas('validations', fn (Builder $validation) => $validation->where('valideur_id', $userId));
+                    ->orWhereHas('validations', fn (Builder $validation) => $validation->pourValideur($userId));
             }),
             default => $query->whereRaw('1 = 0'),
         };
@@ -80,7 +80,7 @@ class FicheVisibility
                     ->when($uniteId !== null, fn (Builder $scoped) => $scoped->where('unite_id', $uniteId))
                     ->when(! $isProduction, fn (Builder $domain) => $domain
                         ->whereHas('domaines', fn (Builder $d) => $d->where('valideur_role_id', $roleId)));
-            })->orWhereHas('validations', fn (Builder $validation) => $validation->where('valideur_id', $userId));
+            })->orWhereHas('validations', fn (Builder $validation) => $validation->pourValideur($userId));
         });
     }
 }

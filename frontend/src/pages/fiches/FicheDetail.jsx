@@ -128,7 +128,7 @@ function FicheDetail() {
         {tab === 'fiche' ? (
           <div className="fiche-detail-page__body">
             <aside className="fiche-detail-page__stepper">
-              <SectionStepper active={section} completude={fiche.completude} editables={fiche.droits.sections_editables} onSelect={goToSection} />
+              <SectionStepper active={section} completude={Object.values(fiche.completude ?? {})} etats={fiche.droits.sections_etat} onSelect={goToSection} />
             </aside>
             <SectionEditor
               fiche={fiche}

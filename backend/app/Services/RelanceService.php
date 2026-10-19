@@ -109,7 +109,7 @@ class RelanceService
         foreach ($validations as $validation) {
             if ($this->validationEnAttente($validation, $validation->fiche)
                 && $this->rappelDu($validation, $validation->demandee_le?->copy()->addDays($intervalle), $intervalle)
-                && $this->aAcces($validation->valideur_id, $validation->role_id)
+                && collect($validation->valideursIds())->contains(fn (int $id) => $this->aAcces($id, $validation->role_id))
                 && $this->enregistrer($validation, $validation->fiche, 'AUTOMATIQUE', null) !== null) {
                 $creees++;
             }
@@ -173,12 +173,13 @@ class RelanceService
                 ->where('cible_type', 'controle')
                 ->where('cible_id', $controle->id)
                 ->exists();
-            if ($dejaPrevenu || ! $this->aAcces($fiche->pilote_id)) {
+            $pilotes = array_filter($fiche->pilotesIds(), fn (int $id) => $this->aAcces($id));
+            if ($dejaPrevenu || $pilotes === []) {
                 continue;
             }
 
             $message = 'Rappel : contrôle '.Controle::nomJalon($controle->jalon).' disponible pour l’action « '.str($controle->action->description)->limit(50).' ».';
-            $this->notifications->notify([$fiche->pilote_id], $fiche, 'CONTROLE_DISPONIBLE', $message, 'controle', $controle->id);
+            $this->notifications->notify($pilotes, $fiche, 'CONTROLE_DISPONIBLE', $message, 'controle', $controle->id);
             $envoyes++;
         }
 
@@ -232,8 +233,8 @@ class RelanceService
         }
 
         [$destinataire, $copies, $message] = $cible instanceof ActionA3
-            ? [$cible->responsable_id, [$fiche->pilote_id], 'Relance : action « '.str($cible->description)->limit(50).' » en retard (échéance du '.$cible->echeance->format('d/m/Y').').']
-            : [$cible->valideur_id, [], 'Relance : validation « '.$cible->role()->value('libelle').' » en attente depuis le '.$cible->demandee_le->format('d/m/Y').'.'];
+            ? [$cible->responsable_id, $fiche->pilotesIds(), 'Relance : action « '.str($cible->description)->limit(50).' » en retard (échéance du '.$cible->echeance->format('d/m/Y').').']
+            : [$cible->valideur_id, array_slice($cible->valideursIds(), 1), 'Relance : validation « '.$cible->role()->value('libelle').' » en attente depuis le '.$cible->demandee_le->format('d/m/Y').'.'];
 
         try {
             return DB::transaction(function () use ($cible, $fiche, $mode, $auteurId, $destinataire, $copies, $message): Relance {

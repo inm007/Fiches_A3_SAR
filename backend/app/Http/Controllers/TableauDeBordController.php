@@ -74,18 +74,18 @@ class TableauDeBordController extends Controller
             'fiches_ouvertes' => (int) $parEtape->except([StatutEtape::Cloture->value])->sum(),
             'fiches_en_retard' => $visibles()->where('statut_etape', '!=', StatutEtape::Cloture->value)->whereDate('date_cible', '<', today())->count(),
             'fiches_sans_pilote' => $visibles()->whereNull('pilote_id')->where('statut_etape', StatutEtape::Ouvert->value)->count(),
-            'mes_fiches' => $visibles()->where(fn (Builder $q) => $q->where('pilote_id', $userId)->orWhere('declarant_id', $userId))->count(),
+            'mes_fiches' => $visibles()->where(fn (Builder $q) => $q->pilotePar($userId)->orWhere('declarant_id', $userId))->count(),
             'actions_en_retard' => (clone $actionsOuvertes)->whereDate('echeance', '<', today())->count(),
             'mes_actions_a_faire' => (clone $actionsOuvertes)->where('responsable_id', $userId)->count(),
             'mes_actions_en_retard' => (clone $actionsOuvertes)->where('responsable_id', $userId)->whereDate('echeance', '<', today())->count(),
             'validations_a_traiter' => $validations->count(),
             'plus_ancienne_demande_jours' => $validations->isEmpty() ? null : (int) $validations->first()->demandee_le->startOfDay()->diffInDays(today()),
             'validations_en_attente_sur_mes_fiches' => Validation::query()->where('decision', 'EN_ATTENTE')
-                ->whereHas('fiche', fn (Builder $q) => $q->where('pilote_id', $userId))->count(),
+                ->whereHas('fiche', fn (Builder $q) => $q->pilotePar($userId))->count(),
             'decisions_recentes' => Validation::query()->where('valideur_id', $userId)->whereIn('decision', ['VALIDE', 'REFUSE'])
                 ->where('decidee_le', '>=', now()->subDays(30))->count(),
             'controles_disponibles' => Controle::query()->whereNull('resultat')->whereDate('date_echeance', '<=', today())
-                ->whereHas('action.fiche', fn (Builder $q) => $q->where('pilote_id', $userId))->count(),
+                ->whereHas('action.fiche', fn (Builder $q) => $q->pilotePar($userId))->count(),
             'gains_a_valider' => $visibles()->where('statut_etape', StatutEtape::EnValidationCloture->value)->whereHas('gains', fn (Builder $q) => $q->where('statut', 'PROPOSE'))->count(),
             'gains_valides_annee' => (int) Gain::query()->whereIn('fiche_id', $visibleIds)->where('statut', 'VALIDE')
                 ->whereYear('date_validation', $annee)->sum('montant_annuel'),
@@ -205,7 +205,7 @@ class TableauDeBordController extends Controller
             ->whereIn('fiche_id', $visibles()->select('id'))
             ->whereNotIn('statut', StatutAction::terminees())
             ->whereDate('echeance', '<', today())
-            ->where(fn (Builder $q) => $q->where('responsable_id', $userId)->orWhereHas('fiche', fn (Builder $f) => $f->where('pilote_id', $userId)))
+            ->where(fn (Builder $q) => $q->where('responsable_id', $userId)->orWhereHas('fiche', fn (Builder $f) => $f->pilotePar($userId)))
             ->orderBy('echeance')
             ->limit(5)
             ->get()
@@ -221,7 +221,7 @@ class TableauDeBordController extends Controller
             ->with('action.fiche:id,numero_a3')
             ->whereNull('resultat')
             ->whereDate('date_echeance', '<=', today())
-            ->whereHas('action.fiche', fn (Builder $q) => $q->where('pilote_id', $userId))
+            ->whereHas('action.fiche', fn (Builder $q) => $q->pilotePar($userId))
             ->orderBy('date_echeance')
             ->limit(5)
             ->get()
