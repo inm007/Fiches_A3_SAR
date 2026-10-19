@@ -27,8 +27,8 @@ return new class extends Migration
             $table->index(['valideur_id', 'decision']);
         });
 
-        DB::statement("ALTER TABLE validations ADD CONSTRAINT validations_porte_check CHECK (porte IN (1, 2))");
-        DB::statement("ALTER TABLE validations ADD CONSTRAINT validations_decision_check CHECK (decision IN ('EN_ATTENTE', 'VALIDE', 'REFUSE'))");
+        DB::statement('ALTER TABLE validations ADD CONSTRAINT validations_porte_check CHECK (porte IN (1, 2))');
+        DB::statement("ALTER TABLE validations ADD CONSTRAINT validations_decision_check CHECK (decision IN ('EN_ATTENTE', 'VALIDE', 'REFUSE', 'ANNULE'))");
     }
 
     public function down(): void

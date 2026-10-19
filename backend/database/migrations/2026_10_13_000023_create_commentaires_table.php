@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -19,6 +20,8 @@ return new class extends Migration
 
             $table->index(['contexte', 'objet_id']);
         });
+
+        DB::statement("ALTER TABLE commentaires ADD CONSTRAINT commentaires_contexte_check CHECK (contexte IN ('FICHE', 'VALIDATION', 'ACTION'))");
     }
 
     public function down(): void

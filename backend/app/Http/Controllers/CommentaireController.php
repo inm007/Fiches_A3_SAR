@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\RegleMetierException;
+use App\Http\Controllers\Concerns\ResolvesVisibleFiche;
 use App\Models\Commentaire;
 use App\Models\FicheA3;
 use App\Services\ActiveProfile;

@@ -37,19 +37,6 @@ class ReferenceListsSeeder extends Seeder
                 'description' => 'Catégories d’analyse des causes.',
                 'values' => ['Main-d’œuvre', 'Matière', 'Matériel', 'Méthode', 'Milieu', 'Mesure', 'Autres'],
             ],
-            'domaine' => [
-                'libelle' => 'Domaines',
-                'description' => 'Domaines concernés par les fiches.',
-                'values' => [
-                    'QHSE' => 'QHSE',
-                    'PROCEDE' => 'Procédé',
-                    'FIABILITE' => 'Fiabilité',
-                    'INTEGRITE' => 'Intégrité',
-                    'PRODUCTION' => 'Production / Exploitation',
-                    'SURETE_CYBERSECURITE' => 'Sûreté / Cybersécurité',
-                    'AUTRES' => 'Autres',
-                ],
-            ],
             'type_action' => [
                 'libelle' => 'Types d’action',
                 'description' => 'Valeurs provisoires, à valider avec l’amélioration continue.',

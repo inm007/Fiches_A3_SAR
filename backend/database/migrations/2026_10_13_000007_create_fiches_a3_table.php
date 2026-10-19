@@ -36,6 +36,16 @@ return new class extends Migration
             $table->unsignedBigInteger('cout_mise_en_oeuvre_b')->default(0);
             $table->boolean('sans_gain_chiffre')->default(false);
             $table->string('objectif_atteint', 20)->nullable();
+            $table->text('contexte')->nullable();
+            $table->unsignedBigInteger('impact_financier_estime')->nullable();
+            $table->text('objectif_smart')->nullable();
+            $table->text('perimetre')->nullable();
+            $table->text('resultats_attendus')->nullable();
+            $table->string('methode_analyse', 50)->nullable();
+            $table->string('methode_precision')->nullable();
+            $table->text('ecart_objectif')->nullable();
+            $table->string('etape_avant_attente', 50)->nullable();
+            $table->string('motif_attente')->nullable();
             $table->date('date_cloture')->nullable();
             $table->boolean('actif')->default(true);
             $table->timestampsTz();
@@ -51,6 +61,7 @@ return new class extends Migration
         DB::statement("ALTER TABLE fiches_a3 ADD CONSTRAINT fiches_a3_statut_etape_check CHECK (statut_etape IN ('OUVERT', 'EN_COURS', 'EN_VALIDATION_PLAN', 'REALISATION_ACTIONS', 'MESURE_RESULTATS', 'VERIFICATION_MAINTIEN', 'EN_VALIDATION_CLOTURE', 'EN_ATTENTE', 'CLOTURE'))");
         DB::statement("ALTER TABLE fiches_a3 ADD CONSTRAINT fiches_a3_confidentialite_check CHECK (confidentialite IN ('NORMAL', 'RESTREINT'))");
         DB::statement("ALTER TABLE fiches_a3 ADD CONSTRAINT fiches_a3_objectif_atteint_check CHECK (objectif_atteint IS NULL OR objectif_atteint IN ('OUI', 'PARTIELLEMENT', 'NON'))");
+        DB::statement("ALTER TABLE fiches_a3 ADD CONSTRAINT fiches_a3_etape_avant_attente_check CHECK (etape_avant_attente IS NULL OR etape_avant_attente IN ('OUVERT', 'EN_COURS', 'EN_VALIDATION_PLAN', 'REALISATION_ACTIONS', 'MESURE_RESULTATS', 'VERIFICATION_MAINTIEN', 'EN_VALIDATION_CLOTURE'))");
     }
 
     /**

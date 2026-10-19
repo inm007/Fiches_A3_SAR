@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ResolvesVisibleFiche;
 use App\Models\ActionA3;
 use App\Models\FicheA3;
 use App\Models\PieceJointe;

@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -26,6 +27,7 @@ return new class extends Migration
         });
 
         DB::statement("ALTER TABLE gains ADD CONSTRAINT gains_statut_check CHECK (statut IN ('PROPOSE', 'VALIDE', 'REFUSE'))");
+        DB::statement("ALTER TABLE gains ADD CONSTRAINT gains_categorie_check CHECK (categorie IN ('PRODUCTION_RECUPEREE', 'ENERGIE_ECONOMISEE', 'MAINTENANCE_EVITEE', 'NON_QUALITE_EVITEE', 'AUTRES'))");
     }
 
     public function down(): void

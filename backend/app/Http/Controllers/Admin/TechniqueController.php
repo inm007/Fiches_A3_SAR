@@ -1,30 +1,28 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Concerns\PagineEtRecherche;
+use App\Http\Controllers\Controller;
 use App\Models\JournalAdministration;
-use App\Services\TechnicalSettingsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
+/**
+ * Écran de l'administrateur technique (routes /api/technique) : état de la configuration
+ * (lue dans .env et config/a3.php) et journal d'administration, en lecture seule.
+ */
 class TechniqueController extends Controller
 {
     use PagineEtRecherche;
 
-    public function __construct(
-        protected TechnicalSettingsService $settingsService
-    ) {}
-
     public function index(): JsonResponse
     {
-        return response()->json([
-            'data' => [
-                ...$this->settingsService->overview(),
-                'logs' => $this->settingsService->getTechnicalLogs(),
-            ],
-        ]);
+        return response()->json(['data' => [
+            'auth_provider' => (string) config('a3.auth_provider'),
+            'sap_enabled' => (bool) config('a3.sap_enabled'),
+            'mail_mailer' => (string) config('mail.default'),
+        ]]);
     }
 
     public function logs(Request $request): JsonResponse
@@ -59,22 +57,5 @@ class TechniqueController extends Controller
                 'operations' => JournalAdministration::query()->distinct()->orderBy('operation')->pluck('operation'),
             ]),
         ]);
-    }
-
-    public function updateSetting(Request $request): JsonResponse
-    {
-        $request->validate([
-            'cle' => ['required', 'string', Rule::in(array_keys(TechnicalSettingsService::SMTP_RULES))],
-        ]);
-
-        $key = $request->string('cle')->toString();
-        $validated = $request->validate([
-            'valeur' => TechnicalSettingsService::SMTP_RULES[$key],
-        ]);
-
-        $value = $validated['valeur'] ?? null;
-        $this->settingsService->updateSetting($request->user(), $key, $value === null ? null : (string) $value);
-
-        return response()->json(['message' => 'Paramètre mis à jour.']);
     }
 }
