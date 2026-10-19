@@ -10,9 +10,12 @@ class Equipement extends Model
 {
     protected $table = 'equipements';
 
-    protected $casts = [
-        'actif' => 'boolean',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'actif' => 'boolean',
+        ];
+    }
 
     protected $fillable = [
         'code',

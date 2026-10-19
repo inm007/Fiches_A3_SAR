@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -26,6 +26,14 @@ class User extends Authenticatable
             'actif' => 'boolean',
             'derniere_connexion' => 'datetime',
         ];
+    }
+
+    /**
+     * « Prénom Nom », tel qu'affiché dans les listes, l'historique et les commentaires.
+     */
+    protected function nomComplet(): Attribute
+    {
+        return Attribute::get(fn (): string => trim($this->prenom.' '.$this->nom));
     }
 
     public function affectations(): HasMany

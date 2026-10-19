@@ -17,10 +17,13 @@ class FicheA3Mesure extends Model
         'periode_verification',
     ];
 
-    protected $casts = [
-        'valeur' => 'decimal:4',
-        'date_mesure' => 'date',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'valeur' => 'decimal:4',
+            'date_mesure' => 'date',
+        ];
+    }
 
     public function indicateur(): BelongsTo
     {

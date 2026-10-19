@@ -410,7 +410,7 @@ class ReglesMetierTest extends TestCase
         $this->section($fiche, 6, ['actions' => [['cause_id' => $ids['cause'] + 100000, 'description' => 'x', 'type_action' => 'CORRECTIVE', 'responsable_id' => $this->acteurs['PILOTE'][0]->id, 'echeance' => today()->toDateString()]]])
             ->assertUnprocessable()->assertJsonFragment(['Chaque action est rattachée à une cause de la section 5.']);
         $this->section($fiche, 1, ['titre' => 'T', 'unite_id' => $this->unite->id, 'origine_id' => $this->valeur('origine', 'AUTRE')])->assertUnprocessable()
-            ->assertJsonFragment(['Préciser l’origine « Autre ».']);
+            ->assertJsonFragment(['Précisez l’origine « Autre ».']);
         $this->section($fiche, 3, ['indicateurs' => [['id' => 999999, 'libelle' => 'x', 'unite_mesure' => 'u', 'sens' => 'hausse']]])->assertUnprocessable();
     }
 

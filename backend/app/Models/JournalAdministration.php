@@ -19,10 +19,13 @@ class JournalAdministration extends Model
         'created_at',
     ];
 
-    protected $casts = [
-        'detail' => 'array',
-        'created_at' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'detail' => 'array',
+            'created_at' => 'datetime',
+        ];
+    }
 
     public function auteur(): BelongsTo
     {

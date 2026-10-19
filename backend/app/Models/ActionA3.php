@@ -26,11 +26,14 @@ class ActionA3 extends Model
         'statut_avant_blocage',
     ];
 
-    protected $casts = [
-        'echeance' => 'date',
-        'date_realisation' => 'date',
-        'cout_estime' => 'integer',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'echeance' => 'date',
+            'date_realisation' => 'date',
+            'cout_estime' => 'integer',
+        ];
+    }
 
     public function fiche(): BelongsTo
     {

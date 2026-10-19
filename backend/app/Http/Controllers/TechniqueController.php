@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\TechnicalSettingsService;
+use App\Http\Controllers\Concerns\PagineEtRecherche;
 use App\Models\JournalAdministration;
+use App\Services\TechnicalSettingsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class TechniqueController extends Controller
 {
+    use PagineEtRecherche;
+
     public function __construct(
         protected TechnicalSettingsService $settingsService
     ) {}
@@ -35,35 +38,26 @@ class TechniqueController extends Controller
         $query = JournalAdministration::query()
             ->with('auteur:id,nom,prenom')
             ->when($filters['operation'] ?? null, fn ($query, string $operation) => $query->where('operation', $operation))
-            ->when($filters['q'] ?? null, function ($query, string $term): void {
-                foreach (preg_split('/\s+/u', trim($term), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $word) {
-                    $query->where(fn ($search) => $search->where('operation', 'ilike', '%'.$word.'%')
-                        ->orWhere('objet', 'ilike', '%'.$word.'%')
-                        ->orWhereHas('auteur', fn ($author) => $author
-                            ->where('prenom', 'ilike', '%'.$word.'%')
-                            ->orWhere('nom', 'ilike', '%'.$word.'%')));
-                }
-            })
             ->orderByDesc('created_at')
-            ->orderByDesc('id')
+            ->orderByDesc('id');
+        $page = $this->rechercherMots($query, $filters['q'] ?? null, fn ($search, string $motif) => $search
+            ->where('operation', 'ilike', $motif)
+            ->orWhere('objet', 'ilike', $motif)
+            ->orWhereHas('auteur', fn ($author) => $author->where('prenom', 'ilike', $motif)->orWhere('nom', 'ilike', $motif)))
             ->paginate($filters['per_page'] ?? 25);
 
         return response()->json([
-            'data' => collect($query->items())->map(fn (JournalAdministration $log) => [
+            'data' => collect($page->items())->map(fn (JournalAdministration $log) => [
                 'id' => $log->id,
-                'auteur' => $log->auteur ? trim($log->auteur->prenom.' '.$log->auteur->nom) : 'Système',
+                'auteur' => $log->auteur?->nom_complet ?? 'Système',
                 'operation' => $log->operation,
                 'objet' => $log->objet,
                 'detail' => $log->detail,
                 'created_at' => $log->created_at?->toIso8601String(),
             ]),
-            'meta' => [
-                'page' => $query->currentPage(),
-                'per_page' => $query->perPage(),
-                'last_page' => $query->lastPage(),
-                'total' => $query->total(),
+            'meta' => $this->metaPagination($page, [
                 'operations' => JournalAdministration::query()->distinct()->orderBy('operation')->pluck('operation'),
-            ],
+            ]),
         ]);
     }
 

@@ -24,11 +24,14 @@ class EvenementHistorique extends Model
         'created_at',
     ];
 
-    protected $casts = [
-        'ancien_etat' => 'array',
-        'nouvel_etat' => 'array',
-        'created_at' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'ancien_etat' => 'array',
+            'nouvel_etat' => 'array',
+            'created_at' => 'datetime',
+        ];
+    }
 
     protected static function booted(): void
     {

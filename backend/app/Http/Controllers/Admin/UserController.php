@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Exceptions\RegleMetierException;
+use App\Http\Controllers\AuthController;
 use App\Models\Affectation;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -10,7 +11,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -100,7 +100,7 @@ class UserController extends AdminController
             throw new RegleMetierException('Un lien ne peut être envoyé qu’à un compte local.');
         }
 
-        $limiterKey = 'auth:password-reset:'.hash('sha256', Str::lower($user->email));
+        $limiterKey = AuthController::passwordResetKey($user->email);
         if (RateLimiter::tooManyAttempts($limiterKey, 3)) {
             $retryAfter = RateLimiter::availableIn($limiterKey);
 

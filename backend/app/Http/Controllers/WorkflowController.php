@@ -55,17 +55,9 @@ class WorkflowController extends Controller
      */
     public function validations(ActiveProfile $profile, ValidationCircuit $circuit): JsonResponse
     {
-        $demandes = Validation::query()
-            ->with(['fiche:id,numero_a3,titre,statut_etape,pilote_id,unite_id,sans_gain_chiffre', 'role:id,code,libelle'])
-            ->where('valideur_id', $profile->userId())
-            ->where('role_id', $profile->roleId())
-            ->where('decision', 'EN_ATTENTE')
-            ->orderBy('demandee_le')
-            ->get()
-            ->filter(fn (Validation $validation) => $validation->fiche->pilote_id !== $profile->userId()
-                && $circuit->estActionnable($validation, $validation->fiche));
+        $demandes = $circuit->aTraiterPar($profile);
 
-        return response()->json(['data' => $demandes->values()->map(fn (Validation $validation) => [
+        return response()->json(['data' => $demandes->map(fn (Validation $validation) => [
             'id' => $validation->id,
             'porte' => $validation->porte,
             'role' => $validation->role->libelle,

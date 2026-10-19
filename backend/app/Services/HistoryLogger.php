@@ -39,7 +39,7 @@ class HistoryLogger
      * @param  array<string, mixed>  $avant
      * @param  array<string, mixed>  $apres
      */
-    public function logChanges(FicheA3 $fiche, ?int $auteurId, array $avant, array $apres, string $type = 'MODIFICATION_CHAMP'): void
+    public function logChanges(FicheA3 $fiche, ?int $auteurId, array $avant, array $apres): void
     {
         foreach ($apres as $champ => $valeur) {
             $ancienne = $avant[$champ] ?? null;
@@ -47,7 +47,7 @@ class HistoryLogger
                 continue;
             }
 
-            $this->log($fiche, $auteurId, $type, $champ, $ancienne, $valeur);
+            $this->log($fiche, $auteurId, 'MODIFICATION_CHAMP', $champ, $ancienne, $valeur);
         }
     }
 

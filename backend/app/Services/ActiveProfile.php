@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\Domaine;
 use App\Models\Affectation;
 use App\Models\FicheA3;
 use App\Models\User;
@@ -13,9 +14,11 @@ use Illuminate\Http\Request;
  */
 class ActiveProfile
 {
-    private ?Affectation $assignment = null;
-
-    private bool $resolved = false;
+    /**
+     * L'affectation est lue une fois par requête, même si plusieurs instances sont créées
+     * (injection dans le contrôleur, middleware, FicheResource).
+     */
+    private const string CACHE = 'a3.affectation_active';
 
     public function __construct(private readonly Request $request) {}
 
@@ -26,28 +29,24 @@ class ActiveProfile
 
     public function assignment(): ?Affectation
     {
-        if ($this->resolved) {
-            return $this->assignment;
+        if ($this->request->attributes->has(self::CACHE)) {
+            return $this->request->attributes->get(self::CACHE);
         }
 
-        $this->resolved = true;
         $user = $this->user();
         $assignmentId = $this->request->hasSession()
             ? $this->request->session()->get('auth.active_assignment_id')
             : null;
 
-        if (! $user || ! $user->actif || ! $assignmentId) {
-            return null;
-        }
-
-        $this->assignment = Affectation::query()
+        $assignment = ! $user || ! $user->actif || ! $assignmentId ? null : Affectation::query()
             ->with('role:id,code,libelle')
             ->whereKey($assignmentId)
             ->where('user_id', $user->id)
             ->enCours()
             ->first();
+        $this->request->attributes->set(self::CACHE, $assignment);
 
-        return $this->assignment;
+        return $assignment;
     }
 
     public function roleCode(): ?string
@@ -79,6 +78,22 @@ class ActiveProfile
     public function estPiloteDe(FicheA3 $fiche): bool
     {
         return $this->is('PILOTE') && $fiche->pilote_id === $this->userId();
+    }
+
+    /**
+     * Historique de la fiche (PRD §14) : pilote, Direction et administrateur fonctionnel.
+     */
+    public function peutVoirHistorique(): bool
+    {
+        return $this->is('PILOTE', 'DIRECTION', 'ADMIN_FONCTIONNEL');
+    }
+
+    /**
+     * Commentaires (PRD §4.4) : tous les profils métier, pas les administrateurs.
+     */
+    public function peutCommenter(): bool
+    {
+        return $this->is('AGENT', 'PILOTE', 'CONTROLE_GESTION', 'DIRECTION', ...Domaine::rolesValideurs());
     }
 
     public function userId(): ?int

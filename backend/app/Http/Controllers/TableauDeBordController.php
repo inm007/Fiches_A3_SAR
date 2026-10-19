@@ -44,15 +44,7 @@ class TableauDeBordController extends Controller
             ->get(['created_at'])
             ->countBy(fn (FicheA3 $fiche) => $fiche->created_at->format('Y-m'));
 
-        $validations = Validation::query()
-            ->with('fiche:id,numero_a3,titre,statut_etape,pilote_id,sans_gain_chiffre')
-            ->where('valideur_id', $userId)
-            ->where('role_id', $profile->roleId())
-            ->where('decision', 'EN_ATTENTE')
-            ->orderBy('demandee_le')
-            ->get()
-            ->filter(fn (Validation $validation) => $validation->fiche->pilote_id !== $userId && $circuit->estActionnable($validation, $validation->fiche))
-            ->values();
+        $validations = $circuit->aTraiterPar($profile);
 
         $creesCetteAnnee = $visibles()->whereYear('created_at', $annee);
         $cloturees = $visibles()->where('statut_etape', StatutEtape::Cloture->value)->whereNotNull('date_cloture')->get(['created_at', 'date_cloture']);
@@ -158,7 +150,7 @@ class TableauDeBordController extends Controller
             ->map(fn (Controle $controle) => [
                 'fiche_id' => $controle->action->fiche_id,
                 'numero_a3' => $controle->action->fiche->numero_a3,
-                'libelle' => 'Contrôle '.($controle->jalon === 'CORRECTIF' ? 'correctif' : 'J+'.substr($controle->jalon, 1)).' disponible',
+                'libelle' => 'Contrôle '.Controle::nomJalon($controle->jalon).' disponible',
                 'delai' => $controle->date_echeance->isToday() ? 'aujourd’hui' : (int) $controle->date_echeance->diffInDays(today()).' j',
                 'type' => 'controle',
             ]);

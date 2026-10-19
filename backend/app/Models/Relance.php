@@ -19,9 +19,12 @@ class Relance extends Model
         'mode',
     ];
 
-    protected $casts = [
-        'jour' => 'date',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'jour' => 'date',
+        ];
+    }
 
     public function auteur(): BelongsTo
     {
