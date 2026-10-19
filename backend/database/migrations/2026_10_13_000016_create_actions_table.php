@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('statut', 50)->default('A_FAIRE');
             $table->text('motif_statut')->nullable();
             $table->date('date_realisation')->nullable();
+            $table->string('statut_avant_blocage', 50)->nullable();
             $table->foreignId('risque_id')->nullable()->constrained('risques')->restrictOnDelete();
             $table->timestampsTz();
 
@@ -31,6 +32,7 @@ return new class extends Migration
         });
 
         DB::statement("ALTER TABLE actions ADD CONSTRAINT actions_statut_check CHECK (statut IN ('A_FAIRE', 'EN_COURS', 'REALISE', 'ANNULE', 'BLOQUE'))");
+        DB::statement("ALTER TABLE actions ADD CONSTRAINT actions_statut_avant_blocage_check CHECK (statut_avant_blocage IS NULL OR statut_avant_blocage IN ('A_FAIRE', 'EN_COURS'))");
     }
 
     public function down(): void

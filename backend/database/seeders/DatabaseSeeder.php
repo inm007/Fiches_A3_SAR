@@ -16,7 +16,6 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(RolesSeeder::class);
         $this->call(ReferenceListsSeeder::class);
-        $this->call(TechnicalParametersSeeder::class);
 
         if (app()->environment(['local', 'testing'])) {
             $this->call(DemoAccountsSeeder::class);

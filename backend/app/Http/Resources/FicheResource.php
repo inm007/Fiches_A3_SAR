@@ -7,13 +7,17 @@ use App\Enums\StatutEtape;
 use App\Models\ActionA3;
 use App\Models\FicheA3;
 use App\Models\FicheA3Indicateur;
+use App\Models\Relance;
 use App\Models\User;
+use App\Models\ValeurListe;
 use App\Models\Validation;
 use App\Services\ActionService;
 use App\Services\ActiveProfile;
 use App\Services\Calculs;
 use App\Services\FicheSectionService;
+use App\Services\RelanceService;
 use App\Services\ValidationCircuit;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -45,6 +49,9 @@ class FicheResource extends JsonResource
         $totalA = $calculs->totalA($sansGainRefuse->pluck('montant_annuel'));
         $totalAValide = $calculs->totalA($fiche->gains->where('statut', 'VALIDE')->pluck('montant_annuel'));
         $coutB = (int) $fiche->cout_mise_en_oeuvre_b;
+        $categoriesGain = ValeurListe::query()->deLaListe('categorie_gain')->pluck('libelle', 'code');
+        $typesPerennisation = ValeurListe::query()->deLaListe('type_perennisation')->pluck('libelle', 'code');
+        $relances = $this->dernieresRelances($fiche, $profile);
 
         return [
             'id' => $fiche->id,
@@ -93,7 +100,7 @@ class FicheResource extends JsonResource
                 'methode_precision' => $fiche->methode_precision,
                 'causes' => $fiche->causes->sortBy('numero')->values()->map->only(['id', 'numero', 'categorie', 'libelle', 'niveau', 'racine', 'preuve']),
             ],
-            'actions' => $fiche->actions->sortBy('id')->values()->map(fn (ActionA3 $action) => $this->action($action)),
+            'actions' => $fiche->actions->sortBy('id')->values()->map(fn (ActionA3 $action) => $this->action($action, $fiche, $relances)),
             'domaines' => $fiche->domaines->map(fn ($domaine) => [
                 'domaine' => $domaine->domaine,
                 'valideur_role_code' => $domaine->roleValideur?->code,
@@ -105,7 +112,10 @@ class FicheResource extends JsonResource
             ]),
             'resultats' => $fiche->only(['objectif_atteint', 'ecart_objectif']),
             'gains' => [
-                'lignes' => $fiche->gains->sortBy('id')->values()->map->only(['id', 'categorie', 'hypothese_calcul', 'quantite', 'unite', 'cout_unitaire', 'montant_annuel', 'statut']),
+                'lignes' => $fiche->gains->sortBy('id')->values()->map(fn ($gain) => [
+                    ...$gain->only(['id', 'categorie', 'hypothese_calcul', 'quantite', 'unite', 'cout_unitaire', 'montant_annuel', 'statut']),
+                    'categorie_libelle' => $categoriesGain[$gain->categorie] ?? $gain->categorie,
+                ]),
                 'sans_gain_chiffre' => $fiche->sans_gain_chiffre,
                 'cout_mise_en_oeuvre_b' => $coutB,
                 'somme_couts_actions' => (int) $fiche->actions->sum('cout_estime'),
@@ -116,11 +126,12 @@ class FicheResource extends JsonResource
             ],
             'perennisation' => $fiche->perennisations->sortBy('id')->values()->map(fn ($ligne) => [
                 ...$ligne->only(['id', 'type', 'responsable_id', 'statut', 'preuve']),
+                'type_libelle' => $typesPerennisation[$ligne->type] ?? $ligne->type,
                 'date' => $ligne->date?->toDateString(),
                 'responsable' => $this->personne($ligne->responsable),
             ]),
             'lecons' => $fiche->lecons->pluck('texte', 'rubrique'),
-            'validations' => $fiche->validations->sortBy('id')->values()->map(fn (Validation $validation) => $this->validation($validation, $fiche, $profile)),
+            'validations' => $fiche->validations->sortBy('id')->values()->map(fn (Validation $validation) => $this->validation($validation, $fiche, $profile, $relances)),
             'completude' => $this->completude($fiche),
             'droits' => $this->droits($fiche, $profile),
         ];
@@ -155,8 +166,10 @@ class FicheResource extends JsonResource
     /**
      * @return array<string, mixed>
      */
-    private function action(ActionA3 $action): array
+    private function action(ActionA3 $action, FicheA3 $fiche, ?array $relances): array
     {
+        $derniere = $relances[ActionA3::class.':'.$action->id] ?? null;
+
         $statut = StatutAction::from($action->statut);
 
         return [
@@ -167,6 +180,8 @@ class FicheResource extends JsonResource
             'date_realisation' => $action->date_realisation?->toDateString(),
             'en_retard' => ! $statut->estTerminee() && $action->echeance?->isBefore(today()),
             'responsable' => $this->personne($action->responsable),
+            'derniere_relance' => $derniere?->toIso8601String(),
+            'relancable' => $relances !== null && app(RelanceService::class)->actionEnRetard($action, $fiche) && ! $this->relanceRecente($derniere),
             'manques_moc' => in_array($statut, [StatutAction::AFaire, StatutAction::Bloque], true) ? app(ActionService::class)->manquesB1($action) : [],
             'controles' => $action->controles->sortBy('date_echeance')->values()->map(fn ($controle) => [
                 ...$controle->only(['id', 'jalon', 'resultat', 'commentaire', 'preuve', 'action_corrective_id']),
@@ -180,8 +195,9 @@ class FicheResource extends JsonResource
     /**
      * @return array<string, mixed>
      */
-    private function validation(Validation $validation, FicheA3 $fiche, ActiveProfile $profile): array
+    private function validation(Validation $validation, FicheA3 $fiche, ActiveProfile $profile, ?array $relances): array
     {
+        $derniere = $relances[Validation::class.':'.$validation->id] ?? null;
         $actionnable = $validation->decision === 'EN_ATTENTE'
             && $validation->valideur_id === $profile->userId()
             && $validation->role_id === $profile->roleId()
@@ -196,6 +212,8 @@ class FicheResource extends JsonResource
             'decidee_le' => $validation->decidee_le?->toIso8601String(),
             'anciennete_jours' => (int) $validation->demandee_le?->startOfDay()->diffInDays(($validation->decidee_le ?? now())->startOfDay()),
             'actionnable' => $actionnable,
+            'derniere_relance' => $derniere?->toIso8601String(),
+            'relancable' => $relances !== null && app(RelanceService::class)->validationEnAttente($validation, $fiche) && ! $this->relanceRecente($derniere),
         ];
     }
 
@@ -275,6 +293,33 @@ class FicheResource extends JsonResource
                 ->pluck('id')
                 ->values(),
         ];
+    }
+
+    /**
+     * Date de la dernière relance de chaque action et validation de la fiche, indexée par
+     * « classe:id » ; null quand le profil actif ne peut pas relancer.
+     *
+     * @return array<string, CarbonInterface>|null
+     */
+    private function dernieresRelances(FicheA3 $fiche, ActiveProfile $profile): ?array
+    {
+        if (! app(RelanceService::class)->peutRelancer($fiche, $profile)) {
+            return null;
+        }
+
+        return Relance::query()
+            ->where(fn ($query) => $query
+                ->where(fn ($action) => $action->where('cible_type', ActionA3::class)->whereIn('cible_id', $fiche->actions->modelKeys()))
+                ->orWhere(fn ($validation) => $validation->where('cible_type', Validation::class)->whereIn('cible_id', $fiche->validations->modelKeys())))
+            ->get(['cible_type', 'cible_id', 'created_at'])
+            ->groupBy(fn (Relance $relance) => $relance->cible_type.':'.$relance->cible_id)
+            ->map(fn ($groupe) => $groupe->max('created_at'))
+            ->all();
+    }
+
+    private function relanceRecente(?CarbonInterface $derniere): bool
+    {
+        return $derniere !== null && $derniere->isAfter(now()->subDay());
     }
 
     /**

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Concerns;
 
 use App\Models\FicheA3;
 use App\Services\ActiveProfile;

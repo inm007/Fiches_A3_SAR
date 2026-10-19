@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\ActionA3;
 use App\Models\EvenementHistorique;
+use App\Models\FicheA3;
 use App\Models\NotificationInterne;
 use App\Models\Unite;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -103,6 +104,34 @@ class DroitsFichesTest extends TestCase
         $this->agir('PILOTE')->postJson("/api/fiches/{$fiche->id}/confidentialite", ['confidentialite' => 'NORMAL', 'motif' => 'Plus sensible'])
             ->assertOk()->assertJsonPath('data.confidentialite', 'NORMAL');
         $this->agir('AGENT')->postJson("/api/fiches/{$fiche->id}/confidentialite", ['confidentialite' => 'RESTREINT'])->assertForbidden();
+    }
+
+    public function test_a_comment_can_be_about_an_action_or_a_validation_of_the_fiche(): void
+    {
+        $ids = $this->amenerEnRealisation();
+        $fiche = FicheA3::query()->latest('id')->firstOrFail();
+        $validation = $fiche->validations()->orderBy('id')->firstOrFail();
+        $url = "/api/fiches/{$fiche->id}/commentaires";
+
+        $this->agir('PILOTE')->postJson($url, ['texte' => 'Purgeurs commandés', 'contexte' => 'ACTION', 'objet_id' => $ids['action']])
+            ->assertCreated()
+            ->assertJsonPath('data.contexte', 'ACTION')
+            ->assertJsonPath('data.cible', 'Action « Remplacer 14 purgeurs »');
+        $this->agir('PILOTE')->postJson($url, ['texte' => 'Merci', 'contexte' => 'VALIDATION', 'objet_id' => $validation->id])->assertCreated();
+        $this->agir('PILOTE')->postJson($url, ['texte' => 'Général', 'contexte' => 'FICHE', 'objet_id' => $ids['action']])
+            ->assertCreated()
+            ->assertJsonPath('data.objet_id', null)
+            ->assertJsonPath('data.cible', null);
+
+        $autre = $this->declarer();
+        $this->designerPilote($autre);
+        $this->agir('PILOTE')->postJson("/api/fiches/{$autre->id}/commentaires", ['texte' => 'X', 'contexte' => 'ACTION', 'objet_id' => $ids['action']])
+            ->assertUnprocessable()->assertJsonValidationErrors('objet_id');
+        $this->agir('PILOTE')->postJson($url, ['texte' => 'X', 'contexte' => 'VALIDATION'])
+            ->assertUnprocessable()->assertJsonValidationErrors('objet_id');
+
+        $this->agir('PILOTE')->getJson($url)->assertOk()
+            ->assertJsonPath('data.1.cible', 'Validation porte 1 — '.$validation->role->libelle);
     }
 
     public function test_comment_and_history_access_follow_the_matrix(): void

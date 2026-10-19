@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\EquipementController;
 use App\Http\Controllers\Admin\FicheAdminController;
 use App\Http\Controllers\Admin\ListeController;
 use App\Http\Controllers\Admin\ParametreController;
+use App\Http\Controllers\Admin\TechniqueController;
 use App\Http\Controllers\Admin\UniteController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
@@ -13,8 +14,8 @@ use App\Http\Controllers\FicheController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PieceJointeController;
 use App\Http\Controllers\ReferentielController;
+use App\Http\Controllers\RelanceController;
 use App\Http\Controllers\TableauDeBordController;
-use App\Http\Controllers\TechniqueController;
 use App\Http\Controllers\WorkflowController;
 use App\Http\Middleware\EnsureActiveRole;
 use Illuminate\Support\Facades\Route;
@@ -67,7 +68,6 @@ Route::prefix('technique')
     ->group(function (): void {
         Route::get('/', 'index');
         Route::get('/logs', 'logs');
-        Route::put('/settings', 'updateSetting');
     });
 
 Route::middleware('auth:sanctum')->group(function (): void {
@@ -98,4 +98,5 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/actions/{action}/statut', [WorkflowController::class, 'actionStatut']);
     Route::patch('/controles/{controle}', [WorkflowController::class, 'controle']);
     Route::post('/gains/{gain}/decision', [WorkflowController::class, 'gain']);
+    Route::post('/relances', [RelanceController::class, 'store']);
 });

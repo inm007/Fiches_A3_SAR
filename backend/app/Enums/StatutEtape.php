@@ -46,9 +46,6 @@ enum StatutEtape: string
     }
 
     /**
-     * Étape active : une mise en attente (T12) est possible depuis celle-ci.
-     */
-    /**
      * Étapes de suivi après la validation du plan : actions, contrôles, gains et pérennisation
      * y sont modifiables.
      *
@@ -59,6 +56,9 @@ enum StatutEtape: string
         return [self::RealisationActions, self::MesureResultats, self::VerificationMaintien];
     }
 
+    /**
+     * Étape active : une mise en attente (T12) est possible depuis celle-ci.
+     */
     public function estActive(): bool
     {
         return ! in_array($this, [self::EnAttente, self::Cloture], true);

@@ -72,12 +72,12 @@ function FichePrintView({ fiche, refs }) {
             ['Précision sur l’origine', identification.origine_precision],
             ['Avis SAP', identification.numero_avis_sap],
             ['Ordre SAP', identification.numero_ordre_sap],
-            ['Sponsor', identification.sponsor ? `${identification.sponsor.prenom} ${identification.sponsor.nom}` : null],
+            ['Sponsor', identification.sponsor?.nom ?? null],
             ['Équipe', identification.equipe],
             ['Date de lancement', identification.date_lancement],
             ['Date cible', identification.date_cible],
-            ['Déclarant', fiche.declarant ? `${fiche.declarant.prenom} ${fiche.declarant.nom}` : null],
-            ['Pilote', fiche.pilote ? `${fiche.pilote.prenom} ${fiche.pilote.nom}` : null],
+            ['Déclarant', fiche.declarant?.nom ?? null],
+            ['Pilote', fiche.pilote?.nom ?? null],
           ]} />
         </Section>
         <Section number={2} title="Contexte, enjeu et problème">
@@ -115,7 +115,7 @@ function FichePrintView({ fiche, refs }) {
         <Section number={6} title="Plan de contre-mesures">
           <Table headers={['Action', 'Type', 'Responsable', 'Échéance', 'Statut', 'Coût estimé']} rows={fiche.actions.map((item) => ({
             id: item.id,
-            values: [item.description, item.type_action, item.responsable ? `${item.responsable.prenom} ${item.responsable.nom}` : null, item.echeance, item.statut_libelle, item.cout_estime],
+            values: [item.description, item.type_action, item.responsable?.nom ?? null, item.echeance, item.statut_libelle, item.cout_estime],
           }))} />
         </Section>
         <Section number={7} title="Risques et MOC">
@@ -140,7 +140,7 @@ function FichePrintView({ fiche, refs }) {
         <Section number={9} title="Gains économiques">
           <Table headers={['Catégorie', 'Hypothèse', 'Quantité', 'Unité', 'Coût unitaire', 'Montant annuel', 'Statut']} rows={gains.lignes.map((item) => ({
             id: item.id,
-            values: [item.categorie, item.hypothese_calcul, item.quantite, item.unite, item.cout_unitaire, item.montant_annuel, item.statut],
+            values: [item.categorie_libelle, item.hypothese_calcul, item.quantite, item.unite, item.cout_unitaire, item.montant_annuel, item.statut],
           }))} />
           <Fields values={[
             ['Sans gain chiffré', gains.sans_gain_chiffre],
@@ -153,7 +153,7 @@ function FichePrintView({ fiche, refs }) {
         <Section number={10} title="Standardisation et pérennisation">
           <Table headers={['Type', 'Responsable', 'Date', 'Statut', 'Preuve']} rows={fiche.perennisation.map((item) => ({
             id: item.id,
-            values: [item.type, item.responsable ? `${item.responsable.prenom} ${item.responsable.nom}` : null, item.date, item.statut, item.preuve],
+            values: [item.type_libelle, item.responsable?.nom ?? null, item.date, item.statut, item.preuve],
           }))} />
         </Section>
         <Section number={11} title="Leçons apprises">
@@ -162,7 +162,7 @@ function FichePrintView({ fiche, refs }) {
         <Section number={12} title="Validation">
           <Table headers={['Porte', 'Rôle', 'Décision', 'Valideur', 'Demandée le', 'Décidée le', 'Commentaire']} rows={fiche.validations.map((item) => ({
             id: item.id,
-            values: [item.porte, item.role?.libelle, item.decision, item.valideur ? `${item.valideur.prenom} ${item.valideur.nom}` : null, item.demandee_le, item.decidee_le, item.commentaire],
+            values: [item.porte, item.role?.libelle, item.decision, item.valideur?.nom ?? null, item.demandee_le, item.decidee_le, item.commentaire],
           }))} />
         </Section>
       </div>

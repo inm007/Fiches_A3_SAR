@@ -82,23 +82,7 @@ export const DOMAINES = [
 
 export const MOC_STATUTS = [['A_OUVRIR', 'À ouvrir'], ['OUVERT', 'Ouvert'], ['CLOTURE', 'Clôturé']]
 
-export const CATEGORIES_GAIN = [
-  ['PRODUCTION_RECUPEREE', 'Production récupérée'],
-  ['ENERGIE_ECONOMISEE', 'Énergie économisée'],
-  ['MAINTENANCE_EVITEE', 'Maintenance évitée'],
-  ['NON_QUALITE_EVITEE', 'Pertes ou non-qualité évitées'],
-  ['AUTRES', 'Autres'],
-]
-
 export const STATUTS_GAIN = { PROPOSE: 'Proposé', VALIDE: 'Validé', REFUSE: 'Refusé' }
-
-export const TYPES_PERENNISATION = [
-  ['SOP', 'SOP'],
-  ['PARAMETRES', 'Paramètres'],
-  ['FORMATION', 'Formation'],
-  ['PLAN_MAINTENANCE', 'Plan de maintenance'],
-  ['KPI_TABLEAU_DE_BORD', 'KPI au tableau de bord'],
-]
 
 export const STATUTS_SIMPLES = [['A_FAIRE', 'À faire'], ['EN_COURS', 'En cours'], ['REALISE', 'Réalisé']]
 

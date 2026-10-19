@@ -6,8 +6,8 @@ import Badge from '../../ui/Badge.jsx'
 import { Select, TextArea } from '../../ui/FormControls.jsx'
 import { refreshCounters } from '../../../hooks/useCounters.js'
 import { describeError, ficheService } from '../../../services/ficheService.js'
-import { CATEGORIES_GAIN, DECISIONS, STATUTS_GAIN } from '../../../utils/constants.js'
-import { formatDate, formatFcfa, libelle, plural } from '../../../utils/format.js'
+import { DECISIONS, STATUTS_GAIN } from '../../../utils/constants.js'
+import { formatDate, formatDateTime, formatFcfa, plural } from '../../../utils/format.js'
 import { toast } from '../../../utils/toast.js'
 import './FicheTab.css'
 
@@ -62,7 +62,7 @@ export default function ValidationsTab({ fiche, onChange, onError }) {
             <tbody>
               {fiche.gains.lignes.map((gain) => (
                 <tr key={gain.id}>
-                  <td>{libelle(CATEGORIES_GAIN, gain.categorie)}</td>
+                  <td>{gain.categorie_libelle}</td>
                   <td>{gain.hypothese_calcul}</td>
                   <td><b>{formatFcfa(gain.montant_annuel)}</b></td>
                   <td>{STATUTS_GAIN[gain.statut]}</td>
@@ -93,6 +93,14 @@ export default function ValidationsTab({ fiche, onChange, onError }) {
               {validation.decision === 'EN_ATTENTE' && ` · ${validation.anciennete_jours} j`} · v{validation.version_fiche}
             </span>
             {validation.commentaire && <span>« {validation.commentaire} »</span>}
+            {validation.decision === 'EN_ATTENTE' && validation.derniere_relance && (
+              <span className="fiche-tab__muted">Relancé le {formatDateTime(validation.derniere_relance)}</span>
+            )}
+            {validation.relancable && (
+              <span className="fiche-tab__buttons">
+                <Button disabled={busy} icon="bell" size="small" type="button" variant="secondary" onClick={() => run(() => ficheService.relancer('validation', validation.id), 'Relance envoyée au valideur')}>Relancer</Button>
+              </span>
+            )}
             {validation.actionnable && (
               <span className="fiche-tab__buttons">
                 <Button disabled={busy} size="small" type="button" variant="success" onClick={() => setDialog({ validation, decision: 'VALIDE' })}>Approuver</Button>

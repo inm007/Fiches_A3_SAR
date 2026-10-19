@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Http\Requests;
 
 use App\Enums\Domaine;
 use Illuminate\Validation\Rule;
@@ -12,10 +12,6 @@ use Illuminate\Validation\Rule;
 class FicheSectionRules
 {
     public const array IMPACTS = ['HSE', 'PRODUCTION', 'QUALITE', 'ENERGIE', 'SURETE'];
-
-    public const array CATEGORIES_GAIN = ['PRODUCTION_RECUPEREE', 'ENERGIE_ECONOMISEE', 'MAINTENANCE_EVITEE', 'NON_QUALITE_EVITEE', 'AUTRES'];
-
-    public const array TYPES_PERENNISATION = ['SOP', 'PARAMETRES', 'FORMATION', 'PLAN_MAINTENANCE', 'KPI_TABLEAU_DE_BORD'];
 
     public const array RUBRIQUES_LECONS = ['A_FONCTIONNE', 'N_A_PAS_FONCTIONNE', 'STANDARD_A_REPLIQUER', 'RETOUR_EXPERIENCE', 'PROJET_SUIVANT'];
 
@@ -121,7 +117,7 @@ class FicheSectionRules
             9 => [
                 'gains' => ['present', 'array', 'max:30'],
                 'gains.*.id' => ['nullable', 'integer'],
-                'gains.*.categorie' => ['required', Rule::in(self::CATEGORIES_GAIN)],
+                'gains.*.categorie' => ['required', 'string', 'max:50'],
                 'gains.*.hypothese_calcul' => ['required', 'string', 'max:2000'],
                 'gains.*.quantite' => ['required', 'numeric', 'min:0'],
                 'gains.*.unite' => ['required', 'string', 'max:50'],
@@ -132,7 +128,7 @@ class FicheSectionRules
             10 => [
                 'perennisation' => ['present', 'array', 'max:30'],
                 'perennisation.*.id' => ['nullable', 'integer'],
-                'perennisation.*.type' => ['required', Rule::in(self::TYPES_PERENNISATION)],
+                'perennisation.*.type' => ['required', 'string', 'max:50'],
                 'perennisation.*.responsable_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('actif', true)],
                 'perennisation.*.date' => ['nullable', 'date'],
                 'perennisation.*.statut' => ['required', Rule::in(['A_FAIRE', 'EN_COURS', 'REALISE'])],

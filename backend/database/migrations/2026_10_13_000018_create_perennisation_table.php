@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -18,6 +19,8 @@ return new class extends Migration
             $table->string('preuve')->nullable();
             $table->timestampsTz();
         });
+
+        DB::statement("ALTER TABLE perennisation ADD CONSTRAINT perennisation_statut_check CHECK (statut IN ('A_FAIRE', 'EN_COURS', 'REALISE'))");
     }
 
     public function down(): void

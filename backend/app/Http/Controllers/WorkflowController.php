@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ResolvesVisibleFiche;
 use App\Http\Resources\FicheResource;
 use App\Models\ActionA3;
 use App\Models\Controle;

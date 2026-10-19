@@ -1,26 +1,16 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { apiRequest } from '../auth/api.js'
 import Alert from '../components/ui/Alert.jsx'
 import Badge from '../components/ui/Badge.jsx'
 import Button from '../components/ui/Button.jsx'
 import Card from '../components/ui/Card.jsx'
 import DataTable from '../components/ui/DataTable.jsx'
-import { TextInput } from '../components/ui/FormControls.jsx'
 import ListPagination from '../components/ui/ListPagination.jsx'
 import { FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../components/shared/ListToolbar.jsx'
 import PageBanner from '../components/shared/PageBanner.jsx'
 import PageLoader from '../components/shared/PageLoader.jsx'
 import { downloadExcel } from '../utils/listTools.js'
-import { toast } from '../utils/toast.js'
 import './Technique.css'
-
-const smtpFields = [
-  { key: 'SMTP_HOST', label: 'Hôte' },
-  { key: 'SMTP_PORT', label: 'Port', type: 'number' },
-  { key: 'SMTP_ENCRYPTION', label: 'Chiffrement (tls ou ssl)' },
-  { key: 'SMTP_USER', label: 'Utilisateur' },
-  { key: 'SMTP_FROM_ADDRESS', label: 'Adresse d’expédition', type: 'email' },
-]
 
 const logColumns = [
   { key: 'date', label: 'Date' },
@@ -43,24 +33,15 @@ function Technique() {
   const [logPageSize, setLogPageSize] = useState(10)
   const [logsError, setLogsError] = useState('')
   const [exportingLogs, setExportingLogs] = useState(false)
-  const [form, setForm] = useState({})
-  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [fieldErrors, setFieldErrors] = useState({})
-
-  const applyOverview = useCallback((overview) => {
-    setData(overview)
-    setForm(Object.fromEntries(smtpFields.map(({ key }) => [key, overview.smtp?.[key] ?? ''])))
-  }, [])
 
   useEffect(() => {
     apiRequest('/technique')
-      .then((result) => applyOverview(result.data))
+      .then((result) => setData(result.data))
       .catch((loadError) => setError(loadError.message))
       .finally(() => setLoading(false))
-  }, [applyOverview])
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -105,39 +86,6 @@ function Technique() {
     }
   }
 
-  async function saveSmtp(event) {
-    event.preventDefault()
-    setSaving(true)
-    setError('')
-    setFieldErrors({})
-    const changes = smtpFields
-      .filter(({ key }) => (form[key] ?? '') !== (data.smtp?.[key] ?? ''))
-      .map(({ key }) => [key, form[key]])
-    if (password) changes.push(['SMTP_PASSWORD', password])
-
-    let current = null
-    try {
-      for (const [cle, valeur] of changes) {
-        current = cle
-        await apiRequest('/technique/settings', {
-          method: 'PUT',
-          body: JSON.stringify({ cle, valeur: valeur === '' ? null : valeur }),
-        })
-      }
-      setPassword('')
-      applyOverview((await apiRequest('/technique')).data)
-      if (changes.length) toast.success('Paramètres SMTP enregistrés.')
-      else toast.info('Aucune modification à enregistrer.')
-    } catch (saveError) {
-      // Chaque paramètre est envoyé seul : l'erreur de validation s'affiche sous le champ concerné.
-      const validationErrors = saveError.data?.errors
-      if (validationErrors && current) setFieldErrors({ [current]: Object.values(validationErrors).flat() })
-      else setError(saveError.message)
-    } finally {
-      setSaving(false)
-    }
-  }
-
   if (loading) return <PageLoader label="Chargement de l’état technique…" />
   if (!data) return <div className="technique-page"><Alert severity="error">{error || 'Impossible de charger l’état technique.'}</Alert></div>
 
@@ -167,34 +115,9 @@ function Technique() {
         </Card>
         <Card title="Courriel">
           <p>Transport : <strong>{data.mail_mailer === 'log' ? 'journal (démonstration)' : data.mail_mailer}</strong></p>
+          <p className="sar-caption">Serveur configuré dans le fichier .env (MAIL_*).</p>
         </Card>
       </div>
-
-      <Card title="Serveur SMTP">
-        <form className="technique-page__form" noValidate onSubmit={saveSmtp}>
-          {smtpFields.map(({ key, label, type }) => (
-            <TextInput
-              autoComplete="off"
-              error={fieldErrors[key]}
-              key={key}
-              label={label}
-              type={type || 'text'}
-              value={form[key]}
-              onChange={(value) => setForm((current) => ({ ...current, [key]: value }))}
-            />
-          ))}
-          <TextInput
-            autoComplete="new-password"
-            error={fieldErrors.SMTP_PASSWORD}
-            hint={data.smtp?.SMTP_PASSWORD_SET ? 'Un mot de passe est enregistré ; laissez vide pour le conserver.' : 'Aucun mot de passe enregistré.'}
-            label="Mot de passe"
-            type="password"
-            value={password}
-            onChange={setPassword}
-          />
-          <div><Button loading={saving} loadingLabel="Enregistrement…" type="submit">Enregistrer</Button></div>
-        </form>
-      </Card>
 
       <Card title="Journal d’administration">
         <div className="technique-page__logs">
