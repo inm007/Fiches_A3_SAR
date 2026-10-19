@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\Affectation;
 use App\Models\Role;
-use App\Models\Unite;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -108,8 +107,8 @@ class AffectationController extends AdminController
                 : 'Ce rôle est global et ne peut pas être rattaché à une unité.']);
         }
 
-        if ($exigerUniteActive && $uniteId !== null && ! Unite::query()->whereKey($uniteId)->where('actif', true)->exists()) {
-            throw ValidationException::withMessages(['unite_id' => 'L’unité sélectionnée n’existe pas ou est inactive.']);
+        if ($exigerUniteActive) {
+            $this->validerUniteActive($uniteId);
         }
     }
 

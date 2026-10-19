@@ -18,9 +18,12 @@ class Perennisation extends Model
         'preuve',
     ];
 
-    protected $casts = [
-        'date' => 'date',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'date' => 'date',
+        ];
+    }
 
     public function fiche(): BelongsTo
     {

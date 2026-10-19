@@ -71,12 +71,10 @@ class AuthController extends Controller
         /** @var User $user */
         $user = Auth::guard('web')->user();
         $assignments = $this->activeAssignments($user);
-        $activeAssignment = $this->principalAssignment($assignments);
+        $activeAssignment = $assignments->first();
 
         if (! $activeAssignment) {
-            Auth::guard('web')->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
+            $this->fermerSession($request);
             $this->recordFailedAttempt($identifierKey, $addressKey);
 
             return $this->invalidCredentials();
@@ -98,12 +96,10 @@ class AuthController extends Controller
         $assignments = $this->activeAssignments($user);
         $activeAssignmentId = $request->session()->get('auth.active_assignment_id');
         $activeAssignment = $assignments->firstWhere('id', $activeAssignmentId)
-            ?? $this->principalAssignment($assignments);
+            ?? $assignments->first();
 
         if (! $user->actif || ! $activeAssignment) {
-            Auth::guard('web')->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
+            $this->fermerSession($request);
 
             return response()->json(['message' => 'Session expirée. Reconnectez-vous.'], 401);
         }
@@ -137,9 +133,7 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        Auth::guard('web')->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        $this->fermerSession($request);
 
         return response()->json(['message' => 'Déconnexion réussie.']);
     }
@@ -150,7 +144,7 @@ class AuthController extends Controller
             'account' => ['required', 'string', 'max:255'],
         ]);
         $account = Str::lower(trim($validated['account']));
-        $limiterKey = 'auth:password-reset:'.hash('sha256', $account);
+        $limiterKey = self::passwordResetKey($account);
         $response = [
             'message' => 'Si un compte local actif correspond à ces informations, un lien sera envoyé.',
         ];
@@ -168,7 +162,7 @@ class AuthController extends Controller
             ->first();
 
         if ($user) {
-            $emailLimiterKey = 'auth:password-reset:'.hash('sha256', Str::lower($user->email));
+            $emailLimiterKey = self::passwordResetKey($user->email);
             if ($emailLimiterKey !== $limiterKey) {
                 if (RateLimiter::tooManyAttempts($emailLimiterKey, self::PASSWORD_RESET_LIMIT)) {
                     return response()->json($response, 202);
@@ -223,6 +217,22 @@ class AuthController extends Controller
     }
 
     /**
+     * Clé de limitation des liens de mot de passe d'un compte (3 par heure), partagée
+     * avec l'envoi par l'administrateur fonctionnel.
+     */
+    public static function passwordResetKey(string $account): string
+    {
+        return 'auth:password-reset:'.hash('sha256', Str::lower(trim($account)));
+    }
+
+    private function fermerSession(Request $request): void
+    {
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+    }
+
+    /**
      * @return array{0: string, 1: string}
      */
     private function limiterKeys(string $identifier, Request $request): array
@@ -260,14 +270,6 @@ class AuthController extends Controller
 
     /**
      * @param  Collection<int, Affectation>  $assignments
-     */
-    private function principalAssignment(Collection $assignments): ?Affectation
-    {
-        return $assignments->first();
-    }
-
-    /**
-     * @param  Collection<int, Affectation>  $assignments
      * @return array<string, mixed>
      */
     private function authPayload(User $user, Collection $assignments, Affectation $activeAssignment): array
@@ -285,9 +287,7 @@ class AuthController extends Controller
             ],
             'profil_actif' => $activeProfile,
             'profils' => $profiles,
-            'redirect_to' => $activeProfile['role_code'] === 'ADMIN_TECHNIQUE'
-                ? '/technique'
-                : '/tableau-de-bord',
+            'redirect_to' => $activeProfile['redirect_to'],
         ];
     }
 

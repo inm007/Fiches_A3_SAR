@@ -7,7 +7,6 @@ use App\Models\ActionA3;
 use App\Models\FicheA3;
 use App\Models\Parametre;
 use App\Models\PieceJointe;
-use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -17,12 +16,7 @@ use Throwable;
 
 class PieceJointeService
 {
-    private const array DEFAULT_LIMITS = [
-        'attachment_max_size_mb' => 10,
-        'attachment_max_files' => 20,
-    ];
-
-    private const array MIME_EXTENSIONS = [
+    public const array MIME_EXTENSIONS = [
         'application/pdf' => 'pdf',
         'image/png' => 'png',
         'image/jpeg' => 'jpg',
@@ -38,14 +32,7 @@ class PieceJointeService
      */
     public function limites(): array
     {
-        $limits = self::DEFAULT_LIMITS;
-        foreach (Parametre::query()->whereIn('cle', array_keys($limits))->pluck('valeur', 'cle') as $key => $value) {
-            if (is_numeric($value) && (int) $value > 0) {
-                $limits[$key] = (int) $value;
-            }
-        }
-
-        return $limits;
+        return collect(Parametre::fonctionnels())->only(['attachment_max_size_mb', 'attachment_max_files'])->all();
     }
 
     /**
@@ -54,7 +41,7 @@ class PieceJointeService
     public function pourFiche(FicheA3 $fiche): array
     {
         return $fiche->piecesJointes()
-            ->with(['auteur:id,nom,prenom'])
+            ->with(['auteur:id,nom,prenom', 'objet'])
             ->orderBy('created_at')
             ->get()
             ->map(fn (PieceJointe $pieceJointe) => $this->presenter($pieceJointe))
@@ -127,7 +114,7 @@ class PieceJointeService
                     $pieceJointe->nom_origine,
                 );
 
-                return $pieceJointe->load('auteur:id,nom,prenom');
+                return $pieceJointe->load(['auteur:id,nom,prenom', 'objet']);
             });
         } catch (Throwable $exception) {
             if ($path !== null && $path !== false) {
@@ -142,19 +129,13 @@ class PieceJointeService
      */
     public function presenter(PieceJointe $pieceJointe): array
     {
-        $action = $pieceJointe->objet_type === ActionA3::class
-            ? ActionA3::query()->whereKey($pieceJointe->objet_id)->value('description')
-            : null;
-        /** @var User|null $author */
-        $author = $pieceJointe->auteur;
-
         return [
             'id' => $pieceJointe->id,
             'nom' => $pieceJointe->nom_origine,
             'type_mime' => $pieceJointe->type_mime,
             'taille' => (int) $pieceJointe->taille,
-            'action' => $action,
-            'auteur' => $author === null ? 'Système' : trim($author->prenom.' '.$author->nom),
+            'action' => $pieceJointe->objet instanceof ActionA3 ? $pieceJointe->objet->description : null,
+            'auteur' => $pieceJointe->auteur?->nom_complet ?? 'Système',
             'created_at' => $pieceJointe->created_at?->toIso8601String(),
             'download_url' => '/api/pieces-jointes/'.$pieceJointe->id.'/telechargement',
         ];

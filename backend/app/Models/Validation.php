@@ -23,11 +23,14 @@ class Validation extends Model
         'ordre',
     ];
 
-    protected $casts = [
-        'empreinte_domaine' => 'array',
-        'demandee_le' => 'datetime',
-        'decidee_le' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'empreinte_domaine' => 'array',
+            'demandee_le' => 'datetime',
+            'decidee_le' => 'datetime',
+        ];
+    }
 
     public function fiche(): BelongsTo
     {

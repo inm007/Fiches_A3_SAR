@@ -22,11 +22,22 @@ class Controle extends Model
         'action_corrective_id',
     ];
 
-    protected $casts = [
-        'date_reference' => 'date',
-        'date_echeance' => 'date',
-        'date_effective' => 'date',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'date_reference' => 'date',
+            'date_echeance' => 'date',
+            'date_effective' => 'date',
+        ];
+    }
+
+    /**
+     * Nom court du jalon : « J+30 », « J+60 », « J+90 », ou le libellé donné pour le contrôle correctif.
+     */
+    public static function nomJalon(string $jalon, string $correctif = 'correctif'): string
+    {
+        return $jalon === 'CORRECTIF' ? $correctif : 'J+'.substr($jalon, 1);
+    }
 
     public function action(): BelongsTo
     {

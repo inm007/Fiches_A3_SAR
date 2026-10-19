@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Affectation;
 use App\Models\JournalAdministration;
+use App\Models\Unite;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Base des écrans d'administration fonctionnelle (routes /api/admin, rôle ADMIN_FONCTIONNEL).
@@ -44,5 +46,15 @@ abstract class AdminController extends Controller
             'role' => $relation('role', ['id', 'code', 'libelle']),
             'unite' => $relation('unite', ['id', 'code', 'libelle']),
         ];
+    }
+
+    /**
+     * Une unité choisie dans un écran d'administration doit exister et être active.
+     */
+    protected function validerUniteActive(int|string|null $uniteId): void
+    {
+        if ($uniteId !== null && ! Unite::query()->whereKey($uniteId)->where('actif', true)->exists()) {
+            throw ValidationException::withMessages(['unite_id' => 'L’unité sélectionnée n’existe pas ou est inactive.']);
+        }
     }
 }

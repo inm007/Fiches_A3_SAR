@@ -3,12 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\Equipement;
-use App\Models\Unite;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 
 /**
  * Écran Équipements : référence SAP saisie à la main (point d'extension SAP).
@@ -63,12 +61,5 @@ class EquipementController extends AdminController
         });
 
         return response()->json(['data' => $equipement->fresh()->load('unite:id,code,libelle')]);
-    }
-
-    private function validerUniteActive(int|string|null $uniteId): void
-    {
-        if ($uniteId !== null && ! Unite::query()->whereKey($uniteId)->where('actif', true)->exists()) {
-            throw ValidationException::withMessages(['unite_id' => 'L’unité sélectionnée n’existe pas ou est inactive.']);
-        }
     }
 }

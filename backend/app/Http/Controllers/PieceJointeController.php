@@ -35,7 +35,7 @@ class PieceJointeController extends Controller
             'fichier' => [
                 'required',
                 'file',
-                'mimetypes:application/pdf,image/png,image/jpeg,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                'mimetypes:'.implode(',', array_keys(PieceJointeService::MIME_EXTENSIONS)),
                 'max:'.($limits['attachment_max_size_mb'] * 1024),
             ],
             'action_id' => ['nullable', 'integer', 'exists:actions,id'],
@@ -55,11 +55,8 @@ class PieceJointeController extends Controller
             abort(404, 'Fichier introuvable.');
         }
 
-        $filename = basename(str_replace('\\', '/', $pieceJointe->nom_origine));
-        $filename = substr(preg_replace('/[\x00-\x1F\x7F]/', '', $filename) ?? '', 0, 255);
-        $filename = $filename === '' ? 'piece-jointe' : $filename;
-
-        return Storage::disk('local')->download($pieceJointe->nom_stockage, $filename, [
+        // Le nom d'origine est nettoyé à l'enregistrement (PieceJointeService::nomOriginal).
+        return Storage::disk('local')->download($pieceJointe->nom_stockage, $pieceJointe->nom_origine, [
             'X-Content-Type-Options' => 'nosniff',
         ]);
     }

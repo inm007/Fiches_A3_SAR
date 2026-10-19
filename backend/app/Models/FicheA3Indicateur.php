@@ -21,10 +21,13 @@ class FicheA3Indicateur extends Model
         'periode',
     ];
 
-    protected $casts = [
-        'principal' => 'boolean',
-        'a_ne_pas_degrader' => 'boolean',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'principal' => 'boolean',
+            'a_ne_pas_degrader' => 'boolean',
+        ];
+    }
 
     public function fiche(): BelongsTo
     {

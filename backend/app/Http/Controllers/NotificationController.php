@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PagineEtRecherche;
 use App\Models\NotificationInterne;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,6 +14,8 @@ use Illuminate\Validation\Rule;
  */
 class NotificationController extends Controller
 {
+    use PagineEtRecherche;
+
     public function index(Request $request): JsonResponse
     {
         $filters = $request->validate([
@@ -25,14 +28,9 @@ class NotificationController extends Controller
         $userNotifications = NotificationInterne::where('user_id', $request->user()->id);
         $unreadTotal = (clone $userNotifications)->whereNull('lu_le')->count();
 
-        $query = $userNotifications
-            ->with('fiche:id,numero_a3')
-            ->when($filters['q'] ?? null, function ($query, string $term): void {
-                foreach (preg_split('/\s+/u', trim($term), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $word) {
-                    $query->where(fn ($search) => $search->where('message', 'ilike', '%'.$word.'%')
-                        ->orWhereHas('fiche', fn ($fiche) => $fiche->where('numero_a3', 'ilike', '%'.$word.'%')));
-                }
-            })
+        $query = $this->rechercherMots($userNotifications->with('fiche:id,numero_a3'), $filters['q'] ?? null, fn ($search, string $motif) => $search
+            ->where('message', 'ilike', $motif)
+            ->orWhereHas('fiche', fn ($fiche) => $fiche->where('numero_a3', 'ilike', $motif)))
             ->when(($filters['etat'] ?? null) === 'lu', fn ($query) => $query->whereNotNull('lu_le'))
             ->when(($filters['etat'] ?? null) === 'non_lu', fn ($query) => $query->whereNull('lu_le'))
             ->orderByDesc('created_at')
@@ -48,7 +46,7 @@ class NotificationController extends Controller
                 'lu' => $notification->lu_le !== null,
                 'created_at' => $notification->created_at?->toIso8601String(),
             ]),
-            'meta' => ['page' => $page->currentPage(), 'per_page' => $page->perPage(), 'last_page' => $page->lastPage(), 'total' => $page->total(), 'unread_total' => $unreadTotal],
+            'meta' => $this->metaPagination($page, ['unread_total' => $unreadTotal]),
         ]);
     }
 

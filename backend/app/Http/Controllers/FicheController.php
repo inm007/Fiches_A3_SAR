@@ -5,12 +5,11 @@ namespace App\Http\Controllers;
 use App\Enums\Domaine;
 use App\Enums\StatutEtape;
 use App\Exceptions\RegleMetierException;
+use App\Http\Controllers\Concerns\PagineEtRecherche;
 use App\Http\Resources\FicheResource;
 use App\Models\Affectation;
-use App\Models\Equipement;
 use App\Models\FicheA3;
 use App\Models\Role;
-use App\Models\ValeurListe;
 use App\Services\ActiveProfile;
 use App\Services\FicheSectionRules;
 use App\Services\FicheSectionService;
@@ -25,7 +24,7 @@ use Illuminate\Validation\ValidationException;
 
 class FicheController extends Controller
 {
-    use ResolvesVisibleFiche;
+    use PagineEtRecherche, ResolvesVisibleFiche;
 
     private const array SORTS = ['numero_a3', 'date_cible', 'created_at', 'titre'];
 
@@ -56,21 +55,15 @@ class FicheController extends Controller
 
         $query = $this->visibility->apply(FicheA3::query(), $profile)
             ->with(['unite:id,code,libelle', 'pilote:id,nom,prenom'])
-            ->when($filters['q'] ?? null, function (Builder $q, string $term): void {
-                foreach (preg_split('/\s+/u', trim($term), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $word) {
-                    $needle = '%'.$word.'%';
-                    $q->where(fn (Builder $search) => $search
-                        ->where('numero_a3', 'ilike', $needle)
-                        ->orWhere('titre', 'ilike', $needle)
-                        ->orWhereHas('unite', fn (Builder $unit) => $unit->where('libelle', 'ilike', $needle)->orWhere('code', 'ilike', $needle))
-                        ->orWhereHas('pilote', fn (Builder $pilot) => $pilot
-                            ->where('prenom', 'ilike', $needle)
-                            ->orWhere('nom', 'ilike', $needle)));
-                }
-            })
             ->when($filters['date_debut'] ?? null, fn (Builder $q, string $date) => $q->whereDate('created_at', '>=', $date))
             ->when($filters['date_fin'] ?? null, fn (Builder $q, string $date) => $q->whereDate('created_at', '<=', $date))
             ->when($filters['sans_pilote'] ?? false, fn (Builder $q) => $q->whereNull('pilote_id'));
+
+        $this->rechercherMots($query, $filters['q'] ?? null, fn (Builder $search, string $motif) => $search
+            ->where('numero_a3', 'ilike', $motif)
+            ->orWhere('titre', 'ilike', $motif)
+            ->orWhereHas('unite', fn (Builder $unit) => $unit->where('libelle', 'ilike', $motif)->orWhere('code', 'ilike', $motif))
+            ->orWhereHas('pilote', fn (Builder $pilot) => $pilot->where('prenom', 'ilike', $motif)->orWhere('nom', 'ilike', $motif)));
 
         foreach (['statut_etape', 'statut_general', 'unite_id', 'pilote_id', 'origine_id', 'type_amelioration', 'equipement_id', 'confidentialite'] as $field) {
             $query->when($filters[$field] ?? null, fn (Builder $q, mixed $value) => $q->where($field, $value));
@@ -87,7 +80,7 @@ class FicheController extends Controller
                 'numero_a3' => $fiche->numero_a3,
                 'titre' => $fiche->titre,
                 'unite' => $fiche->unite?->libelle,
-                'pilote' => $fiche->pilote ? trim($fiche->pilote->prenom.' '.$fiche->pilote->nom) : null,
+                'pilote' => $fiche->pilote?->nom_complet,
                 'statut_etape' => $fiche->statut_etape,
                 'statut_etape_libelle' => $fiche->etape()->libelle(),
                 'statut_general' => $fiche->statut_general,
@@ -96,12 +89,7 @@ class FicheController extends Controller
                 'anciennete_jours' => (int) $fiche->created_at->startOfDay()->diffInDays(today()),
                 'en_retard' => $fiche->date_cible !== null && $fiche->date_cible->isBefore(today()) && $fiche->statut_etape !== StatutEtape::Cloture->value,
             ]),
-            'meta' => [
-                'page' => $page->currentPage(),
-                'per_page' => $page->perPage(),
-                'total' => $page->total(),
-                'last_page' => $page->lastPage(),
-            ],
+            'meta' => $this->metaPagination($page),
         ]);
     }
 
@@ -120,15 +108,9 @@ class FicheController extends Controller
             'confidentialite' => ['nullable', Rule::in(['NORMAL', 'RESTREINT'])],
         ]);
 
-        $origine = ValeurListe::query()->whereKey($data['origine_id'])->whereHas('liste', fn ($q) => $q->where('code', 'origine'))->first();
-        if ($origine === null) {
-            throw ValidationException::withMessages(['origine_id' => 'Choisissez une origine de la liste.']);
-        }
-        if ($origine->code === 'AUTRE' && blank($data['origine_precision'] ?? null)) {
-            throw ValidationException::withMessages(['origine_precision' => 'Précisez l’origine « Autre ».']);
-        }
-        if (($data['equipement_id'] ?? null) !== null && ! Equipement::whereKey($data['equipement_id'])->where('unite_id', $data['unite_id'])->exists()) {
-            throw ValidationException::withMessages(['equipement_id' => 'L’équipement doit appartenir à l’unité choisie.']);
+        $erreurs = FicheSectionService::erreursIdentification($data);
+        if ($erreurs !== []) {
+            throw ValidationException::withMessages($erreurs);
         }
 
         $fiche = $workflow->declarer($data, $profile);
@@ -181,7 +163,7 @@ class FicheController extends Controller
     public function historique(FicheA3 $fiche, ActiveProfile $profile): JsonResponse
     {
         $this->visible($fiche, $profile);
-        if (! $profile->is('PILOTE', 'DIRECTION', 'ADMIN_FONCTIONNEL')) {
+        if (! $profile->peutVoirHistorique()) {
             throw RegleMetierException::interdit('L’historique est réservé au pilote, à la Direction et à l’administrateur fonctionnel.');
         }
 
@@ -199,7 +181,7 @@ class FicheController extends Controller
             'nouvelle_valeur' => $evenement->nouvel_etat['valeur'] ?? null,
             'commentaire' => $evenement->commentaire,
             'version_fiche' => $evenement->version_fiche,
-            'auteur' => $evenement->user ? trim($evenement->user->prenom.' '.$evenement->user->nom) : 'Système',
+            'auteur' => $evenement->user?->nom_complet ?? 'Système',
             'created_at' => $evenement->created_at?->toIso8601String(),
         ])]);
     }
@@ -237,7 +219,7 @@ class FicheController extends Controller
             ->pluck('user')
             ->unique('id')
             ->sortBy('nom')
-            ->map(fn ($user) => ['id' => $user->id, 'nom' => trim($user->prenom.' '.$user->nom)])
+            ->map(fn ($user) => ['id' => $user->id, 'nom' => $user->nom_complet])
             ->values()
             ->all();
     }

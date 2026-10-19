@@ -110,20 +110,35 @@ class FicheSectionService
     }
 
     /**
+     * Règles communes à la déclaration (T1) et à la section 1 : origine prise dans sa liste,
+     * précision de l'origine « Autre », équipement de l'unité choisie.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, string> champ => message
+     */
+    public static function erreursIdentification(array $data): array
+    {
+        $origine = ValeurListe::query()->whereKey($data['origine_id'])->deLaListe('origine')->first();
+        $equipementId = $data['equipement_id'] ?? null;
+
+        return array_filter([
+            'origine_id' => $origine === null ? 'Choisissez une origine de la liste.' : null,
+            'origine_precision' => $origine?->code === 'AUTRE' && blank($data['origine_precision'] ?? null) ? 'Précisez l’origine « Autre ».' : null,
+            'equipement_id' => $equipementId !== null && ! Equipement::whereKey($equipementId)->where('unite_id', $data['unite_id'])->exists()
+                ? 'L’équipement doit appartenir à l’unité de la fiche.'
+                : null,
+        ]);
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      */
     private function section1(FicheA3 $fiche, array $data): void
     {
         $this->exigerValeurListe('type_amelioration', $data['type_amelioration'] ?? null);
-        $this->exigerIdListe('origine', $data['origine_id']);
-
-        if (($data['equipement_id'] ?? null) !== null
-            && ! Equipement::whereKey($data['equipement_id'])->where('unite_id', $data['unite_id'])->exists()) {
-            throw RegleMetierException::conditionsManquantes('Équipement invalide.', ['L’équipement doit appartenir à l’unité de la fiche.']);
-        }
-
-        if ($this->codeValeur($data['origine_id']) === 'AUTRE' && blank($data['origine_precision'] ?? null)) {
-            throw RegleMetierException::conditionsManquantes('Précision manquante.', ['Préciser l’origine « Autre ».']);
+        $erreurs = self::erreursIdentification($data);
+        if ($erreurs !== []) {
+            throw RegleMetierException::conditionsManquantes('Identification invalide.', array_values($erreurs));
         }
 
         $fiche->fill(collect($data)->only([
@@ -456,26 +471,15 @@ class FicheSectionService
             return;
         }
 
-        $existe = ValeurListe::query()
-            ->where('code', $code)
-            ->whereHas('liste', fn ($query) => $query->where('code', $liste))
-            ->exists();
-
-        if (! $existe) {
+        if (! ValeurListe::query()->where('code', $code)->deLaListe($liste)->exists()) {
             throw RegleMetierException::conditionsManquantes('Valeur invalide.', ["La valeur « {$code} » n’existe pas dans la liste « {$liste} »."]);
         }
     }
 
     private function exigerIdListe(string $liste, int $id): void
     {
-        $existe = ValeurListe::query()->whereKey($id)->whereHas('liste', fn ($query) => $query->where('code', $liste))->exists();
-        if (! $existe) {
+        if (! ValeurListe::query()->whereKey($id)->deLaListe($liste)->exists()) {
             throw RegleMetierException::conditionsManquantes('Valeur invalide.', ["La valeur choisie n’appartient pas à la liste « {$liste} »."]);
         }
-    }
-
-    private function codeValeur(int $id): ?string
-    {
-        return ValeurListe::whereKey($id)->value('code');
     }
 }

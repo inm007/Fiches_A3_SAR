@@ -22,9 +22,12 @@ class Risque extends Model
         'responsable_id',
     ];
 
-    protected $casts = [
-        'moc_requis' => 'boolean',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'moc_requis' => 'boolean',
+        ];
+    }
 
     public function fiche(): BelongsTo
     {

@@ -127,21 +127,41 @@ class ActionService
         });
     }
 
+    /**
+     * Le pilote, ou le responsable de l'action sur un profil Agent ou Pilote, à une étape
+     * où l'action est modifiable. Sert aussi à l'affichage (FicheResource).
+     */
+    public function peutModifier(ActionA3 $action, FicheA3 $fiche, ActiveProfile $profile): bool
+    {
+        return $this->estAutorise($action, $fiche, $profile) && $this->etapePermise($action, $fiche);
+    }
+
     private function exigerDroit(ActionA3 $action, FicheA3 $fiche, ActiveProfile $profile): void
     {
-        $estPilote = $profile->estPiloteDe($fiche);
-        $estResponsable = $profile->is('AGENT', 'PILOTE') && $action->responsable_id === $profile->userId();
-        if (! $estPilote && ! $estResponsable) {
+        if (! $this->estAutorise($action, $fiche, $profile)) {
             throw RegleMetierException::interdit('Seuls le pilote et le responsable de l’action la mettent à jour.');
         }
+        if (! $this->etapePermise($action, $fiche)) {
+            throw RegleMetierException::conflit('Les actions ne sont pas modifiables à l’étape « '.$fiche->etape()->libelle().' ».');
+        }
+    }
 
+    private function estAutorise(ActionA3 $action, FicheA3 $fiche, ActiveProfile $profile): bool
+    {
+        return $profile->estPiloteDe($fiche)
+            || ($profile->is('AGENT', 'PILOTE') && $action->responsable_id === $profile->userId());
+    }
+
+    /**
+     * Une action du plan se modifie pendant la réalisation ; une action corrective pendant tout le suivi.
+     */
+    private function etapePermise(ActionA3 $action, FicheA3 $fiche): bool
+    {
         $etapes = $action->action_origine_id !== null
             ? StatutEtape::etapesDeSuivi()
             : [StatutEtape::RealisationActions];
 
-        if (! in_array($fiche->etape(), $etapes, true)) {
-            throw RegleMetierException::conflit('Les actions ne sont pas modifiables à l’étape « '.$fiche->etape()->libelle().' ».');
-        }
+        return in_array($fiche->etape(), $etapes, true);
     }
 
     private function verifierPassage(ActionA3 $action, StatutAction $actuel, StatutAction $cible, bool $reprise, string $motif): void

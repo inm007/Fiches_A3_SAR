@@ -2,7 +2,6 @@
 
 namespace App\Http\Resources;
 
-use App\Enums\Domaine;
 use App\Enums\StatutAction;
 use App\Enums\StatutEtape;
 use App\Models\ActionA3;
@@ -264,17 +263,15 @@ class FicheResource extends JsonResource
             'est_pilote' => $estPilote,
             'peut_designer_pilote' => $profile->is('ADMIN_FONCTIONNEL') && $etape === StatutEtape::Ouvert,
             'peut_changer_confidentialite' => $estPilote || $profile->is('ADMIN_FONCTIONNEL'),
-            'peut_commenter' => $profile->is('AGENT', 'PILOTE', 'CONTROLE_GESTION', 'DIRECTION', ...Domaine::rolesValideurs()),
+            'peut_commenter' => $profile->peutCommenter(),
             'peut_ajouter_piece_jointe' => $estPilote || ($profile->is('AGENT') && $fiche->actions->contains('responsable_id', $userId)),
-            'peut_voir_historique' => $profile->is('PILOTE', 'DIRECTION', 'ADMIN_FONCTIONNEL'),
+            'peut_voir_historique' => $profile->peutVoirHistorique(),
             'peut_enregistrer_controles' => $estPilote && in_array($etape, StatutEtape::etapesDeSuivi(), true),
             'peut_decider_gains' => $profile->is(ValidationCircuit::CONTROLE_GESTION) && $fiche->validations->contains(
                 fn (Validation $validation) => $validation->porte === 2 && $validation->valideur_id === $userId && app(ValidationCircuit::class)->estActionnable($validation, $fiche)
             ),
             'actions_modifiables' => $fiche->actions
-                ->filter(fn (ActionA3 $action) => ($estPilote || ($profile->is('AGENT', 'PILOTE') && $action->responsable_id === $userId))
-                    && ($etape === StatutEtape::RealisationActions
-                        || ($action->action_origine_id !== null && in_array($etape, [StatutEtape::MesureResultats, StatutEtape::VerificationMaintien], true))))
+                ->filter(fn (ActionA3 $action) => app(ActionService::class)->peutModifier($action, $fiche, $profile))
                 ->pluck('id')
                 ->values(),
         ];
@@ -285,6 +282,6 @@ class FicheResource extends JsonResource
      */
     private function personne(?User $user): ?array
     {
-        return $user === null ? null : ['id' => $user->id, 'nom' => trim($user->prenom.' '.$user->nom)];
+        return $user === null ? null : ['id' => $user->id, 'nom' => $user->nom_complet];
     }
 }

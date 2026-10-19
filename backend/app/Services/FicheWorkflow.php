@@ -7,7 +7,6 @@ use App\Enums\StatutEtape;
 use App\Exceptions\RegleMetierException;
 use App\Models\CompteurFiche;
 use App\Models\FicheA3;
-use App\Models\ValeurListe;
 use App\Models\Validation;
 use Illuminate\Support\Facades\DB;
 
@@ -272,7 +271,7 @@ class FicheWorkflow
 
     private function apresApprobation(FicheA3 $fiche, Validation $validation): void
     {
-        $roles = $validation->porte === 1 ? $this->circuit->rolesPorte1($fiche) : $this->circuit->rolesPorte2($fiche);
+        $roles = $this->circuit->rolesPorte($fiche, $validation->porte);
         $suivantes = $this->circuit->courantes($fiche, $validation->porte, $roles)
             ->filter(fn (Validation $autre) => $autre->ordre > $validation->ordre
                 && $this->circuit->estActionnable($autre, $fiche));
@@ -304,7 +303,7 @@ class FicheWorkflow
      */
     private function avancerSiPorteApprouvee(FicheA3 $fiche, int $porte): void
     {
-        $roles = $porte === 1 ? $this->circuit->rolesPorte1($fiche) : $this->circuit->rolesPorte2($fiche);
+        $roles = $this->circuit->rolesPorte($fiche, $porte);
         if (! $this->circuit->porteApprouvee($fiche, $porte, $roles)) {
             return;
         }
@@ -341,7 +340,7 @@ class FicheWorkflow
      *
      * @return array<int, string>
      */
-    public function manquesB2(FicheA3 $fiche): array
+    private function manquesB2(FicheA3 $fiche): array
     {
         $manques = [];
 
@@ -362,7 +361,7 @@ class FicheWorkflow
         }
         if (blank($fiche->methode_analyse)) {
             $manques[] = 'Section 5 : méthode d’analyse.';
-        } elseif ($this->estAutre('methode_analyse', $fiche->methode_analyse) && blank($fiche->methode_precision)) {
+        } elseif ($fiche->methode_analyse === 'AUTRE' && blank($fiche->methode_precision)) {
             $manques[] = 'Section 5 : préciser la méthode « Autre ».';
         }
         if (! $fiche->causes()->exists()) {
@@ -437,13 +436,5 @@ class FicheWorkflow
         foreach ($validations as $validation) {
             $this->notifications->notify([$validation->valideur_id], $fiche, 'DEMANDE_VALIDATION', $message, 'validation', $validation->id);
         }
-    }
-
-    private function estAutre(string $liste, string $code): bool
-    {
-        return $code === 'AUTRE' && ValeurListe::query()
-            ->where('code', 'AUTRE')
-            ->whereHas('liste', fn ($query) => $query->where('code', $liste))
-            ->exists();
     }
 }

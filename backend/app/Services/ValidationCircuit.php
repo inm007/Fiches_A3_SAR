@@ -58,6 +58,14 @@ class ValidationCircuit
     }
 
     /**
+     * @return array<string, int>
+     */
+    public function rolesPorte(FicheA3 $fiche, int $porte): array
+    {
+        return $porte === 1 ? $this->rolesPorte1($fiche) : $this->rolesPorte2($fiche);
+    }
+
+    /**
      * Premier titulaire du rôle dans l'unité de la fiche, à défaut une affectation globale ;
      * le pilote n'est jamais sollicité sur sa propre fiche (B8).
      */
@@ -166,11 +174,30 @@ class ValidationCircuit
             return false;
         }
 
-        $roles = $validation->porte === 1 ? $this->rolesPorte1($fiche) : $this->rolesPorte2($fiche);
+        $roles = $this->rolesPorte($fiche, $validation->porte);
 
         return $this->courantes($fiche, $validation->porte, $roles)
             ->filter(fn (Validation $autre) => $autre->ordre < $validation->ordre)
             ->every(fn (Validation $autre) => $autre->decision === 'VALIDE');
+    }
+
+    /**
+     * Demandes qui attendent le profil actif, les plus anciennes en premier (B7, B8).
+     *
+     * @return Collection<int, Validation>
+     */
+    public function aTraiterPar(ActiveProfile $profile): Collection
+    {
+        return Validation::query()
+            ->with(['fiche:id,numero_a3,titre,statut_etape,pilote_id,unite_id,sans_gain_chiffre', 'role:id,code,libelle'])
+            ->where('valideur_id', $profile->userId())
+            ->where('role_id', $profile->roleId())
+            ->where('decision', 'EN_ATTENTE')
+            ->orderBy('demandee_le')
+            ->get()
+            ->filter(fn (Validation $validation) => $validation->fiche->pilote_id !== $profile->userId()
+                && $this->estActionnable($validation, $validation->fiche))
+            ->values();
     }
 
     /**

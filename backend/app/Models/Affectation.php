@@ -19,11 +19,14 @@ class Affectation extends Model
         'date_fin',
     ];
 
-    protected $casts = [
-        'actif' => 'boolean',
-        'date_debut' => 'datetime',
-        'date_fin' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'actif' => 'boolean',
+            'date_debut' => 'datetime',
+            'date_fin' => 'datetime',
+        ];
+    }
 
     /**
      * Affectations valables aujourd'hui : actives et dans leurs dates de début et de fin.

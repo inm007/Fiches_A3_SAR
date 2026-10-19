@@ -22,12 +22,15 @@ class Gain extends Model
         'date_validation',
     ];
 
-    protected $casts = [
-        'quantite' => 'decimal:4',
-        'date_validation' => 'datetime',
-        'cout_unitaire' => 'integer',
-        'montant_annuel' => 'integer',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'quantite' => 'decimal:4',
+            'date_validation' => 'datetime',
+            'cout_unitaire' => 'integer',
+            'montant_annuel' => 'integer',
+        ];
+    }
 
     public function fiche(): BelongsTo
     {

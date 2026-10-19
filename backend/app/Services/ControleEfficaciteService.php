@@ -70,7 +70,7 @@ class ControleEfficaciteService
         $manques = [];
         foreach ($jalonsRequis as $jalon) {
             $controle = $action->controles->firstWhere('jalon', $jalon);
-            $nom = $jalon === 'CORRECTIF' ? 'de l’action corrective' : 'J+'.substr($jalon, 1);
+            $nom = Controle::nomJalon($jalon, 'de l’action corrective');
 
             if ($controle === null || $controle->resultat === null) {
                 $echeance = $controle?->date_echeance?->format('d/m/Y');

@@ -19,9 +19,12 @@ class NotificationInterne extends Model
         'lu_le',
     ];
 
-    protected $casts = [
-        'lu_le' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'lu_le' => 'datetime',
+        ];
+    }
 
     public function user(): BelongsTo
     {

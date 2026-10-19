@@ -21,9 +21,12 @@ class Cause extends Model
         'preuve',
     ];
 
-    protected $casts = [
-        'racine' => 'boolean',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'racine' => 'boolean',
+        ];
+    }
 
     public function actions(): HasMany
     {

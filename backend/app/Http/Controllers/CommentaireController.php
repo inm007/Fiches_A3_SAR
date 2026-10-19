@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\Domaine;
 use App\Exceptions\RegleMetierException;
 use App\Models\Commentaire;
 use App\Models\FicheA3;
@@ -32,7 +31,7 @@ class CommentaireController extends Controller
     public function store(Request $request, FicheA3 $fiche, ActiveProfile $profile): JsonResponse
     {
         $this->visible($fiche, $profile);
-        if (! $profile->is('AGENT', 'PILOTE', 'CONTROLE_GESTION', 'DIRECTION', ...Domaine::rolesValideurs())) {
+        if (! $profile->peutCommenter()) {
             throw RegleMetierException::interdit('Ce profil ne peut pas commenter une fiche.');
         }
 
@@ -62,7 +61,7 @@ class CommentaireController extends Controller
             'texte' => $commentaire->texte,
             'contexte' => $commentaire->contexte,
             'objet_id' => $commentaire->objet_id,
-            'auteur' => $commentaire->auteur ? trim($commentaire->auteur->prenom.' '.$commentaire->auteur->nom) : 'Système',
+            'auteur' => $commentaire->auteur?->nom_complet ?? 'Système',
             'created_at' => $commentaire->created_at?->toIso8601String(),
         ];
     }
