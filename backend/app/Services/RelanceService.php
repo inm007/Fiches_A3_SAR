@@ -181,9 +181,13 @@ class RelanceService
 
                 return $relance;
             });
-        } catch (QueryException) {
+        } catch (QueryException $exception) {
             // Contrainte unique (cible, jour) : une autre relance vient d'être créée.
-            return null;
+            if ($exception->getCode() === '23505') {
+                return null;
+            }
+
+            throw $exception;
         }
     }
 }
