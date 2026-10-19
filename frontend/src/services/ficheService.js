@@ -32,6 +32,7 @@ export const ficheService = {
   controle: (controleId, data) => send(`/controles/${controleId}`, 'PATCH', data).then((result) => result.data),
   decision: (validationId, data) => send(`/validations/${validationId}/decision`, 'POST', data).then((result) => result.data),
   decisionGain: (gainId, decision) => send(`/gains/${gainId}/decision`, 'POST', { decision }).then((result) => result.data),
+  relancer: (cibleType, cibleId) => send('/relances', 'POST', { cible_type: cibleType, cible_id: cibleId }).then((result) => result.data),
   validations: () => apiRequest('/validations').then((result) => result.data),
 }
 

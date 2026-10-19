@@ -17,6 +17,7 @@ const typeLabels = {
   DESIGNATION_PILOTE: 'Désignation du pilote',
   CHANGEMENT_CONFIDENTIALITE: 'Confidentialité',
   NOUVELLE_VERSION: 'Nouvelle version',
+  RELANCE: 'Relance',
 }
 
 function tone(type) {
