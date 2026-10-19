@@ -352,6 +352,7 @@ class FicheSectionService
             if ($existing?->statut === 'VALIDE') {
                 return $existing;
             }
+            $this->exigerValeurListe('categorie_gain', $item['categorie']);
 
             return $this->saveRow($fiche->gains(), $existing, [
                 ...collect($item)->only(['categorie', 'hypothese_calcul', 'quantite', 'unite', 'cout_unitaire'])->all(),
@@ -375,11 +376,11 @@ class FicheSectionService
      */
     private function section10(FicheA3 $fiche, array $data): void
     {
-        $this->sync($fiche->perennisations(), $data['perennisation'], 'action de pérennisation', fn (array $item, ?Model $existing): Model => $this->saveRow(
-            $fiche->perennisations(),
-            $existing,
-            collect($item)->only(['type', 'responsable_id', 'date', 'statut', 'preuve'])->all(),
-        ));
+        $this->sync($fiche->perennisations(), $data['perennisation'], 'action de pérennisation', function (array $item, ?Model $existing) use ($fiche): Model {
+            $this->exigerValeurListe('type_perennisation', $item['type']);
+
+            return $this->saveRow($fiche->perennisations(), $existing, collect($item)->only(['type', 'responsable_id', 'date', 'statut', 'preuve'])->all());
+        });
     }
 
     /**

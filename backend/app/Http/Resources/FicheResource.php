@@ -8,6 +8,7 @@ use App\Models\ActionA3;
 use App\Models\FicheA3;
 use App\Models\FicheA3Indicateur;
 use App\Models\User;
+use App\Models\ValeurListe;
 use App\Models\Validation;
 use App\Services\ActionService;
 use App\Services\ActiveProfile;
@@ -45,6 +46,8 @@ class FicheResource extends JsonResource
         $totalA = $calculs->totalA($sansGainRefuse->pluck('montant_annuel'));
         $totalAValide = $calculs->totalA($fiche->gains->where('statut', 'VALIDE')->pluck('montant_annuel'));
         $coutB = (int) $fiche->cout_mise_en_oeuvre_b;
+        $categoriesGain = ValeurListe::query()->deLaListe('categorie_gain')->pluck('libelle', 'code');
+        $typesPerennisation = ValeurListe::query()->deLaListe('type_perennisation')->pluck('libelle', 'code');
 
         return [
             'id' => $fiche->id,
@@ -105,7 +108,10 @@ class FicheResource extends JsonResource
             ]),
             'resultats' => $fiche->only(['objectif_atteint', 'ecart_objectif']),
             'gains' => [
-                'lignes' => $fiche->gains->sortBy('id')->values()->map->only(['id', 'categorie', 'hypothese_calcul', 'quantite', 'unite', 'cout_unitaire', 'montant_annuel', 'statut']),
+                'lignes' => $fiche->gains->sortBy('id')->values()->map(fn ($gain) => [
+                    ...$gain->only(['id', 'categorie', 'hypothese_calcul', 'quantite', 'unite', 'cout_unitaire', 'montant_annuel', 'statut']),
+                    'categorie_libelle' => $categoriesGain[$gain->categorie] ?? $gain->categorie,
+                ]),
                 'sans_gain_chiffre' => $fiche->sans_gain_chiffre,
                 'cout_mise_en_oeuvre_b' => $coutB,
                 'somme_couts_actions' => (int) $fiche->actions->sum('cout_estime'),
@@ -116,6 +122,7 @@ class FicheResource extends JsonResource
             ],
             'perennisation' => $fiche->perennisations->sortBy('id')->values()->map(fn ($ligne) => [
                 ...$ligne->only(['id', 'type', 'responsable_id', 'statut', 'preuve']),
+                'type_libelle' => $typesPerennisation[$ligne->type] ?? $ligne->type,
                 'date' => $ligne->date?->toDateString(),
                 'responsable' => $this->personne($ligne->responsable),
             ]),

@@ -140,7 +140,7 @@ function FichePrintView({ fiche, refs }) {
         <Section number={9} title="Gains économiques">
           <Table headers={['Catégorie', 'Hypothèse', 'Quantité', 'Unité', 'Coût unitaire', 'Montant annuel', 'Statut']} rows={gains.lignes.map((item) => ({
             id: item.id,
-            values: [item.categorie, item.hypothese_calcul, item.quantite, item.unite, item.cout_unitaire, item.montant_annuel, item.statut],
+            values: [item.categorie_libelle, item.hypothese_calcul, item.quantite, item.unite, item.cout_unitaire, item.montant_annuel, item.statut],
           }))} />
           <Fields values={[
             ['Sans gain chiffré', gains.sans_gain_chiffre],
@@ -153,7 +153,7 @@ function FichePrintView({ fiche, refs }) {
         <Section number={10} title="Standardisation et pérennisation">
           <Table headers={['Type', 'Responsable', 'Date', 'Statut', 'Preuve']} rows={fiche.perennisation.map((item) => ({
             id: item.id,
-            values: [item.type, item.responsable ? `${item.responsable.prenom} ${item.responsable.nom}` : null, item.date, item.statut, item.preuve],
+            values: [item.type_libelle, item.responsable ? `${item.responsable.prenom} ${item.responsable.nom}` : null, item.date, item.statut, item.preuve],
           }))} />
         </Section>
         <Section number={11} title="Leçons apprises">

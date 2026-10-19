@@ -42,6 +42,28 @@ class ReferenceListsSeeder extends Seeder
                 'description' => 'Valeurs provisoires, à valider avec l’amélioration continue.',
                 'values' => ['Corrective', 'Préventive', 'Amélioration'],
             ],
+            'categorie_gain' => [
+                'libelle' => 'Catégories de gain',
+                'description' => 'Nature des gains chiffrés (section 9).',
+                'values' => [
+                    'PRODUCTION_RECUPEREE' => 'Production récupérée',
+                    'ENERGIE_ECONOMISEE' => 'Énergie économisée',
+                    'MAINTENANCE_EVITEE' => 'Maintenance évitée',
+                    'NON_QUALITE_EVITEE' => 'Pertes ou non-qualité évitées',
+                    'AUTRES' => 'Autres',
+                ],
+            ],
+            'type_perennisation' => [
+                'libelle' => 'Types de pérennisation',
+                'description' => 'Moyens de standardiser le résultat (section 10).',
+                'values' => [
+                    'SOP' => 'SOP',
+                    'PARAMETRES' => 'Paramètres',
+                    'FORMATION' => 'Formation',
+                    'PLAN_MAINTENANCE' => 'Plan de maintenance',
+                    'KPI_TABLEAU_DE_BORD' => 'KPI au tableau de bord',
+                ],
+            ],
             'frequence_controle' => [
                 'libelle' => 'Fréquences de contrôle',
                 'description' => 'À compléter avec les valeurs validées par l’amélioration continue.',

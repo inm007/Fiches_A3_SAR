@@ -20,7 +20,6 @@ return new class extends Migration
             $table->timestampsTz();
         });
 
-        DB::statement("ALTER TABLE perennisation ADD CONSTRAINT perennisation_type_check CHECK (type IN ('SOP', 'PARAMETRES', 'FORMATION', 'PLAN_MAINTENANCE', 'KPI_TABLEAU_DE_BORD'))");
         DB::statement("ALTER TABLE perennisation ADD CONSTRAINT perennisation_statut_check CHECK (statut IN ('A_FAIRE', 'EN_COURS', 'REALISE'))");
     }
 

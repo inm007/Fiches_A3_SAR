@@ -6,8 +6,8 @@ import Badge from '../../ui/Badge.jsx'
 import { Select, TextArea } from '../../ui/FormControls.jsx'
 import { refreshCounters } from '../../../hooks/useCounters.js'
 import { describeError, ficheService } from '../../../services/ficheService.js'
-import { CATEGORIES_GAIN, DECISIONS, STATUTS_GAIN } from '../../../utils/constants.js'
-import { formatDate, formatFcfa, libelle, plural } from '../../../utils/format.js'
+import { DECISIONS, STATUTS_GAIN } from '../../../utils/constants.js'
+import { formatDate, formatFcfa, plural } from '../../../utils/format.js'
 import { toast } from '../../../utils/toast.js'
 import './FicheTab.css'
 
@@ -62,7 +62,7 @@ export default function ValidationsTab({ fiche, onChange, onError }) {
             <tbody>
               {fiche.gains.lignes.map((gain) => (
                 <tr key={gain.id}>
-                  <td>{libelle(CATEGORIES_GAIN, gain.categorie)}</td>
+                  <td>{gain.categorie_libelle}</td>
                   <td>{gain.hypothese_calcul}</td>
                   <td><b>{formatFcfa(gain.montant_annuel)}</b></td>
                   <td>{STATUTS_GAIN[gain.statut]}</td>
