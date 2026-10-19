@@ -5,7 +5,7 @@ import Badge from '../../ui/Badge.jsx'
 import { TextArea, TextInput } from '../../ui/FormControls.jsx'
 import { describeError, ficheService } from '../../../services/ficheService.js'
 import { STATUTS_ACTION } from '../../../utils/constants.js'
-import { formatDate, formatFcfa } from '../../../utils/format.js'
+import { formatDate, formatDateTime, formatFcfa } from '../../../utils/format.js'
 import { toast } from '../../../utils/toast.js'
 import Icon from '../../ui/Icon.jsx'
 import './FicheTab.css'
@@ -35,6 +35,18 @@ export default function ActionsTab({ fiche, onChange, onError }) {
       setDate('')
     } catch (error) {
       setDialog(null)
+      onError(describeError(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function remind(action) {
+    setBusy(true)
+    try {
+      onChange(await ficheService.relancer('action', action.id))
+      toast('Relance envoyée au responsable')
+    } catch (error) {
       onError(describeError(error))
     } finally {
       setBusy(false)
@@ -83,6 +95,12 @@ export default function ActionsTab({ fiche, onChange, onError }) {
                       ))}
                     </div>
                   )}
+                  {action.relancable && (
+                    <div className="fiche-tab__buttons">
+                      <Button disabled={busy} icon="bell" size="small" type="button" variant="secondary" onClick={() => remind(action)}>Relancer</Button>
+                    </div>
+                  )}
+                  {action.derniere_relance && <div className="fiche-tab__muted">Relancée le {formatDateTime(action.derniere_relance)}</div>}
                 </td>
               </tr>
             )

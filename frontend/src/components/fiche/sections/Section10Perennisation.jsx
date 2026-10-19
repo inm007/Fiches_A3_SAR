@@ -1,9 +1,11 @@
-import { STATUTS_SIMPLES, TYPES_PERENNISATION } from '../../../utils/constants.js'
+import { STATUTS_SIMPLES } from '../../../utils/constants.js'
 import RowsEditor, { CellInput, CellSelect } from './RowsEditor.jsx'
-import { peopleOptions } from './options.js'
+import { listOptions, peopleOptions } from './options.js'
 import './FicheSection.css'
 
-export default function Section10Perennisation({ draft, set, options, readOnly }) {
+export default function Section10Perennisation({ draft, set, options, refs, readOnly }) {
+  const types = listOptions(refs, 'type_perennisation')
+
   return (
     <div className="fiche-section">
       <p className="fiche-section__help">
@@ -12,7 +14,7 @@ export default function Section10Perennisation({ draft, set, options, readOnly }
       <RowsEditor
         addLabel="Ajouter une action de pérennisation"
         columns={[
-          { key: 'type', label: 'Type *', width: 170, render: (row, setRow) => <CellSelect options={TYPES_PERENNISATION} readOnly={readOnly} value={row.type} onChange={(value) => setRow('type', value)} /> },
+          { key: 'type', label: 'Type *', width: 170, render: (row, setRow) => <CellSelect options={types} readOnly={readOnly} value={row.type} onChange={(value) => setRow('type', value)} /> },
           { key: 'responsable_id', label: 'Responsable', width: 160, render: (row, setRow) => <CellSelect options={peopleOptions(options?.responsables)} readOnly={readOnly} value={row.responsable_id} onChange={(value) => setRow('responsable_id', value)} /> },
           { key: 'date', label: 'Date', width: 130, render: (row, setRow) => <CellInput readOnly={readOnly} type="date" value={row.date} onChange={(value) => setRow('date', value)} /> },
           { key: 'statut', label: 'Statut *', width: 110, render: (row, setRow) => <CellSelect options={STATUTS_SIMPLES} readOnly={readOnly} value={row.statut} onChange={(value) => setRow('statut', value)} /> },

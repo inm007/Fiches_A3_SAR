@@ -338,8 +338,13 @@ class ReglesMetierTest extends TestCase
         ], 'cout_mise_en_oeuvre_b' => 0])
             ->assertOk()
             ->assertJsonPath('data.gains.lignes.1.montant_annuel', 1502)
+            ->assertJsonPath('data.gains.lignes.0.categorie_libelle', 'Énergie économisée')
             ->assertJsonPath('data.gains.total_a', 10_501_502)
             ->assertJsonPath('data.gains.payback_annees', 0);
+
+        $this->section($fiche, 9, ['gains' => [['categorie' => 'INCONNUE', 'hypothese_calcul' => 'H', 'quantite' => 1, 'unite' => 'u', 'cout_unitaire' => 1]]])
+            ->assertUnprocessable()
+            ->assertJsonFragment(['La valeur « INCONNUE » n’existe pas dans la liste « categorie_gain ».']);
 
         $gain = $fiche->gains()->firstOrFail();
         $this->agir('CONTROLE_GESTION')->postJson("/api/gains/{$gain->id}/decision", ['decision' => 'VALIDE'])->assertConflict();

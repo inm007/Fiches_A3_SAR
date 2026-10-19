@@ -27,11 +27,12 @@ export const ficheService = {
   },
   telechargerPieceJointe: (id) => apiDownload(`/pieces-jointes/${id}/telechargement`),
   commentaires: (id) => apiRequest(`/fiches/${id}/commentaires`).then((result) => result.data),
-  commenter: (id, texte) => send(`/fiches/${id}/commentaires`, 'POST', { texte }).then((result) => result.data),
+  commenter: (id, texte, contexte = 'FICHE', objetId = null) => send(`/fiches/${id}/commentaires`, 'POST', { texte, contexte, objet_id: objetId }).then((result) => result.data),
   actionStatut: (actionId, data) => send(`/actions/${actionId}/statut`, 'POST', data).then((result) => result.data),
   controle: (controleId, data) => send(`/controles/${controleId}`, 'PATCH', data).then((result) => result.data),
   decision: (validationId, data) => send(`/validations/${validationId}/decision`, 'POST', data).then((result) => result.data),
   decisionGain: (gainId, decision) => send(`/gains/${gainId}/decision`, 'POST', { decision }).then((result) => result.data),
+  relancer: (cibleType, cibleId) => send('/relances', 'POST', { cible_type: cibleType, cible_id: cibleId }).then((result) => result.data),
   validations: () => apiRequest('/validations').then((result) => result.data),
 }
 

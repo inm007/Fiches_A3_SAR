@@ -1,13 +1,15 @@
 import { Checkbox, TextInput } from '../../ui/FormControls.jsx'
 import Badge from '../../ui/Badge.jsx'
-import { CATEGORIES_GAIN, STATUTS_GAIN } from '../../../utils/constants.js'
+import { STATUTS_GAIN } from '../../../utils/constants.js'
 import { formatFcfa, formatPayback } from '../../../utils/format.js'
 import RowsEditor, { CellInput, CellSelect } from './RowsEditor.jsx'
+import { listOptions } from './options.js'
 import './FicheSection.css'
 
 const gainTone = { PROPOSE: 'neutral', VALIDE: 'success', REFUSE: 'error' }
 
-export default function Section09Gains({ draft, set, fiche, readOnly }) {
+export default function Section09Gains({ draft, set, fiche, refs, readOnly }) {
+  const categories = listOptions(refs, 'categorie_gain')
   const totaux = fiche.gains
   const locked = (row) => readOnly || row.statut === 'VALIDE'
 
@@ -22,7 +24,7 @@ export default function Section09Gains({ draft, set, fiche, readOnly }) {
           addLabel="Ajouter un gain"
           canRemove={(row) => row.statut !== 'VALIDE'}
           columns={[
-            { key: 'categorie', label: 'Catégorie *', width: 160, render: (row, setRow) => <CellSelect options={CATEGORIES_GAIN} readOnly={locked(row)} value={row.categorie} onChange={(value) => setRow('categorie', value)} /> },
+            { key: 'categorie', label: 'Catégorie *', width: 160, render: (row, setRow) => <CellSelect options={categories} readOnly={locked(row)} value={row.categorie} onChange={(value) => setRow('categorie', value)} /> },
             { key: 'hypothese_calcul', label: 'Hypothèse de calcul *', width: 200, render: (row, setRow) => <CellInput readOnly={locked(row)} value={row.hypothese_calcul} onChange={(value) => setRow('hypothese_calcul', value)} /> },
             { key: 'quantite', label: 'Quantité *', width: 90, render: (row, setRow) => <CellInput min="0" readOnly={locked(row)} step="any" type="number" value={row.quantite} onChange={(value) => setRow('quantite', value)} /> },
             { key: 'unite', label: 'Unité *', width: 70, render: (row, setRow) => <CellInput readOnly={locked(row)} value={row.unite} onChange={(value) => setRow('unite', value)} /> },
