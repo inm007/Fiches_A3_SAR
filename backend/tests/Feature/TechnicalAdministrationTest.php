@@ -4,11 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Affectation;
 use App\Models\JournalAdministration;
-use App\Models\Parametre;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Illuminate\Support\Facades\Crypt;
 use Tests\TestCase;
 
 class TechnicalAdministrationTest extends TestCase
@@ -36,7 +34,7 @@ class TechnicalAdministrationTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.auth_provider', 'local')
             ->assertJsonPath('data.sap_enabled', false)
-            ->assertJsonStructure(['data' => ['smtp' => ['SMTP_HOST', 'SMTP_PASSWORD_SET'], 'logs']]);
+            ->assertJsonPath('data.mail_mailer', config('mail.default'));
     }
 
     public function test_technical_logs_can_be_searched_filtered_and_paginated(): void
@@ -76,8 +74,6 @@ class TechnicalAdministrationTest extends TestCase
 
             $this->getJson('/api/technique')->assertForbidden();
             $this->getJson('/api/technique/logs')->assertForbidden();
-            $this->putJson('/api/technique/settings', ['cle' => 'SMTP_HOST', 'valeur' => 'smtp.test'])
-                ->assertForbidden();
         }
     }
 
@@ -86,43 +82,6 @@ class TechnicalAdministrationTest extends TestCase
         $this->actingAsActiveRole('ADMIN_TECHNIQUE');
 
         $this->getJson('/api/admin/users')->assertForbidden();
-    }
-
-    public function test_smtp_password_is_encrypted_never_returned_and_audited_without_value(): void
-    {
-        $this->actingAsActiveRole('ADMIN_TECHNIQUE');
-
-        $this->putJson('/api/technique/settings', ['cle' => 'SMTP_PASSWORD', 'valeur' => 'mot-de-passe-smtp'])
-            ->assertOk();
-
-        $stored = Parametre::where('cle', 'SMTP_PASSWORD')->value('valeur');
-        $this->assertNotSame('mot-de-passe-smtp', $stored);
-        $this->assertSame('mot-de-passe-smtp', Crypt::decryptString($stored));
-
-        $response = $this->getJson('/api/technique')
-            ->assertOk()
-            ->assertJsonPath('data.smtp.SMTP_PASSWORD_SET', true);
-        $this->assertStringNotContainsString('mot-de-passe-smtp', $response->getContent());
-        $this->assertStringNotContainsString($stored, $response->getContent());
-
-        $entry = JournalAdministration::where('objet', 'parametre:SMTP_PASSWORD')->latest('id')->firstOrFail();
-        $this->assertSame('[masqué]', $entry->detail['valeur']);
-    }
-
-    public function test_only_whitelisted_smtp_keys_can_be_updated(): void
-    {
-        $this->actingAsActiveRole('ADMIN_TECHNIQUE');
-
-        $this->putJson('/api/technique/settings', ['cle' => 'reminder_interval_days', 'valeur' => '1'])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('cle');
-        $this->putJson('/api/technique/settings', ['cle' => 'SMTP_PORT', 'valeur' => 'abc'])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('valeur');
-
-        $this->putJson('/api/technique/settings', ['cle' => 'SMTP_HOST', 'valeur' => 'smtp.sar.test'])
-            ->assertOk();
-        $this->assertSame('smtp.sar.test', Parametre::where('cle', 'SMTP_HOST')->value('valeur'));
     }
 
     private function actingAsActiveRole(string $roleCode): User

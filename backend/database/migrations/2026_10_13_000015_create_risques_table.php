@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -24,6 +25,7 @@ return new class extends Migration
             $table->index(['fiche_id', 'domaine']);
         });
 
+        DB::statement("ALTER TABLE risques ADD CONSTRAINT risques_moc_statut_check CHECK (moc_statut IS NULL OR moc_statut IN ('A_OUVRIR', 'OUVERT', 'CLOTURE'))");
     }
 
     public function down(): void

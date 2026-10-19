@@ -6,6 +6,7 @@ use App\Enums\Domaine;
 use App\Enums\StatutAction;
 use App\Enums\StatutEtape;
 use App\Exceptions\RegleMetierException;
+use App\Http\Requests\FicheSectionRules;
 use App\Models\ActionA3;
 use App\Models\Equipement;
 use App\Models\FicheA3;
@@ -51,7 +52,6 @@ class FicheSectionService
             9 => $suivi,
             10 => $suivi,
             11 => $resultats,
-            12 => [],
         ];
     }
 

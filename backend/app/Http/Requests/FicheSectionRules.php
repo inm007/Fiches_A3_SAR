@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Http\Requests;
 
 use App\Enums\Domaine;
 use Illuminate\Validation\Rule;
