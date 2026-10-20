@@ -6,6 +6,7 @@ use App\Enums\StatutAction;
 use App\Models\ActionA3;
 use App\Models\Controle;
 use App\Models\FicheA3;
+use App\Support\Manque;
 use Illuminate\Support\Carbon;
 
 /**
@@ -35,7 +36,7 @@ class ControleEfficaciteService
     /**
      * Conditions B4 non satisfaites pour la soumission de la clôture (T8).
      *
-     * @return array<int, string>
+     * @return array<int, Manque>
      */
     public function manques(FicheA3 $fiche): array
     {
@@ -57,14 +58,14 @@ class ControleEfficaciteService
 
     /**
      * @param  array<int, string>  $jalonsRequis
-     * @return array<int, string>
+     * @return array<int, Manque>
      */
     private function manquesAction(ActionA3 $action, array $jalonsRequis): array
     {
         $libelle = '« '.str($action->description)->limit(60).' »';
 
         if ($action->statut !== StatutAction::Realise->value) {
-            return ["Action {$libelle} : elle doit être réalisée avant ses contrôles."];
+            return [Manque::actions("Action {$libelle} : elle doit être réalisée avant ses contrôles.", $action->id)];
         }
 
         $manques = [];
@@ -76,12 +77,12 @@ class ControleEfficaciteService
                 $echeance = $controle?->date_echeance?->format('d/m/Y');
 
                 if ($controle?->date_echeance?->isAfter(today())) {
-                    $manques[] = "Action {$libelle} : contrôle {$nom} à venir (échéance le {$echeance}). La clôture attendra ce contrôle.";
+                    $manques[] = Manque::controles("Action {$libelle} : contrôle {$nom} à venir (échéance le {$echeance}). La clôture attendra ce contrôle.", $action->id);
 
                     continue;
                 }
 
-                $manques[] = "Action {$libelle} : contrôle {$nom} non renseigné".($echeance ? " (échéance {$echeance})." : '.');
+                $manques[] = Manque::controles("Action {$libelle} : contrôle {$nom} non renseigné".($echeance ? " (échéance {$echeance})." : '.'), $action->id);
 
                 continue;
             }
@@ -89,13 +90,13 @@ class ControleEfficaciteService
             if ($controle->resultat === 'NON_CONFORME') {
                 $corrective = $controle->actionCorrective()->with('controles')->first();
                 if ($corrective === null) {
-                    $manques[] = "Action {$libelle} : contrôle {$nom} non conforme sans action corrective.";
+                    $manques[] = Manque::controles("Action {$libelle} : contrôle {$nom} non conforme sans action corrective.", $action->id);
 
                     continue;
                 }
 
                 if ($corrective->statut === StatutAction::Annule->value) {
-                    $manques[] = "Action {$libelle} : l’action corrective du contrôle {$nom} est annulée.";
+                    $manques[] = Manque::controles("Action {$libelle} : l’action corrective du contrôle {$nom} est annulée.", $action->id);
 
                     continue;
                 }

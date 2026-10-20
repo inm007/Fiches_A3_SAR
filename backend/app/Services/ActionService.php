@@ -9,6 +9,7 @@ use App\Models\ActionA3;
 use App\Models\Controle;
 use App\Models\FicheA3;
 use App\Models\ValeurListe;
+use App\Support\Manque;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -321,7 +322,7 @@ class ActionService
         if (in_array($cible, [StatutAction::EnCours, StatutAction::Realise], true)) {
             $manques = $this->manquesB1($action);
             if ($manques !== []) {
-                throw RegleMetierException::conditionsManquantes('L’action ne peut pas démarrer.', $manques);
+                throw RegleMetierException::conditionsManquantes('L’action ne peut pas démarrer.', array_map(fn (string $manque) => Manque::section(7, $manque), $manques));
             }
         }
     }

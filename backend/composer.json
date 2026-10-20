@@ -1,9 +1,9 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "sar/fiche-a3",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "API Laravel de la fiche A3 numérique de la SAR.",
+    "keywords": ["laravel", "fiche-a3"],
     "license": "MIT",
     "require": {
         "php": "^8.3",

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\Domaine;
+use App\Enums\StatutEtape;
 use App\Models\FicheA3;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -37,7 +38,7 @@ class FicheVisibility
                         ->where('confidentialite', 'RESTREINT')
                         ->where('declarant_id', $userId)
                         ->whereNull('pilote_id')
-                        ->where('statut_etape', 'OUVERT'));
+                        ->where('statut_etape', StatutEtape::Ouvert->value));
             }),
             in_array($role, Domaine::rolesValideurs(), true) => $this->validatorScope($query, $profile),
             $role === 'CONTROLE_GESTION' => $query->where(function (Builder $q) use ($userId): void {

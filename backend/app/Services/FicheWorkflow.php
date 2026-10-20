@@ -8,6 +8,7 @@ use App\Exceptions\RegleMetierException;
 use App\Models\CompteurFiche;
 use App\Models\FicheA3;
 use App\Models\Validation;
+use App\Support\Manque;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -101,7 +102,7 @@ class FicheWorkflow
             }
 
             if ($fiche->estPilote($userId)) {
-                throw RegleMetierException::conditionsManquantes('Décision refusée.', ['B8 : le pilote ne valide pas sa propre fiche.']);
+                throw RegleMetierException::conditionsManquantes('Décision refusée.', [Manque::validations('B8 : le pilote ne valide pas sa propre fiche.')]);
             }
 
             if (! $this->circuit->estActionnable($validation, $fiche)) {
@@ -110,13 +111,13 @@ class FicheWorkflow
 
             $commentaire = trim((string) $commentaire);
             if ($decision === 'REFUSE' && $commentaire === '') {
-                throw RegleMetierException::conditionsManquantes('Refus impossible.', ['B6 : un commentaire est obligatoire pour tout refus.']);
+                throw RegleMetierException::conditionsManquantes('Refus impossible.', [Manque::validations('B6 : un commentaire est obligatoire pour tout refus.')]);
             }
 
             if ($decision === 'VALIDE' && $validation->porte === 2 && $profile->is(ValidationCircuit::CONTROLE_GESTION)) {
                 $enAttente = $fiche->gains()->where('statut', 'PROPOSE')->count();
                 if ($enAttente > 0) {
-                    throw RegleMetierException::conditionsManquantes('Approbation impossible.', ["{$enAttente} gain(s) restent à valider ou refuser."]);
+                    throw RegleMetierException::conditionsManquantes('Approbation impossible.', [Manque::validations("{$enAttente} gain(s) restent à valider ou refuser.")]);
                 }
             }
 
@@ -175,10 +176,10 @@ class FicheWorkflow
         $this->exigerEtape($fiche, StatutEtape::RealisationActions);
         $this->exigerPilote($fiche, $profile);
 
-        $actions = $fiche->actions()->get(['description', 'statut']);
+        $actions = $fiche->actions()->get(['id', 'description', 'statut']);
         $manques = $actions->isEmpty() ? ['La fiche ne comporte aucune action.'] : [];
         foreach ($actions->whereNotIn('statut', StatutAction::terminees()) as $action) {
-            $manques[] = 'Action « '.str($action->description)->limit(60).' » : ni réalisée ni annulée.';
+            $manques[] = Manque::actions('Action « '.str($action->description)->limit(60).' » : ni réalisée ni annulée.', $action->id);
         }
 
         if ($manques !== []) {
@@ -195,9 +196,9 @@ class FicheWorkflow
 
         $manques = $this->manquesB3($fiche);
         if ($fiche->objectif_atteint === null) {
-            $manques[] = 'Section 8 : indiquer si l’objectif est atteint.';
+            $manques[] = Manque::section(8, 'Section 8 : indiquer si l’objectif est atteint.');
         } elseif ($fiche->objectif_atteint === 'PARTIELLEMENT' && blank($fiche->ecart_objectif)) {
-            $manques[] = 'Section 8 : objectif partiellement atteint, préciser l’écart et la suite donnée.';
+            $manques[] = Manque::section(8, 'Section 8 : objectif partiellement atteint, préciser l’écart et la suite donnée.');
         }
 
         if ($manques !== []) {
@@ -214,13 +215,13 @@ class FicheWorkflow
 
         $manques = [...$this->manquesB3($fiche), ...$this->controles->manques($fiche)];
         if (! $fiche->perennisations()->exists()) {
-            $manques[] = 'Section 10 : enregistrer au moins une action de pérennisation.';
+            $manques[] = Manque::section(10, 'Section 10 : enregistrer au moins une action de pérennisation.');
         }
         if (! $fiche->lecons()->exists()) {
-            $manques[] = 'Section 11 : renseigner les leçons apprises.';
+            $manques[] = Manque::section(11, 'Section 11 : renseigner les leçons apprises.');
         }
         if (! $fiche->sans_gain_chiffre && ! $fiche->gains()->exists()) {
-            $manques[] = 'Section 9 : renseigner les gains ou cocher « sans gain chiffré ».';
+            $manques[] = Manque::section(9, 'Section 9 : renseigner les gains ou cocher « sans gain chiffré ».');
         }
 
         $roles = $this->circuit->rolesPorte2($fiche);
@@ -351,45 +352,45 @@ class FicheWorkflow
     /**
      * B2 et conditions de soumission du plan (PRD §4.2, §5.3).
      *
-     * @return array<int, string>
+     * @return array<int, string|Manque>
      */
     private function manquesB2(FicheA3 $fiche): array
     {
         $manques = [];
 
         if (blank($fiche->type_amelioration)) {
-            $manques[] = 'Section 1 : type d’amélioration.';
+            $manques[] = Manque::section(1, 'Section 1 : type d’amélioration.');
         }
         if ($fiche->date_cible === null) {
-            $manques[] = 'Section 1 : date cible.';
+            $manques[] = Manque::section(1, 'Section 1 : date cible.');
         }
         if (blank($fiche->contexte)) {
-            $manques[] = 'Section 2 : contexte.';
+            $manques[] = Manque::section(2, 'Section 2 : contexte.');
         }
         if (! $fiche->indicateurs()->where('principal', true)->exists()) {
-            $manques[] = 'Section 3 et 4 : indicateur principal.';
+            $manques[] = Manque::section(3, 'Section 3 et 4 : indicateur principal.');
         }
         if (blank($fiche->objectif_smart)) {
-            $manques[] = 'Section 4 : objectif SMART.';
+            $manques[] = Manque::section(4, 'Section 4 : objectif SMART.');
         }
         if (blank($fiche->methode_analyse)) {
-            $manques[] = 'Section 5 : méthode d’analyse.';
+            $manques[] = Manque::section(5, 'Section 5 : méthode d’analyse.');
         } elseif ($fiche->methode_analyse === 'AUTRE' && blank($fiche->methode_precision)) {
-            $manques[] = 'Section 5 : préciser la méthode « Autre ».';
+            $manques[] = Manque::section(5, 'Section 5 : préciser la méthode « Autre ».');
         }
         if (! $fiche->causes()->exists()) {
-            $manques[] = 'Section 5 : au moins une cause.';
+            $manques[] = Manque::section(5, 'Section 5 : au moins une cause.');
         }
         if (! $fiche->actions()->exists()) {
-            $manques[] = 'Section 6 : au moins une action rattachée à une cause.';
+            $manques[] = Manque::section(6, 'Section 6 : au moins une action rattachée à une cause.');
         }
 
         $domaines = $fiche->domaines()->get();
         if ($domaines->isEmpty()) {
-            $manques[] = 'Section 7 : cocher au moins un domaine concerné.';
+            $manques[] = Manque::section(7, 'Section 7 : cocher au moins un domaine concerné.');
         }
         if ($domaines->where('domaine', 'AUTRES')->whereNull('valideur_role_id')->isNotEmpty()) {
-            $manques[] = 'Section 7 : choisir le valideur du domaine « Autres ».';
+            $manques[] = Manque::section(7, 'Section 7 : choisir le valideur du domaine « Autres ».');
         }
 
         return [...$manques, ...$this->circuit->rolesSansTitulaire($this->circuit->rolesPorte1($fiche), $fiche)];
@@ -398,7 +399,7 @@ class FicheWorkflow
     /**
      * B3 : mesure Après du KPI principal et des KPI à ne pas dégrader.
      *
-     * @return array<int, string>
+     * @return array<int, string|Manque>
      */
     private function manquesB3(FicheA3 $fiche): array
     {
@@ -409,11 +410,11 @@ class FicheWorkflow
             ->get();
 
         if ($indicateurs->where('principal', true)->isEmpty()) {
-            $manques[] = 'B3 : aucun indicateur principal.';
+            $manques[] = Manque::section(3, 'B3 : aucun indicateur principal.');
         }
 
         foreach ($indicateurs->where('a_mesure_apres', false) as $indicateur) {
-            $manques[] = 'B3 : mesure Après manquante pour « '.$indicateur->libelle.' ».';
+            $manques[] = Manque::section(8, 'B3 : mesure Après manquante pour « '.$indicateur->libelle.' ».');
         }
 
         return $manques;

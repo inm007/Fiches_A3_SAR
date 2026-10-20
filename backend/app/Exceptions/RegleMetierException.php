@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use App\Support\Manque;
 use Illuminate\Http\JsonResponse;
 use RuntimeException;
 
@@ -16,7 +17,7 @@ class RegleMetierException extends RuntimeException
 {
     /**
      * @param  array<int, string>  $manques
-     * @param  array<int, array{index: int, type: string, label: string, section?: int, tab?: string, detail?: string}>  $emplacements
+     * @param  array<int, array{index: int, type: string, label: string, section?: int, tab?: string, action_id?: int}>  $emplacements
      */
     public function __construct(
         string $message,
@@ -29,19 +30,19 @@ class RegleMetierException extends RuntimeException
     }
 
     /**
-     * @param  array<int, string>  $manques
+     * @param  array<int, string|Manque>  $manques
      */
     public static function conditionsManquantes(string $message, array $manques): self
     {
+        $manques = array_values($manques);
         $emplacements = [];
         foreach ($manques as $index => $manque) {
-            $emplacement = self::emplacement($manque);
-            if ($emplacement !== null) {
-                $emplacements[] = ['index' => $index, ...$emplacement];
+            if ($manque instanceof Manque) {
+                $emplacements[] = ['index' => $index, ...$manque->emplacement];
             }
         }
 
-        return new self($message, $manques, 422, 'CONDITIONS_MANQUANTES', $emplacements);
+        return new self($message, array_map('strval', $manques), 422, 'CONDITIONS_MANQUANTES', $emplacements);
     }
 
     public static function conflit(string $message = 'La fiche a changé entre-temps. Rechargez-la.'): self
@@ -62,47 +63,5 @@ class RegleMetierException extends RuntimeException
             'manques' => $this->manques ?: null,
             'emplacements' => $this->emplacements ?: null,
         ]), $this->status);
-    }
-
-    /**
-     * @return array{type: string, label: string, section?: int, tab?: string, detail?: string}|null
-     */
-    private static function emplacement(string $manque): ?array
-    {
-        if (preg_match('/\bSection\s+(\d+)/iu', $manque, $matches) === 1) {
-            $section = (int) $matches[1];
-
-            return ['type' => 'section', 'section' => $section, 'label' => "Ouvrir la section {$section}"];
-        }
-
-        if (str_starts_with($manque, 'B3 :')) {
-            $section = str_contains($manque, 'aucun indicateur principal') ? 3 : 8;
-
-            return ['type' => 'section', 'section' => $section, 'label' => "Ouvrir la section {$section}"];
-        }
-
-        if (preg_match('/\bcontrôle\b/iu', $manque) === 1) {
-            $emplacement = ['type' => 'tab', 'tab' => 'controles', 'label' => 'Ouvrir les contrôles'];
-            if (preg_match('/Action\s+«\s*(.+?)\s*»/u', $manque, $matches) === 1) {
-                $emplacement['detail'] = $matches[1];
-            }
-
-            return $emplacement;
-        }
-
-        if (str_starts_with($manque, 'B1 :') || preg_match('/\baction\b/iu', $manque) === 1) {
-            $emplacement = ['type' => 'tab', 'tab' => 'actions', 'label' => 'Ouvrir les actions'];
-            if (preg_match('/Action\s+«\s*(.+?)\s*»/u', $manque, $matches) === 1) {
-                $emplacement['detail'] = $matches[1];
-            }
-
-            return $emplacement;
-        }
-
-        if (preg_match('/gain\(s\).*valider|commentaire.*obligatoire|B8/iu', $manque) === 1) {
-            return ['type' => 'tab', 'tab' => 'validations', 'label' => 'Ouvrir les validations'];
-        }
-
-        return null;
     }
 }

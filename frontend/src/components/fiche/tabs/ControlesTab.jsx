@@ -57,7 +57,7 @@ export default function ControlesTab({ fiche, options, onChange, onError }) {
       </p>
       {actions.length === 0 && <p className="fiche-tab__muted">Aucun contrôle : ils sont créés quand une action passe à « Réalisée ».</p>}
       {actions.map((action) => (
-        <div data-action-description={action.description} key={action.id}>
+        <div data-action-id={action.id} key={action.id}>
           <h3>{action.action_origine_id ? 'Action corrective — ' : ''}{action.description}</h3>
           <div className="fiche-tab__grid">
             {action.controles.map((item) => {

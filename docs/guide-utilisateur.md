@@ -28,16 +28,17 @@ Une fiche peut être mise en attente avec un motif (« Mettre en attente »), pu
 
 ## Pilote
 
+- **Se désigner pilote** : sur une fiche que vous venez de déclarer dans votre unité, « Me désigner comme pilote » vous en confie le pilotage sans passer par l'administrateur.
 - **Rédiger la fiche** : sections 1 à 7 à l'étape En cours. « Enregistrer » sauvegarde un brouillon ; l'état de sauvegarde s'affiche à côté du bouton.
 - **Lire les cadenas** : dans la liste des sections, un crayon marque ce que vous pouvez modifier maintenant, un cadenas une section figée (étape passée, validation en cours, fiche en attente ou clôturée), une horloge une section qui s'ouvrira plus tard. Survolez la section ou ouvrez-la pour lire la raison.
 - **Fiche partagée** : si l'administrateur vous associe à la fiche d'un collègue absent, vous la voyez et la faites avancer comme la vôtre. Chaque section indique qui l'a enregistrée en dernier, et l'onglet Historique montre tout ce que l'autre pilote a fait.
-- **Soumettre le plan** : si un élément manque, la liste des conditions manquantes s'affiche.
+- **Soumettre le plan** : si un élément manque, la liste des conditions manquantes s'affiche, avec un bouton « Ouvrir… » qui mène à la section, à l'action ou au contrôle à compléter.
 - **Pendant la réalisation** :
   - « Replanifier » une action pour reporter son échéance ou changer son responsable, avec un motif ;
   - « Ajouter une action » oubliée, rattachée à une cause, avec un motif ;
   - « Relancer » un responsable en retard (une fois par 24 h).
 - **Mesurer et vérifier** : section 8 (mesure après action, objectif atteint), puis onglet Contrôles. Une notification prévient quand un contrôle J+30, J+60 ou J+90 est disponible. Un contrôle non conforme demande une action corrective, vérifiée 30 jours après sa réalisation.
-- **Soumettre la clôture** : sections 9 (gains ou « sans gain chiffré »), 10 (pérennisation) et 11 (leçons apprises).
+- **Soumettre la clôture** : sections 9 (gains ou « sans gain chiffré »), 10 (pérennisation) et 11 (leçons apprises). Tant qu'un contrôle J+30, J+60 ou J+90 n'est pas encore arrivé à sa date, il est signalé « à venir » et la clôture l'attend.
 - **Nouvelle boucle** : si l'objectif n'est pas atteint ou le gain pas maintenu, « Nouvelle boucle » renvoie la fiche à En cours avec une nouvelle version.
 - **Imprimer** : « Exporter en PDF A3 » ouvre l'impression ; choisir « Enregistrer au format PDF ».
 
