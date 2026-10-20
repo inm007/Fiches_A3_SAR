@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\EquipementController;
 use App\Http\Controllers\Admin\FicheAdminController;
 use App\Http\Controllers\Admin\ListeController;
 use App\Http\Controllers\Admin\ParametreController;
+use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\TechniqueController;
 use App\Http\Controllers\Admin\UniteController;
 use App\Http\Controllers\Admin\UserController;
@@ -40,6 +41,9 @@ Route::prefix('admin')
         Route::get('/assignments', [AffectationController::class, 'index']);
         Route::post('/assignments', [AffectationController::class, 'store']);
         Route::patch('/assignments/{affectation}', [AffectationController::class, 'update']);
+
+        Route::get('/permissions', [PermissionController::class, 'index']);
+        Route::put('/permissions', [PermissionController::class, 'update']);
 
         Route::get('/units', [UniteController::class, 'index']);
         Route::post('/units', [UniteController::class, 'store']);

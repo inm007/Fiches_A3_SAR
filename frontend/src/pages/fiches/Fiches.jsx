@@ -137,7 +137,7 @@ function Fiches() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const isAdmin = activeProfile?.role_code === 'ADMIN_FONCTIONNEL'
-  const canDeclare = ['AGENT', 'PILOTE'].includes(activeProfile?.role_code)
+  const canDeclare = Boolean(activeProfile?.permissions?.includes('DECLARER_FICHE'))
   const initialFilters = isAdmin ? ADMIN_FILTERS : REGISTRE_FILTERS
 
   const list = useListFilters(initialFilters, () => ({

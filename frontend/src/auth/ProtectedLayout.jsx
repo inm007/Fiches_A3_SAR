@@ -39,4 +39,14 @@ export function RequireRole({ roleCode, roleCodes }) {
   return <Outlet />
 }
 
+// Droit réglable par l'administrateur fonctionnel (écran Droits), renvoyé par /auth/moi.
+export function RequirePermission({ permission }) {
+  const { activeProfile, loading } = useAuth()
+
+  if (loading) return <PageLoader fullScreen label="Chargement de votre session…" />
+  if (!activeProfile?.permissions?.includes(permission)) return <Navigate replace to="/403" />
+
+  return <Outlet />
+}
+
 export default ProtectedLayout

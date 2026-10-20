@@ -1,0 +1,32 @@
+<?php
+
+use App\Models\RolePermission;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Droits accordés à chaque rôle, modifiables par l'administrateur fonctionnel.
+     */
+    public function up(): void
+    {
+        Schema::create('role_permissions', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('role_id')->constrained('roles')->cascadeOnDelete();
+            $table->string('permission');
+            $table->timestampsTz();
+
+            $table->unique(['role_id', 'permission']);
+        });
+
+        // Base existante : les rôles sont déjà là, on reprend la matrice du PRD.
+        RolePermission::initialiserParDefaut();
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('role_permissions');
+    }
+};

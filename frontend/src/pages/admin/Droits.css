@@ -1,0 +1,88 @@
+.droits-page {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.droits-page__table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+}
+
+.droits-page__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.droits-page__table th,
+.droits-page__table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.droits-page__table thead th {
+  color: var(--ink);
+  background: linear-gradient(90deg, var(--brand-50), var(--white) 70%);
+  font-weight: 700;
+  text-align: center;
+  vertical-align: bottom;
+}
+
+.droits-page__table thead th:first-child,
+.droits-page__table tbody th {
+  min-width: 240px;
+  text-align: left;
+}
+
+.droits-page__table tbody th {
+  display: grid;
+  gap: 2px;
+  font-weight: 400;
+}
+
+.droits-page__table tbody th span {
+  color: var(--muted, #667085);
+}
+
+.droits-page__table td {
+  text-align: center;
+}
+
+.droits-page__table td input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.droits-page__table td input:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.droits-page__table td.is-modifie,
+.droits-page__pastille {
+  background: var(--info-bg);
+}
+
+.droits-page__saving {
+  margin-left: 4px;
+}
+
+.droits-page__legende {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.droits-page__pastille {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}

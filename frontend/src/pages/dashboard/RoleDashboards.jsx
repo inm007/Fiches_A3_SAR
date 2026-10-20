@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../auth/useAuth.js'
 import Button from '../../components/ui/Button.jsx'
 import { plural } from '../../utils/format.js'
 import { ageTone, days, percent, shortFcfa } from './dashboardData.js'
@@ -59,12 +60,17 @@ const DECLARE_STEPS = [
   { title: 'Suivre l’avancement', text: 'Vous êtes notifié à chaque étape franchie.' },
 ]
 
+function usePeutDeclarer() {
+  return Boolean(useAuth().activeProfile?.permissions?.includes('DECLARER_FICHE'))
+}
+
 export function AgentDashboard({ data, hello }) {
   const loading = !data
+  const peutDeclarer = usePeutDeclarer()
   return (
     <>
       <Hero
-        actions={<><HeroButton icon="plus" to="/fiches/nouvelle">Déclarer une fiche</HeroButton><HeroButton to="/fiches" variant="ghost">Mes fiches</HeroButton></>}
+        actions={<>{peutDeclarer && <HeroButton icon="plus" to="/fiches/nouvelle">Déclarer une fiche</HeroButton>}<HeroButton to="/fiches" variant={peutDeclarer ? 'ghost' : undefined}>Mes fiches</HeroButton></>}
         eyebrow="Espace déclarant"
         highlights={overview(data)}
         text="Signalez un écart terrain en quelques secondes et suivez ce que deviennent vos fiches."
@@ -85,7 +91,7 @@ export function AgentDashboard({ data, hello }) {
         </Panel>
         <Panel className="dash-span-5 dash-panel--accent" title="Déclarer, c’est simple">
           <Steps items={DECLARE_STEPS} />
-          <HeroButton icon="plus" to="/fiches/nouvelle">Nouvelle fiche</HeroButton>
+          {peutDeclarer && <HeroButton icon="plus" to="/fiches/nouvelle">Nouvelle fiche</HeroButton>}
         </Panel>
         <Panel className="dash-span-6" subtitle="Toutes les actions des fiches visibles." title="Actions par statut">
           <ActionStatusBars data={data} />
@@ -100,13 +106,14 @@ export function AgentDashboard({ data, hello }) {
 
 export function PiloteDashboard({ data, hello }) {
   const loading = !data
+  const peutDeclarer = usePeutDeclarer()
   const actions = data?.actions_par_statut ?? {}
   const totalActions = Object.values(actions).reduce((sum, count) => sum + Number(count), 0)
   const done = Number(actions.REALISE ?? 0)
   return (
     <>
       <Hero
-        actions={<><HeroButton icon="files" to="/fiches">Piloter mes fiches</HeroButton><HeroButton icon="plus" to="/fiches/nouvelle" variant="ghost">Nouvelle fiche</HeroButton></>}
+        actions={<><HeroButton icon="files" to="/fiches">Piloter mes fiches</HeroButton>{peutDeclarer && <HeroButton icon="plus" to="/fiches/nouvelle" variant="ghost">Nouvelle fiche</HeroButton>}</>}
         eyebrow="Pilotage"
         highlights={overview(data)}
         text={data ? `${plural(data.fiches_ouvertes, 'fiche ouverte', 'fiches ouvertes')} dans votre périmètre, ${plural(data.controles_disponibles, 'contrôle disponible', 'contrôles disponibles')}.` : 'Chargement de vos indicateurs…'}

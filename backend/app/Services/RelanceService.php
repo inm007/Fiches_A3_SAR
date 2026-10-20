@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\Permission;
 use App\Enums\StatutAction;
 use App\Enums\StatutEtape;
 use App\Exceptions\RegleMetierException;
@@ -34,11 +35,11 @@ class RelanceService
     ) {}
 
     /**
-     * Pilote de la fiche, Direction et administrateur fonctionnel.
+     * Pilote de la fiche, et les rôles qui ont le droit Relancer (par défaut Direction et administrateur fonctionnel).
      */
     public function peutRelancer(FicheA3 $fiche, ActiveProfile $profile): bool
     {
-        return $profile->estPiloteDe($fiche) || $profile->is('DIRECTION', 'ADMIN_FONCTIONNEL');
+        return $profile->estPiloteDe($fiche) || $profile->peut(Permission::Relancer);
     }
 
     public function actionEnRetard(ActionA3 $action, FicheA3 $fiche): bool
@@ -57,7 +58,7 @@ class RelanceService
     {
         $fiche = $cible->fiche;
         if (! $this->peutRelancer($fiche, $profile)) {
-            throw RegleMetierException::interdit('Seuls le pilote de la fiche, la Direction et l’administrateur fonctionnel peuvent relancer.');
+            throw RegleMetierException::interdit('Votre profil n’a pas le droit de relancer sur cette fiche.');
         }
 
         $relancable = $cible instanceof ActionA3 ? $this->actionEnRetard($cible, $fiche) : $this->validationEnAttente($cible, $fiche);

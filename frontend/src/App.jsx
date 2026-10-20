@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext.jsx'
 import { useAuth } from './auth/useAuth.js'
-import ProtectedLayout, { HomeRedirect, RequireRole } from './auth/ProtectedLayout.jsx'
+import ProtectedLayout, { HomeRedirect, RequirePermission, RequireRole } from './auth/ProtectedLayout.jsx'
 import AppLayout from './components/layout/AppLayout.jsx'
 import ErrorBoundary from './components/shared/ErrorBoundary.jsx'
 import PageLoader from './components/shared/PageLoader.jsx'
@@ -20,6 +20,7 @@ const Notifications = lazy(() => import('./pages/workflow/Notifications.jsx'))
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword.jsx'))
 const ResetPassword = lazy(() => import('./pages/auth/ResetPassword.jsx'))
 const Affectations = lazy(() => import('./pages/admin/Affectations.jsx'))
+const Droits = lazy(() => import('./pages/admin/Droits.jsx'))
 const Equipements = lazy(() => import('./pages/admin/Equipements.jsx'))
 const Listes = lazy(() => import('./pages/admin/Listes.jsx'))
 const ParametresFonctionnels = lazy(() => import('./pages/admin/ParametresFonctionnels.jsx'))
@@ -52,7 +53,7 @@ function App() {
                 <Route element={<AppLayout />}>
                   <Route path="/tableau-de-bord" element={<DashboardRoute />} />
                   <Route path="/fiches" element={<Fiches />} />
-                  <Route element={<RequireRole roleCodes={['AGENT', 'PILOTE']} />}>
+                  <Route element={<RequirePermission permission="DECLARER_FICHE" />}>
                     <Route path="/fiches/nouvelle" element={<FicheNouvelle />} />
                   </Route>
                   <Route path="/fiches/:id" element={<FicheDetail />} />
@@ -63,6 +64,7 @@ function App() {
                   <Route element={<RequireRole roleCode="ADMIN_FONCTIONNEL" />}>
                     <Route path="/admin/utilisateurs" element={<Utilisateurs />} />
                     <Route path="/admin/affectations" element={<Affectations />} />
+                    <Route path="/admin/droits" element={<Droits />} />
                     <Route path="/admin/unites" element={<Unites />} />
                     <Route path="/admin/equipements" element={<Equipements />} />
                     <Route path="/admin/listes" element={<Listes />} />
