@@ -88,10 +88,17 @@ class ValidationCircuit
             ->when($fiche->pilotesIds() !== [], fn ($query) => $query->whereNotIn('user_id', $fiche->pilotesIds()))
             ->orderBy('id');
 
-        return (clone $base)->where('unite_id', $fiche->unite_id)->pluck('user_id')
+        $titulaires = (clone $base)->where('unite_id', $fiche->unite_id)->pluck('user_id')
             ->concat((clone $base)->whereNull('unite_id')->pluck('user_id'))
             ->unique()
             ->values();
+
+        // Le sponsor de la fiche, quand il est titulaire du rôle Direction, approuve la clôture.
+        if ($roleCode === self::DIRECTION && $fiche->sponsor_id !== null && $titulaires->contains($fiche->sponsor_id)) {
+            return $titulaires->reject(fn (int $id) => $id === $fiche->sponsor_id)->prepend($fiche->sponsor_id)->values();
+        }
+
+        return $titulaires;
     }
 
     /**

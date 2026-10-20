@@ -64,6 +64,20 @@ class ReferenceListsSeeder extends Seeder
                     'KPI_TABLEAU_DE_BORD' => 'KPI au tableau de bord',
                 ],
             ],
+            'unite_mesure' => [
+                'libelle' => 'Unités de mesure',
+                'description' => 'Unités proposées pour les indicateurs (sections 3 et 8).',
+                'values' => [
+                    'T_H' => 't/h', 'T' => 't', 'T_T' => 't/t', 'M3_H' => 'm³/h', 'KWH' => 'kWh', 'MWH' => 'MWh',
+                    'POURCENT' => '%', 'HEURES' => 'h', 'JOURS' => 'jours', 'NOMBRE' => 'nombre', 'FCFA' => 'FCFA',
+                    'PPM' => 'ppm', 'DEGRE_C' => '°C', 'BAR' => 'bar', 'KG' => 'kg',
+                ],
+            ],
+            'source_donnees' => [
+                'libelle' => 'Sources de données',
+                'description' => 'Origine des valeurs des indicateurs (sections 3 et 8).',
+                'values' => ['SAP', 'SNCC', 'Relevé terrain', 'Laboratoire', 'Tableau de bord', 'Autre'],
+            ],
             'frequence_controle' => [
                 'libelle' => 'Fréquences de contrôle',
                 'description' => 'À compléter avec les valeurs validées par l’amélioration continue.',

@@ -135,7 +135,7 @@ class ReglesMetierTest extends TestCase
 
         // Correction qui touche aussi le plan validé par Production (nouvelle cause).
         $this->section($fiche, 5, ['methode_analyse' => '5_POURQUOI', 'causes' => [
-            ...$fiche->causes()->get(['id', 'categorie', 'libelle', 'niveau'])->map(fn ($c) => $c->only(['id', 'categorie', 'libelle', 'niveau']))->all(),
+            ...$fiche->causes()->get(['id', 'categorie', 'libelle', 'niveau', 'racine'])->map(fn ($c) => $c->only(['id', 'categorie', 'libelle', 'niveau', 'racine']))->all(),
             ['categorie' => 'MATERIEL', 'libelle' => 'Purgeurs sous-dimensionnés', 'niveau' => 2],
         ]])->assertOk();
         $this->transition($fiche, 'PILOTE', 'T3')->assertOk();
@@ -203,6 +203,23 @@ class ReglesMetierTest extends TestCase
         $this->transition($fiche, 'PILOTE', 'T6')->assertUnprocessable()
             ->assertJsonFragment(['Action « Remplacer 14 purgeurs » : ni réalisée ni annulée.']);
         $this->statutAction(ActionA3::findOrFail($ids['action']), 'ANNULE', ['motif' => 'Remplacée par un autre chantier'])->assertOk();
+
+        // Un plan entièrement annulé ne montre aucun résultat : la cause racine doit garder une action.
+        $this->transition($fiche, 'PILOTE', 'T6')->assertUnprocessable()
+            ->assertJsonFragment(['Aucune action réalisée : une fiche dont tout le plan est annulé ne peut pas montrer de résultat. Ajoutez une action ou classez la fiche.'])
+            ->assertJsonFragment(['Cause racine n° 1 « Aucun plan d’inspection des purgeurs » : toutes ses actions sont annulées. Ajoutez une action pour la traiter.']);
+
+        [$pilote] = $this->acteurs['PILOTE'];
+        $remplacement = $this->agir('PILOTE')->postJson("/api/fiches/{$fiche->id}/actions", [
+            'cause_id' => $ids['cause'],
+            'description' => 'Planifier la tournée d’inspection des purgeurs',
+            'type_action' => 'PREVENTIVE',
+            'responsable_id' => $pilote->id,
+            'echeance' => today()->addMonth()->toDateString(),
+            'critere_efficacite' => 'Tournée faite chaque mois',
+            'motif' => 'Remplace le chantier annulé',
+        ])->assertOk()->json('data.actions');
+        $this->statutAction(ActionA3::findOrFail(collect($remplacement)->firstWhere('statut', '!=', 'ANNULE')['id']), 'REALISE')->assertOk();
         $this->transition($fiche, 'PILOTE', 'T6')->assertOk()->assertJsonPath('data.statut_etape', 'MESURE_RESULTATS');
     }
 
@@ -267,6 +284,7 @@ class ReglesMetierTest extends TestCase
         $fiche = $this->declarer();
         $ids = $this->amenerEnRealisation($fiche);
         $this->amenerEnVerification($fiche, $ids);
+        $this->mesurerMaintien($fiche);
         $this->completerCloture($fiche);
         $controles = Controle::where('action_id', $ids['action'])->get()->keyBy('jalon');
 
@@ -291,6 +309,7 @@ class ReglesMetierTest extends TestCase
         $fiche = $this->declarer();
         $ids = $this->amenerEnRealisation($fiche);
         $this->amenerEnVerification($fiche, $ids);
+        $this->mesurerMaintien($fiche);
         $this->completerCloture($fiche);
         $controles = Controle::where('action_id', $ids['action'])->get()->keyBy('jalon');
         $this->controle($controles['J30'], 'CONFORME')->assertOk();
@@ -379,8 +398,9 @@ class ReglesMetierTest extends TestCase
         foreach (Controle::where('action_id', $ids['action'])->get() as $controle) {
             $this->controle($controle, 'CONFORME')->assertOk();
         }
+        $this->mesurerMaintien($fiche);
         $this->section($fiche, 9, ['gains' => [], 'sans_gain_chiffre' => true])->assertOk();
-        $this->section($fiche, 10, ['perennisation' => [['type' => 'FORMATION', 'statut' => 'REALISE']]])->assertOk();
+        $this->section($fiche, 10, ['perennisation' => [['type' => 'FORMATION', 'statut' => 'REALISE', 'preuve' => 'Feuille de présence']]])->assertOk();
         $this->section($fiche, 11, ['lecons' => ['RETOUR_EXPERIENCE' => 'Partagé en revue']])->assertOk();
         $this->transition($fiche, 'PILOTE', 'T8')->assertOk();
 

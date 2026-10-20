@@ -47,6 +47,18 @@ final class Manque implements JsonSerializable, Stringable
         return new self($message, $emplacement);
     }
 
+    /**
+     * Forme d'affichage d'un manque, chaîne simple ou non : message et emplacement éventuel.
+     *
+     * @return array{message: string, emplacement: array<string, mixed>|null}
+     */
+    public static function versTableau(string|self $manque): array
+    {
+        return $manque instanceof self
+            ? ['message' => $manque->message, 'emplacement' => $manque->emplacement]
+            : ['message' => $manque, 'emplacement' => null];
+    }
+
     public function __toString(): string
     {
         return $this->message;

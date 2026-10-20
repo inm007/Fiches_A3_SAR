@@ -11,6 +11,7 @@ use App\Http\Requests\FicheSectionRules;
 use App\Http\Resources\FicheResource;
 use App\Models\Affectation;
 use App\Models\FicheA3;
+use App\Models\FicheVersion;
 use App\Models\Role;
 use App\Services\ActiveProfile;
 use App\Services\FicheSectionService;
@@ -40,7 +41,7 @@ class FicheController extends Controller
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
             'statut_etape' => ['nullable', Rule::enum(StatutEtape::class)],
-            'statut_general' => ['nullable', Rule::in(['OUVERT', 'EN_COURS', 'EN_ATTENTE', 'CLOTURE'])],
+            'statut_general' => ['nullable', Rule::in(['OUVERT', 'EN_COURS', 'EN_ATTENTE', 'CLOTURE', 'CLASSE'])],
             'unite_id' => ['nullable', 'integer'],
             'pilote_id' => ['nullable', 'integer'],
             'origine_id' => ['nullable', 'integer'],
@@ -92,7 +93,7 @@ class FicheController extends Controller
                 'date_cible' => $fiche->date_cible?->toDateString(),
                 'confidentialite' => $fiche->confidentialite,
                 'anciennete_jours' => (int) $fiche->created_at->startOfDay()->diffInDays(today()),
-                'en_retard' => $fiche->date_cible !== null && $fiche->date_cible->isBefore(today()) && $fiche->statut_etape !== StatutEtape::Cloture->value,
+                'en_retard' => $fiche->date_cible !== null && $fiche->date_cible->isBefore(today()) && ! $fiche->etape()->estFinale(),
             ]),
             'meta' => $this->metaPagination($page),
         ]);
@@ -111,6 +112,7 @@ class FicheController extends Controller
             'enonce_probleme' => ['required', 'string', 'max:5000'],
             'equipement_id' => ['nullable', 'integer', Rule::exists('equipements', 'id')->where('actif', true)],
             'confidentialite' => ['nullable', Rule::in(['NORMAL', 'RESTREINT'])],
+            'piloter' => ['nullable', 'boolean'],
         ]);
 
         $erreurs = FicheSectionService::erreursIdentification($data);
@@ -211,6 +213,24 @@ class FicheController extends Controller
             'version_fiche' => $evenement->version_fiche,
             'auteur' => $evenement->user?->nom_complet ?? 'Système',
             'created_at' => $evenement->created_at?->toIso8601String(),
+        ])]);
+    }
+
+    /**
+     * Copies figées de la fiche (soumission du plan, clôture), les plus récentes en premier :
+     * elles suivent la visibilité de la fiche.
+     */
+    public function versions(FicheA3 $fiche, ActiveProfile $profile): JsonResponse
+    {
+        $this->visible($fiche, $profile);
+
+        return response()->json(['data' => $fiche->versions()->with('auteur:id,nom,prenom')->orderByDesc('id')->get()->map(fn (FicheVersion $version) => [
+            'id' => $version->id,
+            'version' => $version->version,
+            'evenement' => $version->evenement,
+            'auteur' => $version->auteur?->nom_complet ?? 'Système',
+            'created_at' => $version->created_at?->toIso8601String(),
+            'contenu' => $version->contenu,
         ])]);
     }
 

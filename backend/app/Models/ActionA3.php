@@ -24,6 +24,8 @@ class ActionA3 extends Model
         'date_realisation',
         'risque_id',
         'statut_avant_blocage',
+        'critere_efficacite',
+        'preuve_realisation',
     ];
 
     protected function casts(): array

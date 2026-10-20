@@ -53,7 +53,8 @@ class TableauDeBordController extends Controller
 
         $validations = $circuit->aTraiterPar($profile);
 
-        $creesCetteAnnee = $visibles()->whereYear('created_at', $annee);
+        // Une fiche classée sans suite n'est pas une amélioration : elle sort du taux de clôture.
+        $creesCetteAnnee = $visibles()->whereYear('created_at', $annee)->where('statut_etape', '!=', StatutEtape::ClasseSansSuite->value);
         $cloturees = $visibles()->where('statut_etape', StatutEtape::Cloture->value)->whereYear('date_cloture', $annee)->get(['created_at', 'date_cloture']);
 
         return response()->json(['data' => [
@@ -71,8 +72,8 @@ class TableauDeBordController extends Controller
                 return ['mois' => $cle, 'total' => (int) ($fichesParMois[$cle] ?? 0)];
             })->values(),
             'fiches_total' => (int) $parEtape->sum(),
-            'fiches_ouvertes' => (int) $parEtape->except([StatutEtape::Cloture->value])->sum(),
-            'fiches_en_retard' => $visibles()->where('statut_etape', '!=', StatutEtape::Cloture->value)->whereDate('date_cible', '<', today())->count(),
+            'fiches_ouvertes' => (int) $parEtape->except(StatutEtape::valeursFinales())->sum(),
+            'fiches_en_retard' => $visibles()->whereNotIn('statut_etape', StatutEtape::valeursFinales())->whereDate('date_cible', '<', today())->count(),
             'fiches_sans_pilote' => $visibles()->whereNull('pilote_id')->where('statut_etape', StatutEtape::Ouvert->value)->count(),
             'mes_fiches' => $visibles()->where(fn (Builder $q) => $q->pilotePar($userId)->orWhere('declarant_id', $userId))->count(),
             'actions_en_retard' => (clone $actionsOuvertes)->whereDate('echeance', '<', today())->count(),

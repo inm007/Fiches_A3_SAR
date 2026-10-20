@@ -92,7 +92,7 @@ class RelanceService
             ->with('fiche')
             ->whereNotIn('statut', StatutAction::terminees())
             ->whereDate('echeance', '<', today())
-            ->whereHas('fiche', fn (Builder $fiche) => $fiche->whereNotIn('statut_etape', [StatutEtape::EnAttente->value, StatutEtape::Cloture->value]))
+            ->whereHas('fiche', fn (Builder $fiche) => $fiche->whereNotIn('statut_etape', [StatutEtape::EnAttente->value, ...StatutEtape::valeursFinales()]))
             ->get();
         foreach ($actions as $action) {
             if ($this->rappelDu($action, $action->echeance->copy()->addDay(), $intervalle)

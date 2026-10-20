@@ -15,6 +15,7 @@ class FicheA3Mesure extends Model
         'valeur',
         'date_mesure',
         'periode_verification',
+        'commentaire',
     ];
 
     protected function casts(): array
