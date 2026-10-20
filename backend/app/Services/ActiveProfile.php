@@ -2,10 +2,11 @@
 
 namespace App\Services;
 
-use App\Enums\Domaine;
+use App\Enums\Permission;
 use App\Enums\StatutEtape;
 use App\Models\Affectation;
 use App\Models\FicheA3;
+use App\Models\RolePermission;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -20,6 +21,8 @@ class ActiveProfile
      * (injection dans le contrôleur, middleware, FicheResource).
      */
     private const string CACHE = 'a3.affectation_active';
+
+    private const string CACHE_PERMISSIONS = 'a3.permissions_actives';
 
     public function __construct(private readonly Request $request) {}
 
@@ -95,19 +98,38 @@ class ActiveProfile
     }
 
     /**
-     * Historique de la fiche (PRD §14) : pilote, Direction et administrateur fonctionnel.
+     * Droit accordé au rôle du profil actif par l'administrateur fonctionnel (écran Droits).
      */
-    public function peutVoirHistorique(): bool
+    public function peut(Permission $permission): bool
     {
-        return $this->is('PILOTE', 'DIRECTION', 'ADMIN_FONCTIONNEL');
+        return in_array($permission->value, $this->permissions(), true);
     }
 
     /**
-     * Commentaires (PRD §4.4) : tous les profils métier, pas les administrateurs.
+     * Droits du rôle actif, lus une fois par requête.
+     *
+     * @return list<string>
      */
+    public function permissions(): array
+    {
+        if ($this->request->attributes->has(self::CACHE_PERMISSIONS)) {
+            return $this->request->attributes->get(self::CACHE_PERMISSIONS);
+        }
+
+        $permissions = RolePermission::pourRole($this->assignment()?->role);
+        $this->request->attributes->set(self::CACHE_PERMISSIONS, $permissions);
+
+        return $permissions;
+    }
+
+    public function peutVoirHistorique(): bool
+    {
+        return $this->peut(Permission::VoirHistorique);
+    }
+
     public function peutCommenter(): bool
     {
-        return $this->is('AGENT', 'PILOTE', 'CONTROLE_GESTION', 'DIRECTION', ...Domaine::rolesValideurs());
+        return $this->peut(Permission::Commenter);
     }
 
     public function userId(): ?int

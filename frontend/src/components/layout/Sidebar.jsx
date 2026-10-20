@@ -13,7 +13,7 @@ const allBusinessRoles = [...sharedRoles]
 const menuLinks = [
   { label: 'Tableau de bord', to: '/tableau-de-bord', icon: 'dashboard', roles: sharedRoles },
   { label: 'Fiches', to: '/fiches', icon: 'files', roles: allBusinessRoles },
-  { label: 'Nouvelle fiche', to: '/fiches/nouvelle', icon: 'plus', roles: ['AGENT', 'PILOTE'] },
+  { label: 'Nouvelle fiche', to: '/fiches/nouvelle', icon: 'plus', roles: allBusinessRoles, permission: 'DECLARER_FICHE' },
   { label: 'Validations à traiter', to: '/validations', icon: 'validation', roles: validationRoles },
   { label: 'Notifications', to: '/notifications', icon: 'bell', roles: sharedRoles },
 ]
@@ -21,6 +21,7 @@ const menuLinks = [
 const adminLinks = [
   { label: 'Utilisateurs', to: '/admin/utilisateurs', icon: 'users' },
   { label: 'Affectations', to: '/admin/affectations', icon: 'assignments' },
+  { label: 'Droits des rôles', to: '/admin/droits', icon: 'lock' },
   { label: 'Unités', to: '/admin/unites', icon: 'unit' },
   { label: 'Équipements', to: '/admin/equipements', icon: 'equipment' },
   { label: 'Listes de choix', to: '/admin/listes', icon: 'lists' },
@@ -41,7 +42,7 @@ function Sidebar() {
   const { activeProfile, user } = useAuth()
   const roleCode = activeProfile?.role_code
   const homeRoute = activeProfile?.redirect_to || '/tableau-de-bord'
-  const visibleLinks = menuLinks.filter(({ roles }) => roles.includes(roleCode))
+  const visibleLinks = menuLinks.filter(({ roles, permission }) => roles.includes(roleCode) && (!permission || activeProfile?.permissions?.includes(permission)))
   const initials = `${user?.prenom?.[0] || ''}${user?.nom?.[0] || ''}`.toLocaleUpperCase()
   const counters = useCounters()
   const { pathname } = useLocation()

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\Permission;
 use App\Enums\StatutAction;
 use App\Enums\StatutEtape;
 use App\Models\ActionA3;
@@ -261,7 +262,7 @@ class FicheResource extends JsonResource
     {
         $etape = $fiche->etape();
         $estPilote = $profile->estPiloteDe($fiche);
-        $peutBloquer = $estPilote || $profile->is('DIRECTION');
+        $peutBloquer = $estPilote || $profile->peut(Permission::MettreEnAttente);
 
         $transitions = [];
         if ($estPilote) {

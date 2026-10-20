@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Affectation;
+use App\Models\RolePermission;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
@@ -275,7 +276,10 @@ class AuthController extends Controller
     private function authPayload(User $user, Collection $assignments, Affectation $activeAssignment): array
     {
         $profiles = $assignments->map(fn (Affectation $assignment): array => $this->profilePayload($assignment))->all();
-        $activeProfile = $this->profilePayload($activeAssignment);
+        $activeProfile = [
+            ...$this->profilePayload($activeAssignment),
+            'permissions' => RolePermission::pourRole($activeAssignment->role),
+        ];
 
         return [
             'user' => [

@@ -52,6 +52,8 @@ Un utilisateur peut porter plusieurs rôles, appelés affectations. Chaque affec
 | Administrateur fonctionnel | Gère les comptes, les affectations et les référentiels. Désigne ou change le pilote, partage une fiche ou une validation, change la confidentialité. Ne modifie aucun autre contenu. |
 | Administrateur technique | Consulte l'état technique et le journal d'administration. N'a accès à aucune fiche. |
 
+Ce tableau est la matrice de départ : l'administrateur fonctionnel peut accorder ou retirer certains droits à un rôle depuis l'écran Droits des rôles (section 15).
+
 Le serveur reste la source de vérité. Masquer un bouton n'est qu'un confort : chaque opération est revérifiée côté serveur, et un refus renvoie la liste des conditions manquantes.
 
 ## 3. Parcours d'une fiche
@@ -249,12 +251,15 @@ Le sélecteur d'année permet de consulter l'année en cours et les années pré
 |---|---|
 | Utilisateurs | Création, modification et désactivation des comptes. Un compte local reçoit son lien de mot de passe dès sa création ; le bouton « Envoyer le lien » le renvoie. |
 | Affectations | Rôle, unité ou périmètre global, dates de début et de fin |
+| Droits des rôles | Tableau rôles × droits : accorder ou retirer à un rôle le droit de déclarer une fiche, de consulter l'historique, de commenter, de relancer, ou de mettre en attente et lever le blocage |
 | Unités, Équipements | Référentiels du site |
 | Listes | Origines, types d'action, catégories de gain, types de pérennisation…, avec ordre d'affichage et désactivation |
 | Paramètres fonctionnels | Délai des relances, préavis d'échéance, rappels de validation, limites des pièces jointes |
 | Fiches | Désigner ou changer le pilote, partager la fiche avec un second pilote, partager une validation, passer en Normal ou Restreint |
 
 Les données ne sont jamais supprimées, seulement désactivées. Chaque opération d'administration est inscrite au journal d'administration.
+
+L'écran Droits des rôles part de la matrice du PRD §2.3 ; une case qui s'en écarte est surlignée. Seuls ces cinq droits sont réglables. Le circuit de validation, la visibilité des fiches, la confidentialité et l'administration restent fixés. Certaines cases sont verrouillées : l'administrateur fonctionnel ne peut ni commenter ni mettre en attente, l'administrateur technique n'a aucun de ces droits, et seuls l'Agent, le Pilote et la Direction peuvent déclarer, parce que ce sont les profils qui voient ensuite la fiche déclarée. Le pilote désigné d'une fiche garde toujours l'historique, la relance et la mise en attente sur sa fiche. Un changement s'applique dès la requête suivante de l'utilisateur concerné.
 
 ## 16. Administration technique et sécurité
 
@@ -307,7 +312,7 @@ Toutes les routes sont préfixées par `/api`.
 | Workflow | `GET /validations`, `POST /validations/{id}/decision`, `POST /actions/{id}/statut`, `PATCH /actions/{id}`, `POST /fiches/{id}/actions`, `PATCH /controles/{id}`, `POST /gains/{id}/decision`, `POST /relances` |
 | Pièces jointes, commentaires | `GET/POST /fiches/{id}/pieces-jointes`, `GET /pieces-jointes/{id}/telechargement`, `GET/POST /fiches/{id}/commentaires` |
 | Transversal | `GET /referentiels`, `GET /tableau-de-bord?annee=`, `GET /notifications`, `GET /notifications/non-lues`, `POST /notifications/{id}/lu`, `POST /notifications/tout-lu` |
-| Administration fonctionnelle | `/admin/users`, `/admin/assignments`, `/admin/units`, `/admin/equipment`, `/admin/lists`, `/admin/settings`, `/admin/roles`, `/admin/fiches`, `/admin/fiches/{id}/validations`, `POST/DELETE /admin/fiches/{id}/copilotes`, `POST/DELETE /admin/validations/{id}/partages` |
+| Administration fonctionnelle | `/admin/users`, `/admin/assignments`, `GET/PUT /admin/permissions`, `/admin/units`, `/admin/equipment`, `/admin/lists`, `/admin/settings`, `/admin/roles`, `/admin/fiches`, `/admin/fiches/{id}/validations`, `POST/DELETE /admin/fiches/{id}/copilotes`, `POST/DELETE /admin/validations/{id}/partages` |
 | Administration technique | `GET /technique`, `GET /technique/logs` |
 
 Les codes d'erreur sont les suivants :

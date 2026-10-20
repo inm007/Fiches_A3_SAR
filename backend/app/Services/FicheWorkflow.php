@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\Permission;
 use App\Enums\StatutAction;
 use App\Enums\StatutEtape;
 use App\Exceptions\RegleMetierException;
@@ -33,8 +34,8 @@ class FicheWorkflow
      */
     public function declarer(array $data, ActiveProfile $profile): FicheA3
     {
-        if (! $profile->is('AGENT', 'PILOTE')) {
-            throw RegleMetierException::interdit('Seuls les profils Agent et Pilote déclarent une fiche.');
+        if (! $profile->peut(Permission::DeclarerFiche)) {
+            throw RegleMetierException::interdit('Votre profil n’a pas le droit de déclarer une fiche.');
         }
 
         return DB::transaction(function () use ($data, $profile): FicheA3 {
@@ -437,8 +438,8 @@ class FicheWorkflow
     private function exigerPiloteOuDirection(FicheA3 $fiche, ActiveProfile $profile): void
     {
         $estPilote = $profile->estPiloteDe($fiche);
-        if (! $estPilote && ! $profile->is('DIRECTION')) {
-            throw RegleMetierException::interdit('Seuls le pilote et la Direction mettent en attente ou lèvent le blocage.');
+        if (! $estPilote && ! $profile->peut(Permission::MettreEnAttente)) {
+            throw RegleMetierException::interdit('Seuls le pilote et les profils autorisés mettent en attente ou lèvent le blocage.');
         }
     }
 
