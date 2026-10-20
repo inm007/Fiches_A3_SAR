@@ -45,20 +45,9 @@ php artisan migrate:fresh --seed   # efface toutes les données puis recharge la
 
 Le serveur de courriel se configure uniquement dans `backend/.env` (voir « Brancher l'annuaire, SAP et le courriel »).
 
-## Relances et rappels
+## Planificateur des rappels
 
-Tous les rappels arrivent dans les notifications (cloche et page Notifications).
-
-- **Manuels** : bouton « Relancer » sur une action en retard (onglet Actions) ou une validation en attente (onglet Validations), pour le pilote de la fiche, la Direction et l'administrateur fonctionnel. Une relance au plus par 24 h et par élément.
-- **Automatiques** : la commande `a3:relances` part chaque jour à 07:00. Elle envoie :
-  - au responsable, un rappel quand l'échéance de son action approche (3 jours avant par défaut, une fois par échéance) ;
-  - au responsable, avec copie au pilote, un rappel d'action en retard dès le lendemain de l'échéance, puis à chaque délai ;
-  - au valideur, un rappel de validation en attente après le délai, puis à chaque délai ;
-  - au pilote, une notification quand un contrôle J+30, J+60 ou J+90 devient disponible.
-- Le délai (7 jours par défaut), le préavis d'échéance et l'activation des rappels de validation se règlent dans **Administration fonctionnelle → Paramètres fonctionnels**.
-- Le responsable d'une action est aussi prévenu quand le plan est validé, quand une action lui est attribuée ou réattribuée et quand son échéance est reportée.
-
-Le planificateur Laravel doit tourner pour que les rappels automatiques partent :
+Le planificateur Laravel doit tourner pour que les rappels automatiques partent (leur contenu est décrit dans `DOCUMENTATION.md`, section 11) :
 
 ```bash
 cd backend
@@ -72,31 +61,6 @@ En production, ajouter une seule ligne au cron du serveur :
 * * * * * cd /chemin/vers/backend && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-## Suivi d'une fiche dans la durée
-
-- **Changer le pilote** : l'administrateur fonctionnel change le pilote à toute étape avant la clôture (bouton « Changer le pilote » sur la fiche ou « Gérer » dans le registre). Après l'étape Ouvert, un motif est demandé et inscrit dans l'historique ; l'ancien et le nouveau pilote sont prévenus.
-- **Replanifier une action** : pendant la réalisation, le pilote reporte une échéance ou change le responsable d'une action non terminée (bouton « Replanifier », motif obligatoire). Le plan validé n'est pas remis en circuit de validation.
-- **Ajouter une action** : pendant la réalisation, le pilote ajoute une action oubliée, rattachée à une cause (bouton « Ajouter une action », motif obligatoire).
-- **Partager la fiche** : quand le pilote est malade, en congé ou a besoin de renfort, l'administrateur fonctionnel associe un second pilote de l'unité (« Partager la fiche », motif obligatoire). Les deux pilotes voient la fiche et ce que l'autre a fait (historique, dernier enregistrement de chaque section) et la poursuivent ensemble ; le partage se retire au retour du pilote. « Changer le pilote » reste réservé à un départ définitif.
-- **Partager une validation** : si un valideur est absent, désactivé ou n'a plus son affectation, l'administrateur fonctionnel associe un autre titulaire du même rôle à la demande (« Partager une validation »). Les deux la voient, le premier qui décide la traite et signe. Les demandes bloquées apparaissent dans « À régulariser » sur son tableau de bord.
-- **Historique d'un équipement** : le registre filtre et recherche par équipement ; le lien « historique » à côté de l'équipement d'une fiche ouvre toutes les fiches visibles sur cet équipement.
-
-## Tableau de bord
-
-Les indicateurs annuels (taux et délai de clôture, gains validés, gain net annuel validé) portent sur l'année choisie dans le cadre « Gain net annuel validé », l'année en cours par défaut : la consolidation de l'année écoulée reste consultable après le 1er janvier. La Direction voit aussi la part des fiches avec vérification d'efficacité renseignée (fiches mesurées dont aucun contrôle échu ne reste à renseigner) et la répartition des fiches par unité, type d'amélioration et origine.
-
-## Listes et commentaires
-
-Les catégories de gain (section 9) et les types de pérennisation (section 10) se gèrent dans **Administration fonctionnelle → Listes**, comme les origines ou les types d'action.
-
-Dans l'onglet Commentaires, le champ « À propos de » rattache un commentaire à la fiche, à une action ou à une validation ; l'élément visé s'affiche en étiquette.
-
-## Pièces jointes
-
-Le pilote désigné peut ajouter des fichiers à sa fiche. Un agent peut en ajouter uniquement à une action dont il est responsable. Les profils autorisés à consulter la fiche peuvent télécharger les pièces jointes ; les fichiers sont conservés sur le disque privé du serveur, sans URL publique.
-
-Formats acceptés : PDF, PNG, JPEG, DOCX, XLSX et PPTX. La taille maximale par fichier et le nombre maximal de fichiers par fiche se règlent dans **Administration fonctionnelle → Paramètres fonctionnels** (10 Mo et 20 fichiers par défaut).
-
 ## Brancher l'annuaire, SAP et le courriel
 
 Ces raccordements se font par configuration, dans `backend/.env`, sans toucher au code métier :
@@ -105,7 +69,7 @@ Ces raccordements se font par configuration, dans `backend/.env`, sans toucher a
 |---|---|---|
 | Annuaire LDAP | `AUTH_PROVIDER=ldap` | `local` : connexion par identifiant et mot de passe. Les comptes portent déjà `auth_source` et `ldap_dn`. |
 | SAP (lecture) | `SAP_ENABLED=true` | `false` : les références SAP (équipement, avis, ordre) sont saisies à la main. |
-| Serveur de courriel | `MAIL_MAILER`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS` | `log` : les liens de mot de passe sont écrits dans `storage/logs`. |
+| Serveur de courriel | `MAIL_MAILER`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS` ; `APP_NAME` donne le nom de l'expéditeur | `log` : les liens de mot de passe sont écrits dans `storage/logs`. |
 
 En production, passer aussi `APP_DEBUG=false` et `APP_ENV=production`, sinon une erreur affiche les chemins et la pile d'appels.
 
@@ -116,4 +80,9 @@ cd backend && php artisan test --compact && vendor/bin/pint --test
 cd frontend && npm run lint && npm test && npm run build
 ```
 
-Un guide d'utilisation par profil est dans [`docs/guide-utilisateur.md`](docs/guide-utilisateur.md).
+## Documentation
+
+- [`DOCUMENTATION.md`](DOCUMENTATION.md) : tout ce que fait l'application (parcours, règles, droits, relances, tableaux de bord, administration, API).
+- [`docs/guide-utilisateur.md`](docs/guide-utilisateur.md) : mode d'emploi court, profil par profil.
+- [`docs/memoire_implementation_p13.md`](docs/memoire_implementation_p13.md) : mémoire d'implémentation du projet.
+- [`docs/plan/`](docs/plan) : cahier des charges (PRD, TRD, spécification de la base, maquettes UX/UI, plan d'implémentation).

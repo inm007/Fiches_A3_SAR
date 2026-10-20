@@ -31,7 +31,7 @@ Documents de référence (la priorité va au PRD en cas de conflit) :
 | `Plan_implementation.md` | Calendrier du 13 au 30 octobre, lots L0 à L14 |
 | `uxui_design.md` | Écrans, charte, structure du code |
 | `SAR · Fiches A3 — Démo.html` | Maquette visuelle de référence |
-| `sp_cification_technique_base_de_donn_es_p13.md`, `colors.css` | Schéma et palette |
+| `specification_technique_base_de_donnees_p13.md`, `colors.css` | Schéma et palette |
 
 ## 2. Environnement
 
@@ -208,6 +208,8 @@ Refonte autour de la fiche A3 elle-même (`AuthPage`, `A3Sheet`, `Login`) :
   - registre : filtre et recherche par équipement, lien « historique » depuis la fiche ;
   - avertissement 2 minutes avant l'expiration de la session ; contrôles J+30/60/90 dans l'impression A3 ; lien de mot de passe envoyé à la création d'un compte local ;
   - guide d'utilisation par profil (`docs/guide-utilisateur.md`).
+- Ajouts du binôme : auto-désignation du pilote déclarant, boutons « Ouvrir… » dans le panneau des conditions manquantes, contrôle « à venir » signalé à la clôture.
+- Nettoyage du 20 octobre : bouton « Ajouter une action » rétabli ; emplacement de chaque manque choisi par le code qui l'écrit (`App\Support\Manque`) au lieu d'être deviné dans le texte ; droit d'auto-désignation regroupé dans `ActiveProfile::peutSeDesignerPilote()` ; un pilote responsable d'une action peut y joindre une preuve ; `APP_NAME` « Fiche A3 SAR », `config/services.php` retiré ; documentation regroupée (README réduit à l'installation, mémoire et cahier des charges dans `docs/`).
 
 ## 6. Données de démonstration
 

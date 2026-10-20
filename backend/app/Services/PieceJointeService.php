@@ -55,17 +55,17 @@ class PieceJointeService
         }
 
         $estPilote = $profile->estPiloteDe($fiche);
-        $estAgentResponsable = $profile->is('AGENT')
+        $estResponsable = $profile->is('AGENT', 'PILOTE')
             && $action !== null
             && $action->fiche_id === $fiche->id
             && $action->responsable_id === $profile->userId();
 
-        if (! $estPilote && ! $estAgentResponsable) {
-            throw RegleMetierException::interdit('Seul le pilote de la fiche ou l’agent responsable de l’action peut joindre un fichier.');
+        if (! $estPilote && ! $estResponsable) {
+            throw RegleMetierException::interdit('Seul le pilote de la fiche ou le responsable de l’action peut joindre un fichier.');
         }
 
         if (! $estPilote && $action === null) {
-            throw RegleMetierException::interdit('Un agent doit joindre le fichier à l’une de ses propres actions.');
+            throw RegleMetierException::interdit('Un responsable d’action doit joindre le fichier à l’une de ses propres actions.');
         }
 
         $mime = $file->getMimeType();

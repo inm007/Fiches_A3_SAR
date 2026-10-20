@@ -20,7 +20,7 @@ function formatSize(bytes) {
 }
 
 export default function PiecesJointesTab({ fiche, onError }) {
-  const { user, activeProfile } = useAuth()
+  const { user } = useAuth()
   const [attachments, setAttachments] = useState([])
   const [limits, setLimits] = useState({ attachment_max_size_mb: 10, attachment_max_files: 20 })
   const [actionId, setActionId] = useState('')
@@ -30,10 +30,11 @@ export default function PiecesJointesTab({ fiche, onError }) {
   const [message, setMessage] = useState('')
   const formRef = useRef(null)
 
-  const isAgent = activeProfile?.role_code === 'AGENT'
+  // Hors pilote, on ne joint un fichier qu'à l'une de ses propres actions.
+  const responsableSeul = !fiche.droits.est_pilote
   const uploadableActions = useMemo(
-    () => fiche.actions.filter((action) => !isAgent || action.responsable_id === user?.id),
-    [fiche.actions, isAgent, user?.id],
+    () => fiche.actions.filter((action) => !responsableSeul || action.responsable_id === user?.id),
+    [fiche.actions, responsableSeul, user?.id],
   )
 
   async function reload() {
@@ -108,14 +109,14 @@ export default function PiecesJointesTab({ fiche, onError }) {
         <form className="pieces-jointes__upload" ref={formRef} onSubmit={upload}>
           <FileInput accept={ACCEPTED_FILES} file={file} label="Fichier" required onChange={setFile} />
           <Select
-            label={isAgent ? 'Action dont vous êtes responsable' : 'Associer à une action (facultatif)'}
+            label={responsableSeul ? 'Action dont vous êtes responsable' : 'Associer à une action (facultatif)'}
             options={uploadableActions.map((action) => [action.id, action.description])}
-            placeholder={isAgent ? 'Choisir une action' : 'Fichier associé à la fiche'}
-            required={isAgent}
+            placeholder={responsableSeul ? 'Choisir une action' : 'Fichier associé à la fiche'}
+            required={responsableSeul}
             value={actionId}
             onChange={setActionId}
           />
-          <Button disabled={!file || (isAgent && !actionId)} icon="plus" loading={busy} loadingLabel="Envoi en cours…" type="submit">
+          <Button disabled={!file || (responsableSeul && !actionId)} icon="plus" loading={busy} loadingLabel="Envoi en cours…" type="submit">
             Ajouter le fichier
           </Button>
         </form>

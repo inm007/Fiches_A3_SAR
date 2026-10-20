@@ -92,6 +92,41 @@ class PiecesJointesTest extends TestCase
         ], ['Accept' => 'application/json'])->assertForbidden();
     }
 
+    public function test_a_pilot_responsible_for_an_action_on_another_fiche_can_attach_to_that_action_only(): void
+    {
+        $fiche = $this->declarer();
+        $this->designerPilote($fiche);
+        $responsable = $this->acteur('PILOTE', $this->unite->id);
+        $cause = Cause::create([
+            'fiche_id' => $fiche->id,
+            'numero' => 1,
+            'methode' => '5_POURQUOI',
+            'categorie' => 'METHODE',
+            'libelle' => 'Cause',
+        ]);
+        $action = ActionA3::create([
+            'fiche_id' => $fiche->id,
+            'cause_id' => $cause->id,
+            'description' => 'Action confiée à un autre pilote',
+            'type_action' => 'CORRECTIVE',
+            'responsable_id' => $responsable[0]->id,
+            'echeance' => today()->addWeek(),
+        ]);
+
+        $this->agirComme($responsable)->getJson("/api/fiches/{$fiche->id}")
+            ->assertOk()
+            ->assertJsonPath('data.droits.peut_ajouter_piece_jointe', true);
+
+        $this->agirComme($responsable)->post("/api/fiches/{$fiche->id}/pieces-jointes", [
+            'fichier' => UploadedFile::fake()->image('preuve.png'),
+        ], ['Accept' => 'application/json'])->assertForbidden();
+
+        $this->agirComme($responsable)->post("/api/fiches/{$fiche->id}/pieces-jointes", [
+            'fichier' => UploadedFile::fake()->image('preuve.png'),
+            'action_id' => $action->id,
+        ], ['Accept' => 'application/json'])->assertCreated();
+    }
+
     public function test_upload_rejects_unapproved_file_types_and_enforces_configured_file_count(): void
     {
         $fiche = $this->declarer();

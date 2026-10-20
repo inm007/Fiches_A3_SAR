@@ -130,11 +130,7 @@ class FicheController extends Controller
 
     public function meDesigner(FicheA3 $fiche, ActiveProfile $profile, HistoryLogger $history): FicheResource
     {
-        if (! $profile->is('PILOTE')
-            || $profile->userId() !== $fiche->declarant_id
-            || $profile->uniteId() !== $fiche->unite_id
-            || $fiche->pilote_id !== null
-            || $fiche->etape() !== StatutEtape::Ouvert) {
+        if (! $profile->peutSeDesignerPilote($fiche)) {
             throw RegleMetierException::interdit('Seul le pilote déclarant affecté à l’unité peut se désigner sur sa fiche encore ouverte.');
         }
 
@@ -142,10 +138,7 @@ class FicheController extends Controller
             /** @var FicheA3 $fiche */
             $fiche = FicheA3::query()->whereKey($fiche->id)->lockForUpdate()->firstOrFail();
 
-            if ($fiche->declarant_id !== $profile->userId()
-                || $fiche->pilote_id !== null
-                || $fiche->etape() !== StatutEtape::Ouvert
-                || $profile->uniteId() !== $fiche->unite_id) {
+            if (! $profile->peutSeDesignerPilote($fiche)) {
                 throw RegleMetierException::conflit('Cette fiche a déjà été attribuée ou son étape a changé.');
             }
 

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\Domaine;
+use App\Enums\StatutEtape;
 use App\Models\Affectation;
 use App\Models\FicheA3;
 use App\Models\User;
@@ -78,6 +79,19 @@ class ActiveProfile
     public function estPiloteDe(FicheA3 $fiche): bool
     {
         return $this->is('PILOTE') && $fiche->estPilote($this->userId());
+    }
+
+    /**
+     * Le pilote qui a déclaré une fiche de son unité peut s'en désigner pilote tant
+     * qu'elle est ouverte et que personne ne la pilote.
+     */
+    public function peutSeDesignerPilote(FicheA3 $fiche): bool
+    {
+        return $this->is('PILOTE')
+            && $fiche->declarant_id === $this->userId()
+            && $fiche->unite_id === $this->uniteId()
+            && $fiche->pilote_id === null
+            && $fiche->etape() === StatutEtape::Ouvert;
     }
 
     /**

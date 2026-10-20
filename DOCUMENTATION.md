@@ -58,7 +58,7 @@ Le serveur reste la source de vérité. Masquer un bouton n'est qu'un confort : 
 
 | Étape | Qui agit | Passage à l'étape suivante |
 |---|---|---|
-| 1. Ouvert | Agent ou pilote (déclaration) ; administrateur (désignation du pilote) | T2 « Commencer l'analyse », par le pilote |
+| 1. Ouvert | Agent ou pilote (déclaration) ; administrateur (désignation du pilote) ou pilote déclarant (auto-désignation) | T2 « Commencer l'analyse », par le pilote |
 | 2. En cours | Pilote : sections 1 à 7 | T3 « Soumettre le plan », si les conditions B2 sont remplies |
 | 3. En validation du plan | Valideurs de la porte 1 | T4 automatique quand tout est approuvé ; T5 retour à En cours en cas de refus |
 | 4. Réalisation des actions | Responsables des actions ; pilote | T6 « Terminer les actions » |
@@ -131,6 +131,8 @@ Le nouveau responsable est notifié à chaque attribution ou réattribution, et 
 
 **Fiche partagée.** Quand le pilote est malade, en congé ou a besoin de renfort, l'administrateur fonctionnel partage la fiche avec un second pilote de l'unité, avec un motif obligatoire. Les deux pilotes ont exactement les mêmes droits : ils voient tout ce que l'autre a fait (historique, dernier enregistrement de chaque section avec son auteur) et poursuivent la fiche ensemble. Les notifications destinées au pilote vont aux deux. Au retour du pilote, le partage peut rester ou être retiré. Un pilote associé ne valide jamais la fiche (B8).
 
+**Auto-désignation.** Un pilote qui déclare une fiche de son unité peut s'en désigner pilote lui-même (« Me désigner comme pilote »), tant qu'elle est ouverte et que personne ne la pilote. C'est inscrit dans l'historique. Il peut ainsi déclarer une fiche Restreint et la voir jusqu'à sa désignation.
+
 **Changement de pilote.** Pour un départ définitif, l'administrateur fonctionnel peut changer le pilote à toute étape avant la clôture. Après l'étape Ouvert, un motif est obligatoire. Le nouveau pilote doit avoir une affectation Pilote sur l'unité de la fiche, et il ne peut pas être le seul valideur disponible d'une demande en attente (B8). L'ancien et le nouveau pilote sont prévenus. Une demande de validation que le nouveau pilote détenait sur cette fiche passe au titulaire suivant.
 
 ## 7. Contrôles d'efficacité
@@ -139,7 +141,7 @@ Chaque action réalisée crée trois contrôles, à J+30, J+60 et J+90. Un contr
 
 Un contrôle non conforme exige une action corrective, avec une description, un responsable et une échéance (B4). Cette action corrective est vérifiée par un contrôle unique, 30 jours après sa réalisation (hypothèse D2).
 
-La clôture ne peut pas être soumise tant qu'un contrôle échu reste à renseigner.
+La clôture ne peut pas être soumise tant que les contrôles ne sont pas tous renseignés. Un contrôle dont la date n'est pas encore arrivée est signalé « à venir » : la clôture attend sa date.
 
 ## 8. Gains économiques et formules
 
@@ -169,7 +171,7 @@ Le Contrôle de gestion valide ou refuse chaque ligne de gain. Une fiche peut ê
 | B7 | Une décision n'est possible que sur une demande en attente, à l'étape active de sa porte, une fois les demandes prioritaires approuvées. |
 | B8 | Le pilote ne valide jamais sa propre fiche. |
 
-En cas de refus, le serveur renvoie toujours la liste exacte de ce qui manque. L'écran l'affiche dans un panneau « Conditions manquantes ».
+En cas de refus, le serveur renvoie toujours la liste exacte de ce qui manque. L'écran l'affiche dans un panneau « Conditions manquantes ». Quand un manque concerne une section, les actions, les contrôles ou les validations, un bouton « Ouvrir… » y mène directement, jusqu'à l'action concernée.
 
 ## 10. Confidentialité et visibilité
 
@@ -179,7 +181,7 @@ Une fiche est soit **Normal**, soit **Restreint**. Le pilote ou l'administrateur
 |---|---|
 | Direction, administrateur fonctionnel | Toutes |
 | Agent | Celles qu'il a déclarées et celles où il est responsable d'une action |
-| Pilote | Celles qu'il pilote, seul ou en partage, plus les fiches Normal qu'il a déclarées ou où il a une action |
+| Pilote | Celles qu'il pilote, seul ou en partage, plus les fiches Normal qu'il a déclarées ou où il a une action, et les fiches Restreint qu'il a déclarées tant qu'elles sont ouvertes sans pilote |
 | Valideur | Fiches Normal de son unité dont son domaine est concerné (Production voit toutes celles de son unité), plus toute fiche où il est sollicité, seul ou en partage |
 | Contrôle de gestion | Fiches Normal avec des gains, fiches avec des gains à valider, fiches où il est sollicité |
 | Administrateur technique | Aucune |
@@ -214,7 +216,7 @@ La relance manuelle (bouton « Relancer ») est ouverte au pilote, à la Directi
 
 **Commentaires.** On peut les rattacher à la fiche, à une action ou à une validation.
 
-**Pièces jointes.** Les formats acceptés sont PDF, PNG, JPEG, DOCX, XLSX et PPTX. Le type réel du fichier est vérifié. La taille maximale (10 Mo par défaut) et le nombre maximal par fiche (20 par défaut) sont réglables. Le pilote dépose sur toute sa fiche ; un agent ne dépose que sur une action dont il est responsable. Les fichiers sont stockés sur un disque privé et téléchargés après authentification, sans adresse publique.
+**Pièces jointes.** Les formats acceptés sont PDF, PNG, JPEG, DOCX, XLSX et PPTX. Le type réel du fichier est vérifié. La taille maximale (10 Mo par défaut) et le nombre maximal par fiche (20 par défaut) sont réglables. Le pilote dépose sur toute sa fiche ; un agent, ou un pilote sur la fiche d'un autre, ne dépose que sur une action dont il est responsable. Les fichiers sont stockés sur un disque privé et téléchargés après authentification, sans adresse publique.
 
 ## 13. Tableaux de bord
 
@@ -301,7 +303,7 @@ Toutes les routes sont préfixées par `/api`.
 | Domaine | Routes principales |
 |---|---|
 | Authentification | `POST /auth/connexion`, `/auth/deconnexion`, `/auth/profil-actif`, `/auth/mot-de-passe-oublie`, `/auth/mot-de-passe` ; `GET /auth/moi` |
-| Fiches | `GET/POST /fiches`, `GET /fiches/{id}`, `PUT /fiches/{id}/sections/{n}`, `POST /fiches/{id}/transitions`, `POST /fiches/{id}/confidentialite`, `GET /fiches/{id}/historique`, `GET /fiches/{id}/options` |
+| Fiches | `GET/POST /fiches`, `GET /fiches/{id}`, `POST /fiches/{id}/me-designer`, `PUT /fiches/{id}/sections/{n}`, `POST /fiches/{id}/transitions`, `POST /fiches/{id}/confidentialite`, `GET /fiches/{id}/historique`, `GET /fiches/{id}/options` |
 | Workflow | `GET /validations`, `POST /validations/{id}/decision`, `POST /actions/{id}/statut`, `PATCH /actions/{id}`, `POST /fiches/{id}/actions`, `PATCH /controles/{id}`, `POST /gains/{id}/decision`, `POST /relances` |
 | Pièces jointes, commentaires | `GET/POST /fiches/{id}/pieces-jointes`, `GET /pieces-jointes/{id}/telechargement`, `GET/POST /fiches/{id}/commentaires` |
 | Transversal | `GET /referentiels`, `GET /tableau-de-bord?annee=`, `GET /notifications`, `GET /notifications/non-lues`, `POST /notifications/{id}/lu`, `POST /notifications/tout-lu` |
@@ -312,7 +314,7 @@ Les codes d'erreur sont les suivants :
 - **403** : opération interdite à ce profil ;
 - **404** : fiche invisible pour ce profil ;
 - **409** : la fiche a changé entre-temps ;
-- **422** : des conditions manquent, et la réponse en donne la liste dans `manques`.
+- **422** : des conditions manquent, et la réponse en donne la liste dans `manques`, avec dans `emplacements` l'endroit de la fiche où corriger chacune quand il est connu. Le code qui écrit un manque choisit cet emplacement avec la classe `App\Support\Manque`.
 
 ## 19. Raccordements à la charge de la SAR
 
@@ -323,6 +325,8 @@ Ces raccordements se font par configuration, dans `backend/.env`, sans toucher a
 | Annuaire LDAP | `AUTH_PROVIDER=ldap` | `local` |
 | SAP (lecture) | `SAP_ENABLED=true` | `false` : les références SAP sont saisies à la main |
 | Serveur de courriel | `MAIL_*` | `log` : les courriels sont écrits dans `storage/logs` |
+
+`APP_NAME` donne le nom d'expéditeur des courriels (« Fiche A3 SAR » par défaut).
 
 En production, passer aussi `APP_ENV=production` et `APP_DEBUG=false`. Il faut enfin ajouter au cron du serveur la ligne du planificateur, indiquée dans le README.
 

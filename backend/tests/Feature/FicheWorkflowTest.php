@@ -96,6 +96,7 @@ class FicheWorkflowTest extends TestCase
         $this->controle($controles['J90'], 'CONFORME')->assertOk();
         $this->completerCloture($fiche);
 
+        $corrective = ActionA3::where('action_origine_id', $action->id)->firstOrFail();
         $this->transition($fiche, 'PILOTE', 'T8')
             ->assertUnprocessable()
             ->assertJsonFragment(['Action « Remplacer les purgeurs restants » : elle doit être réalisée avant ses contrôles.'])
@@ -103,10 +104,9 @@ class FicheWorkflowTest extends TestCase
                 'type' => 'tab',
                 'tab' => 'actions',
                 'label' => 'Ouvrir les actions',
-                'detail' => 'Remplacer les purgeurs restants',
+                'action_id' => $corrective->id,
             ]);
 
-        $corrective = ActionA3::where('action_origine_id', $action->id)->firstOrFail();
         $this->statutAction($corrective, 'REALISE', ['date_realisation' => today()->subDays(40)->toDateString()])->assertOk();
         $this->controle(Controle::where('action_id', $corrective->id)->where('jalon', 'CORRECTIF')->firstOrFail(), 'CONFORME')->assertOk();
 
@@ -168,11 +168,11 @@ class FicheWorkflowTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonPath('code', 'CONDITIONS_MANQUANTES')
             ->assertJsonPath('emplacements.0.tab', 'controles')
-            ->assertJsonPath('emplacements.0.detail', 'Remplacer 14 purgeurs');
+            ->assertJsonPath('emplacements.0.action_id', $action->id);
 
         foreach ([30, 60, 90] as $jours) {
             $response->assertJsonFragment([
-                "Action « Remplacer 14 purgeurs » : contrôle J+{$jours} à venir (échéance le ".today()->addDays($jours)->format('d/m/Y')."). La clôture attendra ce contrôle.",
+                "Action « Remplacer 14 purgeurs » : contrôle J+{$jours} à venir (échéance le ".today()->addDays($jours)->format('d/m/Y').'). La clôture attendra ce contrôle.',
             ]);
         }
     }

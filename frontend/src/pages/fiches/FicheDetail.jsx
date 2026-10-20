@@ -110,13 +110,10 @@ function FicheDetail() {
       let target
       if (pendingLocation.type === 'section') {
         target = document.querySelector(`[data-fiche-section="${pendingLocation.section}"]`)
-      } else if (pendingLocation.detail) {
-        const prefix = pendingLocation.detail.replace(/(?:…|\.{3})\s*$/, '')
-        target = [...document.querySelectorAll('[data-action-description]')]
-          .find((element) => element.dataset.actionDescription.startsWith(prefix))
+      } else if (pendingLocation.action_id) {
+        target = document.querySelector(`[data-action-id="${pendingLocation.action_id}"]`)
       } else {
-        target = [...document.querySelectorAll('[data-fiche-tab]')]
-          .find((element) => element.dataset.ficheTab === pendingLocation.tab)
+        target = document.querySelector(`[data-fiche-tab="${pendingLocation.tab}"]`)
       }
       target?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
       setPendingLocation(null)
