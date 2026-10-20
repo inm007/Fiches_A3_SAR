@@ -22,23 +22,23 @@ class DroitsRolesTest extends TestCase
         $this->setUpSimulation();
     }
 
-    public function test_matrix_starts_from_the_prd_and_is_reserved_to_the_functional_admin(): void
+    public function test_matrix_is_reserved_to_the_functional_admin_and_shows_each_cell_state(): void
     {
         $this->agir('DIRECTION')->getJson('/api/admin/permissions')->assertForbidden();
         $this->agir('DIRECTION')->putJson('/api/admin/permissions', $this->cellule('DIRECTION', 'DECLARER_FICHE', true))->assertForbidden();
 
         $permissions = collect($this->agir('ADMIN_FONCTIONNEL')->getJson('/api/admin/permissions')->assertOk()->json('data.permissions'))->keyBy('code');
-        $this->assertEqualsCanonicalizing(
-            [$this->roleId('AGENT'), $this->roleId('PILOTE')],
-            $permissions['DECLARER_FICHE']['roles_accordes'],
-        );
-        $this->assertEqualsCanonicalizing(
-            $permissions['RELANCER']['roles_par_defaut'],
-            $permissions['RELANCER']['roles_accordes'],
-        );
+        $cellule = fn (string $permission, string $role) => $permissions[$permission]['roles'][$this->roleId($role)];
+
+        $this->assertSame(['etat' => 'TOUJOURS', 'accorde' => true], $cellule('DECLARER_FICHE', 'AGENT'));
+        $this->assertSame(['etat' => 'REGLABLE', 'accorde' => false], $cellule('DECLARER_FICHE', 'DIRECTION'));
+        $this->assertSame(['etat' => 'NON_APPLICABLE', 'accorde' => false], $cellule('DECLARER_FICHE', 'VALIDEUR_HSE'));
+        $this->assertSame(['etat' => 'SUR_SES_FICHES', 'accorde' => true], $cellule('RELANCER', 'PILOTE'));
+        $this->assertSame(['etat' => 'REGLABLE', 'accorde' => true], $cellule('RELANCER', 'DIRECTION'));
+        $this->assertArrayNotHasKey($this->roleId('ADMIN_TECHNIQUE'), $permissions['RELANCER']['roles']);
     }
 
-    public function test_granting_and_removing_declaration_takes_effect_and_is_journaled(): void
+    public function test_granting_and_removing_a_right_takes_effect_and_is_journaled(): void
     {
         $this->agir('DIRECTION')->postJson('/api/fiches', $this->declaration())->assertForbidden();
 
@@ -47,22 +47,25 @@ class DroitsRolesTest extends TestCase
         $this->agir('DIRECTION')->postJson('/api/fiches', $this->declaration())->assertCreated();
         $this->assertTrue(JournalAdministration::where('operation', 'ACCORD_DROIT')->where('objet', 'role:'.$this->roleId('DIRECTION'))->exists());
 
-        $this->agir('ADMIN_FONCTIONNEL')->putJson('/api/admin/permissions', $this->cellule('AGENT', 'DECLARER_FICHE', false))->assertOk();
-        $this->agir('AGENT')->postJson('/api/fiches', $this->declaration())->assertForbidden();
+        $fiche = $this->declarer();
+        $this->agir('ADMIN_FONCTIONNEL')->putJson('/api/admin/permissions', $this->cellule('DIRECTION', 'COMMENTER', false))->assertOk();
+        $this->agir('DIRECTION')->postJson("/api/fiches/{$fiche->id}/commentaires", ['texte' => 'Avis'])->assertForbidden();
         $this->assertTrue(JournalAdministration::where('operation', 'RETRAIT_DROIT')->exists());
     }
 
-    public function test_locked_cells_cannot_be_granted(): void
+    public function test_fixed_and_not_applicable_cells_cannot_be_changed(): void
     {
-        $this->agir('ADMIN_FONCTIONNEL')->putJson('/api/admin/permissions', $this->cellule('ADMIN_FONCTIONNEL', 'COMMENTER', true))
-            ->assertUnprocessable()->assertJsonValidationErrors('role_id');
-        $this->agir('ADMIN_FONCTIONNEL')->putJson('/api/admin/permissions', $this->cellule('VALIDEUR_HSE', 'DECLARER_FICHE', true))
-            ->assertUnprocessable();
+        foreach ([['AGENT', 'DECLARER_FICHE', false], ['PILOTE', 'VOIR_HISTORIQUE', false], ['PILOTE', 'RELANCER', true], ['ADMIN_FONCTIONNEL', 'COMMENTER', true], ['VALIDEUR_HSE', 'DECLARER_FICHE', true]] as [$role, $permission, $accorde]) {
+            $this->agir('ADMIN_FONCTIONNEL')->putJson('/api/admin/permissions', $this->cellule($role, $permission, $accorde))
+                ->assertUnprocessable()->assertJsonValidationErrors('role_id');
+        }
         $this->agir('ADMIN_FONCTIONNEL')->putJson('/api/admin/permissions', $this->cellule('DIRECTION', 'VALIDER_CLOTURE', true))
             ->assertUnprocessable()->assertJsonValidationErrors('permission');
+
+        $this->agir('AGENT')->postJson('/api/fiches', $this->declaration())->assertCreated();
     }
 
-    public function test_history_and_hold_follow_the_matrix_but_the_pilot_keeps_their_rights(): void
+    public function test_history_and_hold_follow_the_matrix_and_the_pilot_keeps_hold_on_their_fiche(): void
     {
         $fiche = $this->declarer();
         $this->designerPilote($fiche);
@@ -71,7 +74,6 @@ class DroitsRolesTest extends TestCase
         $this->agir('ADMIN_FONCTIONNEL')->putJson('/api/admin/permissions', $this->cellule('DIRECTION', 'VOIR_HISTORIQUE', false))->assertOk();
         $this->agir('DIRECTION')->getJson("/api/fiches/{$fiche->id}/historique")->assertForbidden();
 
-        $this->agir('ADMIN_FONCTIONNEL')->putJson('/api/admin/permissions', $this->cellule('PILOTE', 'METTRE_EN_ATTENTE', false))->assertOk();
         $this->agir('ADMIN_FONCTIONNEL')->putJson('/api/admin/permissions', $this->cellule('DIRECTION', 'METTRE_EN_ATTENTE', false))->assertOk();
         $this->transition($fiche, 'DIRECTION', 'T12', 'Arrêt technique')->assertForbidden();
         $this->transition($fiche, 'PILOTE', 'T12', 'Arrêt technique')->assertOk();

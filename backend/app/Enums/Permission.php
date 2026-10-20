@@ -3,9 +3,13 @@
 namespace App\Enums;
 
 /**
- * Droits que l'administrateur fonctionnel accorde ou retire à un rôle (écran Droits).
- * Le reste de la matrice du PRD §2.3 reste verrouillé : circuit de validation, visibilité,
- * confidentialité, administration. Un droit ne s'exerce que sur les fiches visibles par le profil.
+ * Droits que l'administrateur fonctionnel règle par rôle (écran Droits des rôles).
+ * Pour chaque rôle, un droit est dans l'un de quatre états :
+ * - toujours : indispensable au rôle, accordé d'office et non modifiable ;
+ * - sur ses fiches : le pilote l'exerce sur les fiches qu'il pilote, non modifiable ;
+ * - réglable : l'administrateur l'accorde ou le retire ;
+ * - non applicable : sans objet pour ce rôle (administrateurs, rôles qui ne verraient pas la fiche).
+ * Un droit ne s'exerce que sur les fiches visibles par le profil.
  */
 enum Permission: string
 {
@@ -15,67 +19,109 @@ enum Permission: string
     case Relancer = 'RELANCER';
     case MettreEnAttente = 'METTRE_EN_ATTENTE';
 
+    public const string TOUJOURS = 'TOUJOURS';
+
+    public const string SUR_SES_FICHES = 'SUR_SES_FICHES';
+
+    public const string REGLABLE = 'REGLABLE';
+
+    public const string NON_APPLICABLE = 'NON_APPLICABLE';
+
     public function libelle(): string
     {
         return match ($this) {
             self::DeclarerFiche => 'Déclarer une fiche',
-            self::VoirHistorique => 'Consulter l’historique d’une fiche',
-            self::Commenter => 'Commenter une fiche',
-            self::Relancer => 'Relancer une action ou une validation',
-            self::MettreEnAttente => 'Mettre en attente et lever le blocage',
+            self::VoirHistorique => 'Consulter l’historique',
+            self::Commenter => 'Commenter',
+            self::Relancer => 'Relancer',
+            self::MettreEnAttente => 'Mettre en attente',
         };
     }
 
-    /**
-     * Ce que le droit ne retire jamais au pilote désigné de la fiche.
-     */
     public function description(): string
     {
         return match ($this) {
-            self::DeclarerFiche => 'Ouvre une nouvelle fiche A3 dans une unité.',
-            self::VoirHistorique => 'Le pilote de la fiche voit toujours son historique.',
-            self::Commenter => 'Ajoute un commentaire sur les fiches visibles.',
-            self::Relancer => 'Le pilote de la fiche peut toujours relancer.',
-            self::MettreEnAttente => 'Le pilote de la fiche peut toujours la mettre en attente.',
+            self::DeclarerFiche => 'Ouvrir une nouvelle fiche A3 pour signaler un problème constaté sur le terrain.',
+            self::VoirHistorique => 'Voir le journal d’une fiche : qui a modifié quoi, quand et pour quel motif.',
+            self::Commenter => 'Échanger avec le pilote et les valideurs par des commentaires sur la fiche.',
+            self::Relancer => 'Envoyer un rappel au responsable d’une action en retard ou à un valideur qui n’a pas encore répondu.',
+            self::MettreEnAttente => 'Suspendre une fiche bloquée, avec un motif obligatoire, puis lever le blocage.',
         };
     }
 
     /**
-     * Rôles du PRD §2.3 qui ont ce droit à l'installation.
+     * Rôles qui ont ce droit d'office : le leur retirer empêcherait le rôle de faire son travail.
+     *
+     * @return list<string>
+     */
+    public function rolesToujours(): array
+    {
+        return match ($this) {
+            self::DeclarerFiche, self::Commenter => ['AGENT', 'PILOTE'],
+            self::VoirHistorique => ['PILOTE'],
+            self::Relancer, self::MettreEnAttente => [],
+        };
+    }
+
+    /**
+     * Rôles qui exercent ce droit seulement sur les fiches qu'ils pilotent (règle fixe, appliquée par le workflow).
+     *
+     * @return list<string>
+     */
+    public function rolesSurSesFiches(): array
+    {
+        return match ($this) {
+            self::Relancer, self::MettreEnAttente => ['PILOTE'],
+            default => [],
+        };
+    }
+
+    /**
+     * Rôles pour lesquels l'administrateur accorde ou retire ce droit.
+     *
+     * @return list<string>
+     */
+    public function rolesReglables(): array
+    {
+        $decideurs = [...Domaine::rolesValideurs(), 'CONTROLE_GESTION', 'DIRECTION'];
+
+        return match ($this) {
+            self::DeclarerFiche => ['DIRECTION'],
+            self::VoirHistorique => ['AGENT', ...$decideurs, 'ADMIN_FONCTIONNEL'],
+            self::Commenter => $decideurs,
+            self::Relancer => [...$decideurs, 'ADMIN_FONCTIONNEL'],
+            self::MettreEnAttente => ['DIRECTION'],
+        };
+    }
+
+    /**
+     * Rôles réglables qui ont le droit à l'installation.
      *
      * @return list<string>
      */
     public function rolesParDefaut(): array
     {
         return match ($this) {
-            self::DeclarerFiche => ['AGENT', 'PILOTE'],
-            self::VoirHistorique => ['PILOTE', 'DIRECTION', 'ADMIN_FONCTIONNEL'],
-            self::Commenter => ['AGENT', 'PILOTE', ...Domaine::rolesValideurs(), 'CONTROLE_GESTION', 'DIRECTION'],
+            self::DeclarerFiche => [],
+            self::VoirHistorique => ['DIRECTION', 'ADMIN_FONCTIONNEL'],
+            self::Commenter => [...Domaine::rolesValideurs(), 'CONTROLE_GESTION', 'DIRECTION'],
             self::Relancer => ['DIRECTION', 'ADMIN_FONCTIONNEL'],
             self::MettreEnAttente => ['DIRECTION'],
         };
     }
 
-    /**
-     * Rôles auxquels ce droit peut être accordé. Les autres cases restent verrouillées :
-     * les administrateurs n'ont aucun contenu métier (PRD §2.1), et seuls les rôles qui
-     * voient leurs propres déclarations peuvent déclarer.
-     *
-     * @return list<string>
-     */
-    public function rolesEligibles(): array
+    public function etat(string $roleCode): string
     {
-        $metier = ['AGENT', 'PILOTE', ...Domaine::rolesValideurs(), 'CONTROLE_GESTION', 'DIRECTION'];
-
-        return match ($this) {
-            self::DeclarerFiche => ['AGENT', 'PILOTE', 'DIRECTION'],
-            self::VoirHistorique, self::Relancer => [...$metier, 'ADMIN_FONCTIONNEL'],
-            self::Commenter, self::MettreEnAttente => $metier,
+        return match (true) {
+            in_array($roleCode, $this->rolesToujours(), true) => self::TOUJOURS,
+            in_array($roleCode, $this->rolesSurSesFiches(), true) => self::SUR_SES_FICHES,
+            in_array($roleCode, $this->rolesReglables(), true) => self::REGLABLE,
+            default => self::NON_APPLICABLE,
         };
     }
 
-    public function estEligible(string $roleCode): bool
+    public function estReglable(string $roleCode): bool
     {
-        return in_array($roleCode, $this->rolesEligibles(), true);
+        return $this->etat($roleCode) === self::REGLABLE;
     }
 }

@@ -259,7 +259,13 @@ Le sélecteur d'année permet de consulter l'année en cours et les années pré
 
 Les données ne sont jamais supprimées, seulement désactivées. Chaque opération d'administration est inscrite au journal d'administration.
 
-L'écran Droits des rôles part de la matrice du PRD §2.3 ; une case qui s'en écarte est surlignée. Seuls ces cinq droits sont réglables. Le circuit de validation, la visibilité des fiches, la confidentialité et l'administration restent fixés. Certaines cases sont verrouillées : l'administrateur fonctionnel ne peut ni commenter ni mettre en attente, l'administrateur technique n'a aucun de ces droits, et seuls l'Agent, le Pilote et la Direction peuvent déclarer, parce que ce sont les profils qui voient ensuite la fiche déclarée. Le pilote désigné d'une fiche garde toujours l'historique, la relance et la mise en attente sur sa fiche. Un changement s'applique dès la requête suivante de l'utilisateur concerné.
+L'écran Droits des rôles présente un tableau rôles × droits, regroupé par famille de rôles (terrain, validation, direction, administration). Chaque case est dans l'un de quatre états :
+- **Réglable** : un interrupteur accorde ou retire le droit au rôle ;
+- **Toujours** : le droit est indispensable au rôle et ne se retire pas (l'Agent et le Pilote déclarent et commentent, le Pilote consulte l'historique) ;
+- **Ses fiches** : le Pilote relance et met en attente les fiches qu'il pilote, sans réglage possible ;
+- **Sans objet** : le droit ne concerne pas ce rôle (l'administrateur fonctionnel ne commente pas, un valideur ne déclare pas).
+
+Le circuit de validation, la visibilité des fiches, la confidentialité et l'administration ne sont pas réglables. L'administrateur technique n'apparaît pas dans le tableau. Un changement s'applique dès la requête suivante de l'utilisateur concerné.
 
 ## 16. Administration technique et sécurité
 

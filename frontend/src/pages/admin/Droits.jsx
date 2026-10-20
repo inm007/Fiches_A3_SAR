@@ -1,12 +1,64 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { apiRequest } from '../../auth/api.js'
 import Alert from '../../components/ui/Alert.jsx'
+import Icon from '../../components/ui/Icon.jsx'
 import Skeleton from '../../components/ui/Skeleton.jsx'
 import PageBanner from '../../components/shared/PageBanner.jsx'
 import { toast } from '../../utils/toast.js'
 import './Droits.css'
 
-// Matrice rôles × droits réglables. Une case grisée correspond à un droit verrouillé pour ce rôle (PRD §2.3).
+const ICONES = {
+  DECLARER_FICHE: 'plus',
+  VOIR_HISTORIQUE: 'clock',
+  COMMENTER: 'comment',
+  RELANCER: 'bell',
+  METTRE_EN_ATTENTE: 'pause',
+}
+
+const GROUPES = [
+  { titre: 'Terrain', roles: ['AGENT', 'PILOTE'] },
+  { titre: 'Validation', roles: ['VALIDEUR_PRODUCTION', 'VALIDEUR_HSE', 'VALIDEUR_PROCEDE', 'VALIDEUR_MAINTENANCE', 'VALIDEUR_INSPECTION', 'CONTROLE_GESTION'] },
+  { titre: 'Direction', roles: ['DIRECTION'] },
+  { titre: 'Administration', roles: ['ADMIN_FONCTIONNEL'] },
+]
+
+const ETATS = {
+  TOUJOURS: { libelle: 'Toujours', aide: 'Indispensable à ce rôle : accordé d’office, non modifiable.' },
+  SUR_SES_FICHES: { libelle: 'Ses fiches', aide: 'Le pilote l’exerce sur les fiches qu’il pilote, non modifiable.' },
+  NON_APPLICABLE: { libelle: 'Sans objet', aide: 'Ce droit ne concerne pas ce rôle.' },
+}
+
+// Une case par rôle et par droit : interrupteur quand le droit est réglable, sinon un repère fixe.
+function Cellule({ cellule, permission, role, enregistrement, bloque, onBasculer }) {
+  if (cellule.etat === 'REGLABLE') {
+    const label = `${permission.libelle} — ${role.libelle}`
+    return (
+      <label className={`droits-switch${enregistrement ? ' is-saving' : ''}`} title={cellule.accorde ? 'Accordé · cliquer pour retirer' : 'Non accordé · cliquer pour accorder'}>
+        <input
+          aria-label={label}
+          checked={cellule.accorde}
+          disabled={bloque}
+          role="switch"
+          type="checkbox"
+          onChange={(event) => onBasculer(permission, role, event.target.checked)}
+        />
+        <span aria-hidden="true" className="droits-switch__track"><span className="droits-switch__thumb" /></span>
+      </label>
+    )
+  }
+
+  const etat = ETATS[cellule.etat]
+  if (cellule.etat === 'NON_APPLICABLE') {
+    return <span className="droits-fixe droits-fixe--na" title={etat.aide}><span className="sar-sr-only">{etat.libelle}</span>—</span>
+  }
+  return (
+    <span className={`droits-fixe droits-fixe--${cellule.etat === 'TOUJOURS' ? 'toujours' : 'ses-fiches'}`} title={etat.aide}>
+      <Icon name={cellule.etat === 'TOUJOURS' ? 'lock' : 'user'} size={12} />
+      {etat.libelle}
+    </span>
+  )
+}
+
 function Droits() {
   const [matrice, setMatrice] = useState(null)
   const [error, setError] = useState('')
@@ -19,8 +71,7 @@ function Droits() {
   }, [])
 
   async function basculer(permission, role, accorde) {
-    const cle = `${permission.code}:${role.id}`
-    setEnCours(cle)
+    setEnCours(`${permission.code}:${role.id}`)
     setError('')
     try {
       const result = await apiRequest('/admin/permissions', {
@@ -28,7 +79,7 @@ function Droits() {
         body: JSON.stringify({ role_id: role.id, permission: permission.code, accorde }),
       })
       setMatrice(result.data)
-      toast.success(`${permission.libelle} : ${accorde ? 'accordé à' : 'retiré à'} ${role.libelle}.`)
+      toast.success(`« ${permission.libelle} » ${accorde ? 'accordé au rôle' : 'retiré du rôle'} ${role.libelle}.`)
     } catch (saveError) {
       setError(Object.values(saveError.data?.errors ?? {}).flat().join(' ') || saveError.message)
     } finally {
@@ -36,62 +87,97 @@ function Droits() {
     }
   }
 
-  // Les administrateurs techniques n'ont aucun droit réglable : leur colonne serait vide.
-  const roles = (matrice?.roles ?? []).filter((role) => matrice.permissions.some((permission) => permission.roles_eligibles.includes(role.id)))
+  const rolesParCode = Object.fromEntries((matrice?.roles ?? []).map((role) => [role.code, role]))
+  const groupes = GROUPES
+    .map((groupe) => ({ ...groupe, roles: groupe.roles.map((code) => rolesParCode[code]).filter(Boolean) }))
+    .filter((groupe) => groupe.roles.length > 0)
+  const nbDroits = matrice?.permissions.length ?? 0
+  const accordes = (role) => (matrice?.permissions ?? []).filter((permission) => permission.roles[role.id]?.accorde).length
 
   return (
     <section className="droits-page">
       <PageBanner
-        description="Accordez ou retirez des droits à chaque rôle. Les changements s’appliquent dès la prochaine action des utilisateurs concernés."
+        description="Choisissez ce que chaque rôle peut faire dans l’application. Un changement s’applique dès la prochaine action des utilisateurs concernés et il est inscrit au journal d’administration."
         title="Droits des rôles"
       />
-      <Alert severity="info">
-        Le circuit de validation, la visibilité des fiches, la confidentialité et l’administration restent fixés par le PRD.
-        Le pilote désigné d’une fiche garde toujours ses droits sur sa fiche. Chaque changement est inscrit au journal d’administration.
-      </Alert>
       {error && <Alert severity="error">{error}</Alert>}
-      {!matrice ? <Skeleton height={44} lines={6} /> : (
-        <div className="droits-page__table-wrap">
-          <table className="droits-page__table">
-            <thead>
-              <tr>
-                <th scope="col">Droit</th>
-                {roles.map((role) => <th key={role.id} scope="col">{role.libelle}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {matrice.permissions.map((permission) => (
-                <tr key={permission.code}>
-                  <th scope="row">
-                    <strong>{permission.libelle}</strong>
-                    <span>{permission.description}</span>
-                  </th>
-                  {roles.map((role) => {
-                    const eligible = permission.roles_eligibles.includes(role.id)
-                    const accorde = permission.roles_accordes.includes(role.id)
-                    const parDefaut = permission.roles_par_defaut.includes(role.id)
-                    const cle = `${permission.code}:${role.id}`
-                    return (
-                      <td className={eligible && accorde !== parDefaut ? 'is-modifie' : undefined} key={role.id}>
-                        <input
-                          aria-label={`${permission.libelle} — ${role.libelle}`}
-                          checked={accorde}
-                          disabled={!eligible || enCours !== ''}
-                          title={eligible ? (accorde !== parDefaut ? 'Modifié par rapport au PRD' : undefined) : 'Droit verrouillé pour ce rôle'}
-                          type="checkbox"
-                          onChange={(event) => basculer(permission, role, event.target.checked)}
-                        />
-                        {enCours === cle && <span className="droits-page__saving" aria-live="polite">…</span>}
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {!matrice ? <Skeleton height={56} lines={6} /> : (
+        <>
+          <ul className="droits-catalogue" aria-label="Droits réglables">
+            {matrice.permissions.map((permission) => (
+              <li key={permission.code}>
+                <span className="droits-catalogue__icone"><Icon name={ICONES[permission.code] ?? 'info'} size={18} /></span>
+                <span>
+                  <strong>{permission.libelle}</strong>
+                  <span>{permission.description}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="droits-carte">
+            <div className="droits-carte__entete">
+              <h2>Droits par rôle</h2>
+              <ul className="droits-legende" aria-label="Légende">
+                <li><span aria-hidden="true" className="droits-switch droits-switch--demo"><span className="droits-switch__track"><span className="droits-switch__thumb" /></span></span> Réglable</li>
+                <li><Cellule cellule={{ etat: 'TOUJOURS' }} /> {ETATS.TOUJOURS.aide}</li>
+                <li><Cellule cellule={{ etat: 'SUR_SES_FICHES' }} /> {ETATS.SUR_SES_FICHES.aide}</li>
+              </ul>
+            </div>
+            <div className="droits-carte__defilement">
+              <table className="droits-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Rôle</th>
+                    {matrice.permissions.map((permission) => (
+                      <th key={permission.code} scope="col" title={permission.description}>
+                        <span className="droits-table__colonne">
+                          <Icon name={ICONES[permission.code] ?? 'info'} size={16} />
+                          {permission.libelle}
+                        </span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {groupes.map((groupe) => (
+                    <Fragment key={groupe.titre}>
+                      <tr className="droits-table__groupe">
+                        <th colSpan={nbDroits + 1} scope="colgroup">{groupe.titre}</th>
+                      </tr>
+                      {groupe.roles.map((role) => (
+                        <tr key={role.id}>
+                          <th scope="row">
+                            <div className="droits-table__ligne-role">
+                              <span className="droits-table__role">
+                                <strong>{role.libelle}</strong>
+                                {role.description && <span>{role.description}</span>}
+                              </span>
+                              <span className="droits-table__compteur" title="Droits dont dispose ce rôle">{accordes(role)} / {nbDroits}</span>
+                            </div>
+                          </th>
+                          {matrice.permissions.map((permission) => (
+                            <td key={permission.code}>
+                              <Cellule
+                                cellule={permission.roles[role.id]}
+                                bloque={enCours !== ''}
+                                enregistrement={enCours === `${permission.code}:${role.id}`}
+                                permission={permission}
+                                role={role}
+                                onBasculer={basculer}
+                              />
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
-      {matrice && <p className="droits-page__legende"><span className="droits-page__pastille" /> Case différente de la matrice du PRD.</p>}
     </section>
   )
 }

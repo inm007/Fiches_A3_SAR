@@ -12,14 +12,15 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Écran Droits : l'administrateur fonctionnel accorde ou retire un droit à un rôle.
- * Seuls les droits de l'énumération Permission sont réglables, et seulement pour leurs rôles éligibles.
+ * Écran Droits des rôles : l'administrateur fonctionnel accorde ou retire un droit réglable à un rôle.
+ * Les droits accordés d'office, ceux du pilote sur ses fiches et les cases sans objet ne se modifient pas.
  */
 class PermissionController extends AdminController
 {
     public function index(): JsonResponse
     {
-        $roles = Role::query()->orderBy('id')->get(['id', 'code', 'libelle']);
+        // L'administrateur technique n'a aucun droit sur les fiches : il n'apparaît pas dans le tableau.
+        $roles = Role::query()->where('code', '!=', 'ADMIN_TECHNIQUE')->orderBy('id')->get(['id', 'code', 'libelle', 'description']);
         $accordes = RolePermission::query()->get(['role_id', 'permission'])
             ->groupBy('permission')
             ->map(fn ($lignes) => $lignes->pluck('role_id')->all());
@@ -30,9 +31,18 @@ class PermissionController extends AdminController
                 'code' => $permission->value,
                 'libelle' => $permission->libelle(),
                 'description' => $permission->description(),
-                'roles_eligibles' => $roles->whereIn('code', $permission->rolesEligibles())->pluck('id')->values(),
-                'roles_par_defaut' => $roles->whereIn('code', $permission->rolesParDefaut())->pluck('id')->values(),
-                'roles_accordes' => $roles->whereIn('id', $accordes->get($permission->value, []))->pluck('id')->values(),
+                'roles' => $roles->mapWithKeys(function (Role $role) use ($permission, $accordes): array {
+                    $etat = $permission->etat($role->code);
+
+                    return [$role->id => [
+                        'etat' => $etat,
+                        'accorde' => match ($etat) {
+                            Permission::TOUJOURS, Permission::SUR_SES_FICHES => true,
+                            Permission::REGLABLE => in_array($role->id, $accordes->get($permission->value, []), true),
+                            default => false,
+                        },
+                    ]];
+                }),
             ]),
         ]]);
     }
@@ -47,8 +57,8 @@ class PermissionController extends AdminController
         $role = Role::query()->findOrFail($validated['role_id']);
         $permission = Permission::from($validated['permission']);
 
-        if (! $permission->estEligible($role->code)) {
-            throw ValidationException::withMessages(['role_id' => 'Ce droit ne peut pas être accordé au rôle « '.$role->libelle.' ».']);
+        if (! $permission->estReglable($role->code)) {
+            throw ValidationException::withMessages(['role_id' => 'Le droit « '.$permission->libelle().' » n’est pas modifiable pour le rôle « '.$role->libelle.' ».']);
         }
 
         DB::transaction(function () use ($request, $role, $permission, $validated): void {

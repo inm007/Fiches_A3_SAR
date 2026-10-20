@@ -21,7 +21,8 @@ class RolePermission extends Model
     }
 
     /**
-     * Droits effectifs d'un rôle : un droit non éligible enregistré à tort reste sans effet.
+     * Droits effectifs d'un rôle : ceux qu'il a d'office, plus ceux que l'administrateur lui a accordés.
+     * Une ligne enregistrée pour un droit non réglable reste sans effet.
      *
      * @return list<string>
      */
@@ -31,17 +32,21 @@ class RolePermission extends Model
             return [];
         }
 
-        return self::query()
-            ->where('role_id', $role->id)
-            ->orderBy('permission')
-            ->pluck('permission')
-            ->filter(fn (string $code) => Permission::tryFrom($code)?->estEligible($role->code) ?? false)
+        $accordes = self::query()->where('role_id', $role->id)->pluck('permission')->all();
+
+        return collect(Permission::cases())
+            ->filter(fn (Permission $permission) => match ($permission->etat($role->code)) {
+                Permission::TOUJOURS => true,
+                Permission::REGLABLE => in_array($permission->value, $accordes, true),
+                default => false,
+            })
+            ->map(fn (Permission $permission) => $permission->value)
             ->values()
             ->all();
     }
 
     /**
-     * Pré-remplit la matrice du PRD §2.3, seulement si elle est vide :
+     * Pré-remplit les droits réglables accordés par défaut, seulement si la table est vide :
      * un nouveau seed n'écrase jamais les choix de l'administrateur.
      */
     public static function initialiserParDefaut(): void
