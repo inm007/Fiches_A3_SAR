@@ -22,6 +22,7 @@ export const ETAPES = {
   EN_VALIDATION_CLOTURE: { label: 'En validation de clôture', tone: 'validation' },
   EN_ATTENTE: { label: 'En attente', tone: 'attente' },
   CLOTURE: { label: 'Clôturé', tone: 'cloture' },
+  CLASSE_SANS_SUITE: { label: 'Classée sans suite', tone: 'neutral' },
 }
 
 export const PARCOURS = [
@@ -34,6 +35,7 @@ export const STATUTS_GENERAUX = {
   EN_COURS: 'En cours',
   EN_ATTENTE: 'En attente',
   CLOTURE: 'Clôturé',
+  CLASSE: 'Classée sans suite',
 }
 
 export const STATUTS_ACTION = {
@@ -48,12 +50,30 @@ export const TRANSITIONS = {
   T2: { label: 'Commencer l’analyse', primary: true },
   T3: { label: 'Soumettre le plan', primary: true },
   T6: { label: 'Terminer les actions', primary: true },
-  T7: { label: 'Valider la mesure', primary: true },
+  T7: { label: 'Passer à la vérification du maintien', primary: true },
   T8: { label: 'Soumettre la clôture', primary: true },
   T11: { label: 'Nouvelle boucle', motif: 'Motif : objectif non atteint, partiellement atteint ou gain non maintenu' },
   T12: { label: 'Mettre en attente', motif: 'Motif du blocage (obligatoire)' },
   T13: { label: 'Lever le blocage' },
+  T14: { label: 'Classer sans suite', motif: 'Motif du classement (doublon, hors sujet, déjà traité…)', danger: true },
 }
+
+// Ce que débloque chaque transition, affiché dans le panneau « Prochaine étape ».
+export const PROCHAINES_ETAPES = {
+  T2: { titre: 'Commencer l’analyse', texte: 'Vous prenez la fiche en main : les sections 1 à 7 s’ouvrent à la saisie.' },
+  T3: { titre: 'Soumettre le plan', texte: 'Le plan part en validation : Production / Exploitation d’abord, puis les valideurs des domaines cochés.' },
+  T6: { titre: 'Terminer la réalisation', texte: 'Toutes les actions sont réalisées ou annulées : vous pourrez mesurer les résultats.' },
+  T7: { titre: 'Passer à la vérification du maintien', texte: 'La mesure Après est faite et l’objectif atteint : le maintien se vérifie à J+30, J+60 et J+90.' },
+  T8: { titre: 'Soumettre la clôture', texte: 'Le Contrôle de gestion (si gains) puis la Direction valident la clôture.' },
+}
+
+export const ROLES_INDICATEUR = [
+  ['PRINCIPAL', 'KPI principal'],
+  ['A_NE_PAS_DEGRADER', 'À ne pas dégrader'],
+  ['SUIVI', 'Suivi'],
+]
+
+export const MAINTIEN_JALONS = [['J30', 'J+30'], ['J60', 'J+60'], ['J90', 'J+90']]
 
 export const SECTIONS = [
   'Identification', 'Contexte, enjeu et problème', 'Situation actuelle', 'Objectif',

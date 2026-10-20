@@ -178,6 +178,11 @@ class CycleA3RenforceTest extends TestCase
         $message = collect($this->transition($fiche, 'PILOTE', 'T8')->assertUnprocessable()->json('manques'))->implode(' ');
         $this->assertStringContainsString('Lancez une nouvelle boucle', $message);
 
+        // La mesure Après et l'objectif ne bougent plus pendant le maintien.
+        $this->section($fiche, 8, ['mesures' => [['indicateur_id' => $ids['indicateur'], 'valeur' => 99]], 'objectif_atteint' => 'NON'])->assertOk()
+            ->assertJsonPath('data.indicateurs.0.apres', 75)
+            ->assertJsonPath('data.resultats.objectif_atteint', 'OUI');
+
         $this->mesurerMaintien($fiche, 74);
         $this->transition($fiche, 'PILOTE', 'T8')->assertOk()->assertJsonPath('data.statut_etape', 'EN_VALIDATION_CLOTURE');
     }

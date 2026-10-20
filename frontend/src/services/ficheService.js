@@ -23,6 +23,7 @@ export const ficheService = {
   partagerFiche: (id, userId, motif) => send(`/admin/fiches/${id}/copilotes`, 'POST', { user_id: userId, motif }).then((result) => result.data),
   retirerCopilote: (id, userId) => send(`/admin/fiches/${id}/copilotes/${userId}`, 'DELETE').then((result) => result.data),
   confidentialiteAdmin: (id, confidentialite) => send(`/admin/fiches/${id}`, 'PATCH', { confidentialite }),
+  versions: (id) => apiRequest(`/fiches/${id}/versions`).then((result) => result.data),
   historique: (id) => apiRequest(`/fiches/${id}/historique`).then((result) => result.data),
   piecesJointes: (id) => apiRequest(`/fiches/${id}/pieces-jointes`),
   ajouterPieceJointe: (id, fichier, actionId) => {

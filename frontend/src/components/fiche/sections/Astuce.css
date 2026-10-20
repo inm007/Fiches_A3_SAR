@@ -1,0 +1,133 @@
+.astuce {
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius-lg);
+  background: var(--warning-bg);
+  font-size: var(--text-sm);
+}
+
+.astuce summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  color: var(--warning);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.astuce summary::-webkit-details-marker {
+  display: none;
+}
+
+.astuce summary::after {
+  margin-left: auto;
+  content: '+';
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+
+.astuce[open] summary::after {
+  content: '−';
+}
+
+.astuce__body {
+  display: grid;
+  gap: 6px;
+  padding: 0 14px 12px 37px;
+  color: var(--ink);
+}
+
+.astuce__body p,
+.astuce__body ul {
+  margin: 0;
+}
+
+.astuce__body ul {
+  padding-left: 18px;
+}
+
+.pastilles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pastille {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--ink);
+  background: var(--white);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: background var(--duration-fast, 150ms) ease, border-color var(--duration-fast, 150ms) ease;
+}
+
+.pastille:hover:not(:disabled) {
+  border-color: var(--brand-500);
+}
+
+.pastille.is-active {
+  border-color: var(--brand-500);
+  color: var(--brand-700);
+  background: var(--brand-50);
+  font-weight: 600;
+}
+
+.pastille:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.pastille:focus-visible {
+  box-shadow: var(--ring-focus);
+  outline: none;
+}
+
+.liste-noms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.liste-noms__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 12px;
+  border-radius: 999px;
+  background: var(--gray-100);
+  font-size: var(--text-sm);
+}
+
+.liste-noms__item button {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  color: var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.liste-noms__item button:hover {
+  color: var(--ink);
+  background: var(--gray-200);
+}
+
+.liste-noms__ajout {
+  display: flex;
+  gap: 8px;
+}
+
+.liste-noms__ajout input {
+  flex: 1;
+}

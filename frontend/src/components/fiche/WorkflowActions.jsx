@@ -62,29 +62,53 @@ function WorkflowActions({ fiche, options, onChange, onError }) {
     }, `Confidentialité : ${cible === 'RESTREINT' ? 'Restreint' : 'Normal'}`)
   }
 
+  // Un seul bouton principal : l'étape suivante, ou « Nouvelle boucle » quand l'objectif n'est pas atteint.
+  const nouvelleBoucle = droits.transitions.includes('T11') && fiche.resultats?.objectif_atteint === 'NON'
+  const principale = nouvelleBoucle ? 'T11' : droits.transitions.find((code) => TRANSITIONS[code].primary)
+  const secondaires = droits.transitions.filter((code) => code !== principale)
+  const menu = [
+    ...secondaires.map((code) => ({ key: code, label: TRANSITIONS[code].label, danger: TRANSITIONS[code].danger || code === 'T12', onClick: () => startTransition(code) })),
+    ...(droits.peut_designer_pilote && fiche.pilote ? [
+      { key: 'pilote', label: 'Changer le pilote', onClick: () => setDialog({ type: 'pilote' }) },
+      { key: 'partage', label: 'Partager la fiche', onClick: () => setDialog({ type: 'partage' }) },
+    ] : []),
+    ...(droits.peut_designer_pilote && fiche.validations?.some((validation) => validation.decision === 'EN_ATTENTE')
+      ? [{ key: 'partage-validation', label: 'Partager une validation', onClick: () => setDialog({ type: 'partage-validation' }) }] : []),
+    ...(droits.peut_changer_confidentialite
+      ? [{ key: 'confidentialite', label: fiche.confidentialite === 'RESTREINT' ? 'Passer en Normal' : 'Passer en Restreint', onClick: () => setDialog({ type: 'confidentialite' }) }] : []),
+  ]
+
   return (
     <div aria-label="Actions sur la fiche" className="workflow-actions">
-      {droits.peut_designer_pilote && fiche.pilote && (
-        <Button icon="users" type="button" onClick={() => setDialog({ type: 'partage' })}>Partager la fiche</Button>
-      )}
-      {droits.peut_designer_pilote && (
-        <Button type="button" variant={fiche.pilote ? 'secondary' : 'primary'} onClick={() => setDialog({ type: 'pilote' })}>{fiche.pilote ? 'Changer le pilote' : 'Désigner le pilote'}</Button>
+      {droits.peut_designer_pilote && !fiche.pilote && (
+        <Button type="button" variant="primary" onClick={() => setDialog({ type: 'pilote' })}>Désigner le pilote</Button>
       )}
       {droits.peut_se_designer_pilote && (
         <Button disabled={busy} type="button" variant="primary" onClick={meDesigner}>Me désigner comme pilote</Button>
       )}
-      {droits.peut_designer_pilote && fiche.validations?.some((validation) => validation.decision === 'EN_ATTENTE') && (
-        <Button type="button" variant="secondary" onClick={() => setDialog({ type: 'partage-validation' })}>Partager une validation</Button>
+      {principale && (
+        <Button disabled={busy} type="button" variant="primary" onClick={() => startTransition(principale)}>
+          {TRANSITIONS[principale].label}
+        </Button>
       )}
-      {droits.transitions.map((code) => (
-        <Button disabled={busy} key={code} type="button" variant={TRANSITIONS[code].primary ? 'primary' : 'secondary'} onClick={() => startTransition(code)}>
-          {TRANSITIONS[code].label}
-        </Button>
-      ))}
-      {droits.peut_changer_confidentialite && (
-        <Button type="button" variant="secondary" onClick={() => setDialog({ type: 'confidentialite' })}>
-          {fiche.confidentialite === 'RESTREINT' ? 'Passer en Normal' : 'Passer en Restreint'}
-        </Button>
+      {menu.length > 0 && (
+        <details className="workflow-actions__menu">
+          <summary className="sar-button sar-button--secondary">Plus d’actions</summary>
+          <div className="workflow-actions__items" role="menu">
+            {menu.map((item) => (
+              <button
+                className={item.danger ? 'is-danger' : undefined}
+                disabled={busy}
+                key={item.key}
+                role="menuitem"
+                type="button"
+                onClick={(event) => { event.currentTarget.closest('details').open = false; item.onClick() }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </details>
       )}
 
       <ConfirmDialog
@@ -93,10 +117,12 @@ function WorkflowActions({ fiche, options, onChange, onError }) {
         disabled={!motif.trim()}
         open={dialog?.type === 'transition'}
         title={dialog?.code ? TRANSITIONS[dialog.code].label : ''}
-        variant={dialog?.code === 'T12' ? 'danger-solid' : 'primary'}
+        variant={dialog?.code === 'T12' || dialog?.code === 'T14' ? 'danger-solid' : 'primary'}
         onCancel={() => setDialog(null)}
         onConfirm={() => transition(dialog.code)}
       >
+        {dialog?.code === 'T11' && <p>La fiche repart à l’analyse (boucle {fiche.version + 1}) : les mesures Après et de maintien sont effacées, la copie figée garde la boucle actuelle.</p>}
+        {dialog?.code === 'T14' && <p>La fiche est fermée sans traitement et sort des fiches en cours. Ce choix est inscrit dans l’historique.</p>}
         <TextArea label={dialog?.code ? TRANSITIONS[dialog.code].motif : ''} required value={motif} onChange={setMotif} />
       </ConfirmDialog>
 

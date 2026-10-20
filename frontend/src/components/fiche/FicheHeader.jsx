@@ -46,7 +46,7 @@ function FicheHeader({ fiche, children }) {
           <EtapeBadge etape={fiche.statut_etape} />
           {STATUTS_GENERAUX[fiche.statut_general] !== ETAPES[fiche.statut_etape]?.label && <Badge tone="neutral">{STATUTS_GENERAUX[fiche.statut_general]}</Badge>}
           <ConfidentialiteBadge value={fiche.confidentialite} />
-          <span className="fiche-header__version">Version {fiche.version}</span>
+          <span className="fiche-header__version" title="Une nouvelle boucle repart de l’analyse quand l’objectif n’est pas atteint.">Boucle {fiche.version}</span>
         </div>
         <ul className="fiche-header__meta">
           <li><Icon name="unit" size={15} />{identification.unite?.libelle}</li>
@@ -56,6 +56,9 @@ function FicheHeader({ fiche, children }) {
             {pilotes.length > 1 && <span className="fiche-header__shared" title="Les pilotes voient ce que l’autre a fait et poursuivent la fiche ensemble.">fiche partagée</span>}
           </li>
           <li><Icon name="calendar" size={15} />Cible : {formatDate(identification.date_cible)}</li>
+          {fiche.cloture_au_plus_tot && !['CLOTURE', 'CLASSE_SANS_SUITE'].includes(fiche.statut_etape) && (
+            <li title="Après les derniers contrôles d’efficacité et la mesure de maintien J+90."><Icon name="clock" size={15} />Clôture au plus tôt : {formatDate(fiche.cloture_au_plus_tot)}</li>
+          )}
           {identification.equipement && (
             <li>
               <Icon name="equipment" size={15} />Équipement : {identification.equipement.code}
@@ -70,14 +73,20 @@ function FicheHeader({ fiche, children }) {
             En attente depuis l’étape « {ETAPES[fiche.etape_avant_attente]?.label} » : {fiche.motif_attente}
           </p>
         )}
-        <ol aria-label="Progression de la fiche" className="fiche-header__progress">
+        {fiche.statut_etape === 'CLASSE_SANS_SUITE' && (
+          <p className="fiche-header__hold" role="status">
+            <Icon name="info" size={16} />
+            Classée sans suite : {fiche.motif_classement}
+          </p>
+        )}
+        {fiche.statut_etape !== 'CLASSE_SANS_SUITE' && <ol aria-label="Progression de la fiche" className="fiche-header__progress">
           {PARCOURS.map((etape, index) => (
             <li aria-current={index === position ? 'step' : undefined} className={index < position ? 'is-done' : index === position ? 'is-current' : undefined} key={etape}>
               <span aria-hidden="true" className="fiche-header__dot">{index < position ? <Icon name="check" size={13} /> : index + 1}</span>
               <span className="fiche-header__step-label">{ETAPES[etape].label}</span>
             </li>
           ))}
-        </ol>
+        </ol>}
       </header>
       <div aria-hidden={!horsEcran} className={`fiche-header-mini${horsEcran ? ' is-visible' : ''}`}>
         <div className="fiche-header-mini__bar">

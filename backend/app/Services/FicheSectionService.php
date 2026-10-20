@@ -431,6 +431,13 @@ class FicheSectionService
      */
     private function section8(FicheA3 $fiche, array $data): void
     {
+        // Après T7, la mesure Après et l'objectif sont acquis : seule la saisie du maintien reste ouverte.
+        if ($fiche->etape() === StatutEtape::VerificationMaintien) {
+            $this->enregistrerMaintien($fiche, $data['maintien'] ?? []);
+
+            return;
+        }
+
         $indicateurs = $fiche->indicateurs()->get()->keyBy('id');
         foreach ($data['mesures'] as $item) {
             $indicateur = $indicateurs->get((int) $item['indicateur_id']);

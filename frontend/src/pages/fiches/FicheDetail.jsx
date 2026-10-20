@@ -5,6 +5,7 @@ import FicheHeader from '../../components/fiche/FicheHeader.jsx'
 import ErrorPage from '../../components/shared/ErrorPage.jsx'
 import Tabs from '../../components/ui/Tabs.jsx'
 import MissingConditionsPanel from '../../components/fiche/MissingConditionsPanel.jsx'
+import NextStepPanel from '../../components/fiche/NextStepPanel.jsx'
 import SectionEditor from '../../components/fiche/SectionEditor.jsx'
 import SectionStepper from '../../components/fiche/SectionStepper.jsx'
 import WorkflowActions from '../../components/fiche/WorkflowActions.jsx'
@@ -42,6 +43,7 @@ function FicheDetail() {
   const [panel, setPanel] = useState(null)
   const [dirty, setDirty] = useState(false)
   const [pendingLocation, setPendingLocation] = useState(null)
+  const [copie, setCopie] = useState(null)
 
   const load = useCallback(() => Promise.all([ficheService.get(id), ficheService.referentiels(), ficheService.options(id)])
     .then(([loaded, referentiels, ficheOptions]) => {
@@ -73,12 +75,22 @@ function FicheDetail() {
   const onError = useCallback((described) => setPanel(described), [])
 
   const confirmLeave = () => !dirty || window.confirm('Des modifications ne sont pas enregistrées. Les abandonner ?')
-  function exportPdf() {
+  function exportPdf(suffixe = '') {
     const previousTitle = document.title
-    document.title = `${fiche.numero_a3} - ${fiche.titre}`
+    document.title = `${fiche.numero_a3} - ${fiche.titre}${suffixe}`
     window.print()
     window.setTimeout(() => { document.title = previousTitle }, 1000)
   }
+
+  // Impression d'une copie figée : la vue d'impression affiche la copie le temps de l'impression.
+  useEffect(() => {
+    if (!copie) return undefined
+    const frame = window.requestAnimationFrame(() => {
+      exportPdf(` - copie boucle ${copie.version}`)
+      setCopie(null)
+    })
+    return () => window.cancelAnimationFrame(frame)
+  })
   const goToSection = (numero) => {
     if (numero < 1 || numero > 12 || !confirmLeave()) return
     setDirty(false)
@@ -152,10 +164,11 @@ function FicheDetail() {
   return (
     <div className="fiche-detail-page">
       <FicheHeader fiche={fiche}>
-        <Button type="button" variant="secondary" onClick={exportPdf}><Icon name="pdf" />Exporter en PDF A3</Button>
+        <Button type="button" variant="secondary" onClick={() => exportPdf()}><Icon name="pdf" />Exporter en PDF A3</Button>
         <WorkflowActions fiche={fiche} options={options} onChange={onChange} onError={onError} />
       </FicheHeader>
       <MissingConditionsPanel error={panel} onClose={() => setPanel(null)} onNavigate={navigateToLocation} onReload={reload} />
+      {!panel && <NextStepPanel fiche={fiche} onChange={onChange} onError={onError} onNavigate={navigateToLocation} />}
       <Tabs active={tab} idPrefix="fiche-tab" label="Rubriques de la fiche" tabs={tabs} onChange={goToTab} />
       <div aria-labelledby={`fiche-tab-${tab}`} id={`fiche-tab-panel-${tab}`} role="tabpanel">
         {tab === 'fiche' ? (
@@ -172,6 +185,7 @@ function FicheDetail() {
               onDirtyChange={setDirty}
               onError={onError}
               onNavigate={goToSection}
+              onPrintCopy={setCopie}
               onSaved={onChange}
             />
           </div>
@@ -179,7 +193,7 @@ function FicheDetail() {
           <TabComponent fiche={fiche} options={options} refs={refs} onChange={onChange} onError={onError} />
         )}
       </div>
-      <FichePrintView fiche={fiche} refs={refs} />
+      <FichePrintView copie={copie} fiche={copie?.contenu ?? fiche} refs={refs} />
     </div>
   )
 }

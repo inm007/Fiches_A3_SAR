@@ -24,6 +24,7 @@ export default function ControlesTab({ fiche, options, onChange, onError }) {
   const [busy, setBusy] = useState(false)
   const actions = fiche.actions.filter((action) => action.controles.length > 0)
   const set = (field) => (value) => setForm((current) => ({ ...current, [field]: value }))
+  const critereDe = (item) => fiche.actions.find((action) => action.controles.some((current) => current.id === item.id))?.critere_efficacite
 
   async function save() {
     setBusy(true)
@@ -59,6 +60,7 @@ export default function ControlesTab({ fiche, options, onChange, onError }) {
       {actions.map((action) => (
         <div data-action-id={action.id} key={action.id}>
           <h3>{action.action_origine_id ? 'Action corrective — ' : ''}{action.description}</h3>
+          {action.critere_efficacite && <p className="fiche-tab__muted">Critère d’efficacité : {action.critere_efficacite}</p>}
           <div className="fiche-tab__grid">
             {action.controles.map((item) => {
               const [tone, label] = etat(item)
@@ -81,15 +83,16 @@ export default function ControlesTab({ fiche, options, onChange, onError }) {
       <ConfirmDialog
         busy={busy}
         confirmLabel="Enregistrer le contrôle"
-        disabled={form.resultat === 'NON_CONFORME' && (!form.description.trim() || !form.echeance)}
+        disabled={form.resultat === 'NON_CONFORME' ? (!form.description.trim() || !form.echeance) : (!form.commentaire.trim() && !form.preuve.trim())}
         open={Boolean(controle)}
         title={controle ? `Contrôle ${JALONS[controle.jalon]}` : ''}
         variant="primary"
         onCancel={() => setControle(null)}
         onConfirm={save}
       >
+        {controle && critereDe(controle) && <p className="fiche-tab__muted">Critère à vérifier : {critereDe(controle)}</p>}
         <Select label="Résultat" options={[['CONFORME', 'Conforme'], ['NON_CONFORME', 'Non conforme']]} required value={form.resultat} onChange={set('resultat')} />
-        <TextArea label="Commentaire" value={form.commentaire} onChange={set('commentaire')} />
+        <TextArea hint={form.resultat === 'CONFORME' ? 'Ce que vous avez constaté (ou une preuve ci-dessous) : obligatoire pour un contrôle conforme.' : undefined} label="Constat" value={form.commentaire} onChange={set('commentaire')} />
         <TextInput label="Preuve (référence)" value={form.preuve} onChange={set('preuve')} />
         {form.resultat === 'NON_CONFORME' && (
           <>

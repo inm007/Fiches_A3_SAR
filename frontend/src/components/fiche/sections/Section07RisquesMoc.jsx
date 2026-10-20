@@ -1,71 +1,97 @@
+import Badge from '../../ui/Badge.jsx'
+import Icon from '../../ui/Icon.jsx'
 import { Checkbox, Select } from '../../ui/FormControls.jsx'
 import { DOMAINES, MOC_STATUTS } from '../../../utils/constants.js'
-import RowsEditor, { CellInput, CellSelect } from './RowsEditor.jsx'
+import Astuce, { Pastilles } from './Astuce.jsx'
+import CardsEditor from './CardsEditor.jsx'
+import { CellInput, CellSelect } from './RowsEditor.jsx'
 import { peopleOptions } from './options.js'
 import './FicheSection.css'
+
+const mocTone = { A_OUVRIR: 'warning', OUVERT: 'warning', CLOTURE: 'success' }
 
 export default function Section07RisquesMoc({ draft, set, fiche, options, readOnly }) {
   const suiviMocSeulement = fiche.statut_etape === 'REALISATION_ACTIONS'
   const structureLocked = readOnly || suiviMocSeulement
-  const coches = new Map(draft.domaines.map((domaine) => [domaine.domaine, domaine]))
-  const toggle = (code, checked) => set('domaines', checked
-    ? [...draft.domaines, { domaine: code, valideur_role_code: '' }]
-    : draft.domaines.filter((domaine) => domaine.domaine !== code))
-  const valideurs = [
-    'Valideur Production / Exploitation (toujours en premier)',
-    ...new Set(draft.domaines.map((domaine) => (domaine.domaine === 'AUTRES'
-      ? (options?.roles_valideurs?.find((role) => role.code === domaine.valideur_role_code)?.libelle ?? 'Valideur « Autres » à choisir')
-      : DOMAINES.find(([code]) => code === domaine.domaine)?.[2]))),
-  ]
+  const codes = draft.domaines.map((domaine) => domaine.domaine)
   const domaineOptions = DOMAINES.map(([code, label]) => [code, label])
+  const autres = draft.domaines.find((domaine) => domaine.domaine === 'AUTRES')
+
+  const choisirDomaines = (choisis) => set('domaines', choisis.map((code) => draft.domaines.find((domaine) => domaine.domaine === code) ?? { domaine: code, valideur_role_code: '' }))
+
+  // Un risque rattaché à un domaine coche ce domaine : son valideur sera sollicité.
+  const changerRisques = (rows) => {
+    set('risques', rows)
+    const manquants = [...new Set(rows.map((row) => row.domaine).filter((code) => code && !codes.includes(code)))]
+    if (manquants.length > 0) set('domaines', [...draft.domaines, ...manquants.map((code) => ({ domaine: code, valideur_role_code: '' }))])
+  }
+
+  const valideurs = [
+    { libelle: 'Valideur Production / Exploitation', note: 'toujours en premier' },
+    ...[...new Set(draft.domaines.filter((domaine) => domaine.domaine !== 'PRODUCTION').map((domaine) => (domaine.domaine === 'AUTRES'
+      ? (options?.roles_valideurs?.find((role) => role.code === domaine.valideur_role_code)?.libelle ?? 'Valideur « Autres » à choisir')
+      : DOMAINES.find(([code]) => code === domaine.domaine)?.[2])))]
+      .filter((libelle) => libelle && libelle !== 'Valideur Production / Exploitation')
+      .map((libelle) => ({ libelle })),
+  ]
 
   return (
     <div className="fiche-section">
-      <div className="fiche-section__info">
-        Toute modification touchant le procédé, les équipements, les protections, les procédures ou les conditions opératoires
-        suit le processus de gestion du changement (MOC) et les exigences HSE et intégrité du site.
-      </div>
-      {suiviMocSeulement && !readOnly && (
-        <p className="fiche-section__help">Pendant la réalisation, seul le suivi des MOC (référence, statut, preuve, mesure) est modifiable.</p>
-      )}
+      <Astuce ouvert={!readOnly && draft.domaines.length === 0} titre="Astuce : risques, MOC et valideurs">
+        <ul>
+          <li>Toute modification du procédé, d’un équipement, d’une protection, d’une procédure ou des conditions opératoires passe par un <strong>MOC</strong> (gestion du changement).</li>
+          <li>Chaque domaine coché ajoute son valideur au circuit du plan. Ajouter un risque d’un domaine coche ce domaine.</li>
+          <li>Pendant la réalisation, seul le suivi des MOC (référence, statut, preuve) reste modifiable.</li>
+        </ul>
+      </Astuce>
+
       <h3>Domaines concernés *</h3>
-      <div className="fiche-section__checks">
-        {DOMAINES.map(([code, label]) => (
-          <Checkbox key={code} checked={coches.has(code)} label={label} readOnly={structureLocked} onChange={(checked) => toggle(code, checked)} />
-        ))}
-      </div>
-      {coches.has('AUTRES') && (
+      <Pastilles label="Domaines concernés" options={domaineOptions} readOnly={structureLocked} value={codes} onChange={choisirDomaines} />
+      {autres && (
         <Select
           label="Valideur du domaine « Autres »"
           options={(options?.roles_valideurs ?? []).map((role) => [role.code, role.libelle])}
           readOnly={structureLocked}
-          value={coches.get('AUTRES').valideur_role_code}
+          required
+          value={autres.valideur_role_code}
           onChange={(code) => set('domaines', draft.domaines.map((domaine) => (domaine.domaine === 'AUTRES' ? { ...domaine, valideur_role_code: code } : domaine)))}
         />
       )}
-      <div className="fiche-section__info">
-        <strong>Valideurs qui seront sollicités :</strong> {valideurs.filter(Boolean).join(' · ')}
+
+      <div className="fiche-section__kpi">
+        <span className="fiche-section__kpi-label">Valideurs qui seront sollicités, dans l’ordre</span>
+        <ul className="fiche-section__list">
+          {valideurs.map((valideur) => (
+            <li key={valideur.libelle}>
+              <Icon className="fiche-section__ok" name="check" size={15} />
+              <span>{valideur.libelle}{valideur.note && <span className="fiche-section__muted"> ({valideur.note})</span>}</span>
+            </li>
+          ))}
+        </ul>
       </div>
+
       <h3>Risques et MOC</h3>
-      <RowsEditor
+      <CardsEditor
         addLabel="Ajouter un risque"
-        columns={[
-          { key: 'domaine', label: 'Domaine *', width: 130, render: (row, setRow) => <CellSelect options={domaineOptions} readOnly={structureLocked} value={row.domaine} onChange={(value) => setRow('domaine', value)} /> },
-          { key: 'description', label: 'Description *', width: 200, render: (row, setRow) => <CellInput readOnly={structureLocked} value={row.description} onChange={(value) => setRow('description', value)} /> },
-          { key: 'moc_requis', label: 'MOC', width: 50, render: (row, setRow) => <Checkbox checked={row.moc_requis} label="" readOnly={structureLocked} onChange={(value) => setRow('moc_requis', value)} /> },
-          { key: 'moc_reference', label: 'Référence MOC', width: 120, render: (row, setRow) => <CellInput readOnly={readOnly} value={row.moc_reference} onChange={(value) => setRow('moc_reference', value)} /> },
-          { key: 'moc_statut', label: 'Statut MOC', width: 110, render: (row, setRow) => <CellSelect options={MOC_STATUTS} readOnly={readOnly} value={row.moc_statut} onChange={(value) => setRow('moc_statut', value)} /> },
-          { key: 'moc_preuve', label: 'Preuve de clôture', width: 130, render: (row, setRow) => <CellInput readOnly={readOnly} value={row.moc_preuve} onChange={(value) => setRow('moc_preuve', value)} /> },
-          { key: 'mesure_maitrise', label: 'Mesure de maîtrise', width: 160, render: (row, setRow) => <CellInput readOnly={readOnly} value={row.mesure_maitrise} onChange={(value) => setRow('mesure_maitrise', value)} /> },
-          { key: 'responsable_id', label: 'Responsable', width: 140, render: (row, setRow) => <CellSelect options={peopleOptions(options?.responsables)} readOnly={structureLocked} value={row.responsable_id} onChange={(value) => setRow('responsable_id', value)} /> },
-        ]}
+        badges={(row) => row.moc_requis && <Badge tone={mocTone[row.moc_statut] ?? 'warning'}>MOC {MOC_STATUTS.find(([code]) => code === row.moc_statut)?.[1]?.toLowerCase() ?? 'à ouvrir'}</Badge>}
+        canRemove={() => !structureLocked}
         emptyLabel="Aucun risque identifié."
-        newRow={() => ({ domaine: draft.domaines[0]?.domaine ?? '', description: '', moc_requis: false, moc_reference: '', moc_statut: '', moc_preuve: '', mesure_maitrise: '', responsable_id: '' })}
-        readOnly={structureLocked}
+        fields={[
+          { key: 'description', label: 'Risque *', wide: true, render: (row, setRow) => <CellInput placeholder="Ex. : fuite vapeur pendant le remplacement" readOnly={structureLocked} value={row.description} onChange={(value) => setRow('description', value)} /> },
+          { key: 'domaine', label: 'Domaine *', render: (row, setRow) => <CellSelect options={domaineOptions} readOnly={structureLocked} value={row.domaine} onChange={(value) => setRow('domaine', value)} /> },
+          { key: 'responsable_id', label: 'Responsable', render: (row, setRow) => <CellSelect options={peopleOptions(options?.responsables)} readOnly={structureLocked} value={row.responsable_id} onChange={(value) => setRow('responsable_id', value)} /> },
+          { key: 'mesure_maitrise', label: 'Mesure de maîtrise', wide: true, render: (row, setRow) => <CellInput readOnly={readOnly} value={row.mesure_maitrise} onChange={(value) => setRow('mesure_maitrise', value)} /> },
+          { key: 'moc_requis', label: 'MOC', render: (row, setRow) => <Checkbox checked={row.moc_requis} label="Ce risque exige un MOC" readOnly={structureLocked} onChange={(value) => setRow('moc_requis', value)} /> },
+          { key: 'moc_reference', label: 'Référence MOC', hidden: (row) => !row.moc_requis, render: (row, setRow) => <CellInput readOnly={readOnly} value={row.moc_reference} onChange={(value) => setRow('moc_reference', value)} /> },
+          { key: 'moc_statut', label: 'Statut MOC', hidden: (row) => !row.moc_requis, render: (row, setRow) => <CellSelect options={MOC_STATUTS} readOnly={readOnly} value={row.moc_statut} onChange={(value) => setRow('moc_statut', value)} /> },
+          { key: 'moc_preuve', label: 'Preuve de clôture du MOC', hidden: (row) => !row.moc_requis, render: (row, setRow) => <CellInput readOnly={readOnly} value={row.moc_preuve} onChange={(value) => setRow('moc_preuve', value)} /> },
+        ]}
+        newRow={structureLocked ? undefined : () => ({ domaine: draft.domaines[0]?.domaine ?? '', description: '', moc_requis: false, moc_reference: '', moc_statut: '', moc_preuve: '', mesure_maitrise: '', responsable_id: '' })}
+        readOnly={readOnly}
         rows={draft.risques}
-        onChange={(rows) => set('risques', rows)}
+        title={(row, index) => row.description || `Risque ${index + 1}`}
+        onChange={changerRisques}
       />
-      {suiviMocSeulement && !readOnly && fiche.risques.length === 0 && <p className="fiche-section__muted">Aucun MOC à suivre.</p>}
     </div>
   )
 }

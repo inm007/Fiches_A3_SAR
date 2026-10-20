@@ -1,15 +1,14 @@
-import { createContext, useContext } from 'react'
+import { useContext } from 'react'
 import Button from '../../ui/Button.jsx'
 import Dropdown from '../../ui/Dropdown.jsx'
 import IconButton from '../../ui/IconButton.jsx'
+import { CellLabel } from './cellLabel.js'
 import './RowsEditor.css'
 
 /**
  * Tableau éditable d'une section. Chaque colonne fournit son rendu de cellule ;
  * la suppression d'une ligne n'est effective qu'à l'enregistrement de la section.
  */
-// Libellé de colonne transmis aux cellules : chaque champ du tableau a un nom accessible.
-const CellLabel = createContext(undefined)
 
 function RowsEditor({ rows, columns, onChange, newRow, readOnly, addLabel = 'Ajouter une ligne', emptyLabel = 'Aucune ligne.', canRemove = () => true }) {
   const setRow = (index) => (field, value) => onChange(rows.map((row, current) => (current === index ? { ...row, [field]: value } : row)))
@@ -56,6 +55,11 @@ function RowsEditor({ rows, columns, onChange, newRow, readOnly, addLabel = 'Ajo
 export function CellInput({ value, onChange, readOnly, type = 'text', ...props }) {
   const label = useContext(CellLabel)
   return <input aria-label={label} className="rows-editor__input" readOnly={readOnly} type={type} value={value ?? ''} onChange={(event) => onChange(event.target.value)} {...props} />
+}
+
+export function CellTextArea({ value, onChange, readOnly, rows = 2, ...props }) {
+  const label = useContext(CellLabel)
+  return <textarea aria-label={label} className="rows-editor__input" readOnly={readOnly} rows={rows} value={value ?? ''} onChange={(event) => onChange(event.target.value)} {...props} />
 }
 
 export function CellSelect({ value, onChange, readOnly, options, placeholder = '—' }) {

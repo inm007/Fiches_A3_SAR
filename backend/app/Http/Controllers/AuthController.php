@@ -305,6 +305,7 @@ class AuthController extends Controller
             'role_code' => $assignment->role->code,
             'role' => $assignment->role->libelle,
             'unite' => $assignment->unite?->libelle,
+            'unite_id' => $assignment->unite_id,
             'label' => $assignment->role->libelle.($assignment->unite ? ' — '.$assignment->unite->libelle : ''),
             'redirect_to' => $assignment->role->code === 'ADMIN_TECHNIQUE'
                 ? '/technique'

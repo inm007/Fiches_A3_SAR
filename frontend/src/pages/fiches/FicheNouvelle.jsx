@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../auth/useAuth.js'
+import EtapeBadge from '../../components/fiche/EtapeBadge.jsx'
 import Alert from '../../components/ui/Alert.jsx'
 import Button from '../../components/ui/Button.jsx'
 import Icon from '../../components/ui/Icon.jsx'
@@ -10,24 +12,38 @@ import { ficheService } from '../../services/ficheService.js'
 import './FicheNouvelle.css'
 
 const NEXT_STEPS = [
-  { title: 'Désignation du pilote', text: 'Un pilote est désigné pour mener l’analyse.' },
+  { title: 'Désignation du pilote', text: 'Le pilote de l’unité se désigne lui-même, sinon l’administrateur désigne un pilote.' },
   { title: 'Analyse et plan d’actions', text: 'Le pilote complète les sections puis soumet le plan.' },
   { title: 'Validation et suivi', text: 'Vous êtes notifié à chaque étape franchie.' },
 ]
 
-const initial = { titre: '', unite_id: '', origine_id: '', origine_precision: '', enonce_probleme: '', equipement_id: '', restreint: false }
+const initial = { titre: '', unite_id: '', origine_id: '', origine_precision: '', enonce_probleme: '', equipement_id: '', restreint: false, piloter: true }
 
 /**
  * Déclaration en une étape (T1, PRD §4.1) : le pilote complète le reste ensuite.
  */
 function FicheNouvelle() {
   const navigate = useNavigate()
+  const { activeProfile } = useAuth()
   const [refs, setRefs] = useState(null)
   const [form, setForm] = useState(initial)
   const [errors, setErrors] = useState({})
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
   const formRef = useRef(null)
+  const [doublons, setDoublons] = useState([])
+  // Un pilote déclarant une fiche de son unité peut la piloter tout de suite ; sinon l'administrateur désignera le pilote.
+  const peutPiloter = activeProfile?.role_code === 'PILOTE' && form.unite_id !== '' && String(activeProfile.unite_id) === form.unite_id
+
+  // Fiches encore ouvertes sur le même équipement : un doublon se repère avant de déclarer.
+  useEffect(() => {
+    if (!form.equipement_id) return undefined
+    let actif = true
+    ficheService.list({ equipement_id: form.equipement_id, per_page: 20 })
+      .then((result) => { if (actif) setDoublons(result.data.filter((fiche) => !['CLOTURE', 'CLASSE'].includes(fiche.statut_general))) })
+      .catch(() => { if (actif) setDoublons([]) })
+    return () => { actif = false }
+  }, [form.equipement_id])
 
   useEffect(() => {
     if (Object.keys(errors).length) formRef.current?.querySelector('[aria-invalid="true"]')?.focus()
@@ -54,6 +70,7 @@ function FicheNouvelle() {
         enonce_probleme: form.enonce_probleme,
         equipement_id: Number(form.equipement_id) || null,
         confidentialite: form.restreint ? 'RESTREINT' : 'NORMAL',
+        piloter: peutPiloter && form.piloter,
       })
       navigate(`/fiches/${created.id}`, { replace: true })
     } catch (error) {
@@ -85,6 +102,25 @@ function FicheNouvelle() {
           value={form.equipement_id}
           onChange={set('equipement_id')}
         />
+        {form.equipement_id && doublons.length > 0 && (
+          <Alert severity="warning">
+            <strong>{doublons.length === 1 ? 'Une fiche est déjà ouverte' : `${doublons.length} fiches sont déjà ouvertes`} sur cet équipement.</strong> Vérifiez qu’il ne s’agit pas du même problème :
+            <ul className="fiche-nouvelle-page__doublons">
+              {doublons.slice(0, 5).map((fiche) => (
+                <li key={fiche.id}><Link target="_blank" to={`/fiches/${fiche.id}`}>{fiche.numero_a3} · {fiche.titre}</Link> <EtapeBadge etape={fiche.statut_etape} /></li>
+              ))}
+            </ul>
+          </Alert>
+        )}
+        {peutPiloter && (
+          <Checkbox checked={form.piloter} label="Je pilote cette fiche (vous êtes pilote de cette unité)" onChange={set('piloter')} />
+        )}
+        {activeProfile?.role_code !== 'PILOTE' && (
+          <p className="fiche-nouvelle-page__note">L’administrateur désignera un pilote de l’unité après la déclaration.</p>
+        )}
+        {activeProfile?.role_code === 'PILOTE' && form.unite_id && !peutPiloter && (
+          <p className="fiche-nouvelle-page__note">Cette unité n’est pas la vôtre : l’administrateur désignera un pilote de l’unité.</p>
+        )}
         <Checkbox checked={form.restreint} label="Confidentialité Restreint (Normal par défaut)" onChange={set('restreint')} />
         <div className="fiche-nouvelle-page__submit"><Button icon="plus" loading={saving} loadingLabel="Déclaration…" type="submit">Déclarer la fiche</Button></div>
       </form>

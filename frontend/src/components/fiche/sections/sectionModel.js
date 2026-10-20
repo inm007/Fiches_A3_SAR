@@ -17,7 +17,7 @@ export const sectionModel = {
         equipement_id: toText(identification.equipement_id),
         sponsor_id: toText(identification.sponsor_id),
         origine_id: toText(identification.origine_id),
-        equipe: (identification.equipe ?? []).join(', '),
+        equipe: [...(identification.equipe ?? [])],
         titre: fiche.titre,
       }
     },
@@ -28,7 +28,7 @@ export const sectionModel = {
       numero_avis_sap: nullable(draft.numero_avis_sap),
       numero_ordre_sap: nullable(draft.numero_ordre_sap),
       sponsor_id: toInt(draft.sponsor_id),
-      equipe: draft.equipe.split(',').map((member) => member.trim()).filter(Boolean),
+      equipe: draft.equipe.map((member) => member.trim()).filter(Boolean),
       date_lancement: nullable(draft.date_lancement),
       date_cible: nullable(draft.date_cible),
       type_amelioration: nullable(draft.type_amelioration),
@@ -47,7 +47,7 @@ export const sectionModel = {
       contexte: nullable(draft.contexte),
       enonce_probleme: draft.enonce_probleme,
       frequence_id: toInt(draft.frequence_id),
-      impacts: draft.impacts,
+      impacts: Object.fromEntries(Object.entries(draft.impacts).filter(([, texte]) => texte?.trim())),
       impact_financier_estime: toInt(draft.impact_financier_estime),
     }),
   },
@@ -58,6 +58,7 @@ export const sectionModel = {
         reference: toText(indicateur.reference),
         cible: toText(indicateur.cible),
         actuelle: toText(indicateur.actuelle),
+        role: indicateur.role ?? 'SUIVI',
       })),
     }),
     toPayload: (draft) => ({
@@ -71,21 +72,17 @@ export const sectionModel = {
         reference: toNumber(row.reference),
         cible: toNumber(row.cible),
         actuelle: toNumber(row.actuelle),
+        role: row.role || 'SUIVI',
       })),
     }),
   },
   4: {
-    toDraft: (fiche) => ({
-      ...fiche.objectif,
-      indicateur_principal_id: toText(fiche.indicateurs.find((indicateur) => indicateur.principal)?.id),
-      indicateurs_a_ne_pas_degrader: fiche.indicateurs.filter((indicateur) => indicateur.a_ne_pas_degrader).map((indicateur) => indicateur.id),
-    }),
+    // Le rôle des indicateurs (KPI principal, à ne pas dégrader) se choisit en section 3.
+    toDraft: (fiche) => ({ ...fiche.objectif }),
     toPayload: (draft) => ({
       objectif_smart: nullable(draft.objectif_smart),
       perimetre: nullable(draft.perimetre),
       resultats_attendus: nullable(draft.resultats_attendus),
-      indicateur_principal_id: toInt(draft.indicateur_principal_id),
-      indicateurs_a_ne_pas_degrader: draft.indicateurs_a_ne_pas_degrader,
     }),
   },
   5: {
@@ -115,6 +112,7 @@ export const sectionModel = {
         responsable_id: toText(action.responsable_id),
         risque_id: toText(action.risque_id),
         cout_estime: toText(action.cout_estime),
+        critere_efficacite: action.critere_efficacite ?? '',
       })),
     }),
     toPayload: (draft) => ({
@@ -127,6 +125,7 @@ export const sectionModel = {
         echeance: nullable(row.echeance),
         cout_estime: toInt(row.cout_estime) ?? 0,
         risque_id: toInt(row.risque_id),
+        critere_efficacite: nullable(row.critere_efficacite),
       })),
     }),
   },
@@ -163,6 +162,12 @@ export const sectionModel = {
         date_mesure: indicateur.date_mesure_apres ?? '',
         periode_verification: indicateur.periode_verification ?? '',
       })),
+      maintien: (fiche.maintien ?? []).map((jalon) => ({
+        jalon: jalon.jalon,
+        valeur: toText(jalon.valeur),
+        date_mesure: jalon.date_mesure ?? '',
+        commentaire: jalon.commentaire ?? '',
+      })),
     }),
     toPayload: (draft) => ({
       objectif_atteint: nullable(draft.objectif_atteint),
@@ -173,6 +178,14 @@ export const sectionModel = {
         date_mesure: nullable(mesure.date_mesure),
         periode_verification: nullable(mesure.periode_verification),
       })),
+      maintien: draft.maintien
+        .filter((jalon) => jalon.valeur !== '')
+        .map((jalon) => ({
+          jalon: jalon.jalon,
+          valeur: toNumber(jalon.valeur),
+          date_mesure: nullable(jalon.date_mesure),
+          commentaire: nullable(jalon.commentaire),
+        })),
     }),
   },
   9: {
