@@ -117,6 +117,7 @@ class SuiviTerrainTest extends TestCase
             'type_action' => 'PREVENTIVE',
             'responsable_id' => $agent->id,
             'echeance' => today()->addMonth()->toDateString(),
+            'critere_efficacite' => 'Chaque opérateur sait contrôler un purgeur',
             'motif' => 'Oubli constaté en réunion',
         ];
 

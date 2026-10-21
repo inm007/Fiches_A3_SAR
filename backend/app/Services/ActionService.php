@@ -28,7 +28,7 @@ class ActionService
     ) {}
 
     /**
-     * @param  array{statut: string, motif?: string|null, date_realisation?: string|null}  $data
+     * @param  array{statut: string, motif?: string|null, date_realisation?: string|null, preuve?: string|null}  $data
      */
     public function changerStatut(ActionA3 $action, array $data, ActiveProfile $profile): ActionA3
     {
@@ -53,7 +53,12 @@ class ActionService
                 $changes['statut_avant_blocage'] = null;
             }
             if ($cible === StatutAction::Realise) {
+                $preuve = trim((string) ($data['preuve'] ?? ''));
+                if ($preuve === '') {
+                    throw RegleMetierException::conditionsManquantes('Preuve obligatoire.', [Manque::actions('Indiquez la preuve de réalisation : référence d’un ordre SAP soldé, d’un compte rendu, d’une photo jointe…', $action->id)]);
+                }
                 $changes['date_realisation'] = $this->dateRealisation($data['date_realisation'] ?? null);
+                $changes['preuve_realisation'] = $preuve;
             }
 
             $action->update($changes);
@@ -159,6 +164,7 @@ class ActionService
                 'cause_id' => $data['cause_id'],
                 'risque_id' => $data['risque_id'] ?? null,
                 'description' => $data['description'],
+                'critere_efficacite' => $data['critere_efficacite'] ?? null,
                 'type_action' => $data['type_action'],
                 'responsable_id' => $data['responsable_id'],
                 'echeance' => $data['echeance'],
@@ -216,6 +222,10 @@ class ActionService
                 throw RegleMetierException::conditionsManquantes('Contrôle pas encore disponible.', ['Le contrôle est disponible à partir du '.$controle->date_echeance->format('d/m/Y').'.']);
             }
 
+            if ($data['resultat'] === 'CONFORME' && blank($data['commentaire'] ?? null) && blank($data['preuve'] ?? null)) {
+                throw RegleMetierException::conditionsManquantes('Constat obligatoire.', [Manque::controles('Un contrôle conforme se justifie : décrivez ce que vous avez constaté ou donnez la référence d’une preuve.', $action->id)]);
+            }
+
             $correctiveId = null;
             if ($data['resultat'] === 'NON_CONFORME') {
                 $corrective = $data['action_corrective'] ?? null;
@@ -229,6 +239,7 @@ class ActionService
                     'action_origine_id' => $action->id,
                     'description' => $corrective['description'],
                     'type_action' => 'CORRECTIVE',
+                    'critere_efficacite' => $action->critere_efficacite,
                     'responsable_id' => $corrective['responsable_id'] ?? $fiche->pilote_id,
                     'echeance' => $corrective['echeance'],
                     'cout_estime' => (int) ($corrective['cout_estime'] ?? 0),

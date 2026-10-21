@@ -1,29 +1,61 @@
+import Badge from '../../ui/Badge.jsx'
 import { STATUTS_SIMPLES } from '../../../utils/constants.js'
-import RowsEditor, { CellInput, CellSelect } from './RowsEditor.jsx'
+import Astuce, { Pastilles } from './Astuce.jsx'
+import CardsEditor from './CardsEditor.jsx'
+import { CellInput, CellSelect } from './RowsEditor.jsx'
 import { listOptions, peopleOptions } from './options.js'
 import './FicheSection.css'
 
+const statutTone = { A_FAIRE: 'neutral', EN_COURS: 'warning', REALISE: 'success' }
+const PREUVES = {
+  SOP: 'Référence et version de la procédure',
+  PARAMETRES: 'Consignes modifiées dans le SNCC, fiche de paramètres',
+  FORMATION: 'Feuille de présence, support de formation',
+  PLAN_MAINTENANCE: 'Gamme ou plan créé dans SAP',
+  KPI_TABLEAU_DE_BORD: 'Tableau de bord où le KPI est suivi',
+}
+
 export default function Section10Perennisation({ draft, set, options, refs, readOnly }) {
   const types = listOptions(refs, 'type_perennisation')
+  const libelle = (code) => types.find(([value]) => value === code)?.[1] ?? code
+  const presents = draft.perennisation.map((ligne) => ligne.type)
+  const ajouterTypes = (codes) => {
+    const nouveaux = codes.filter((code) => !presents.includes(code))
+    if (nouveaux.length) set('perennisation', [...draft.perennisation, ...nouveaux.map((type) => ({ type, responsable_id: '', date: '', statut: 'A_FAIRE', preuve: '' }))])
+  }
+  const restantes = draft.perennisation.filter((ligne) => ligne.statut !== 'REALISE' || !ligne.preuve?.trim()).length
 
   return (
     <div className="fiche-section">
-      <p className="fiche-section__help">
-        Standardisez le résultat. Les audits de maintien J+30, J+60 et J+90 sont suivis dans l’onglet Contrôles.
-      </p>
-      <RowsEditor
-        addLabel="Ajouter une action de pérennisation"
-        columns={[
-          { key: 'type', label: 'Type *', width: 170, render: (row, setRow) => <CellSelect options={types} readOnly={readOnly} value={row.type} onChange={(value) => setRow('type', value)} /> },
-          { key: 'responsable_id', label: 'Responsable', width: 160, render: (row, setRow) => <CellSelect options={peopleOptions(options?.responsables)} readOnly={readOnly} value={row.responsable_id} onChange={(value) => setRow('responsable_id', value)} /> },
-          { key: 'date', label: 'Date', width: 130, render: (row, setRow) => <CellInput readOnly={readOnly} type="date" value={row.date} onChange={(value) => setRow('date', value)} /> },
-          { key: 'statut', label: 'Statut *', width: 110, render: (row, setRow) => <CellSelect options={STATUTS_SIMPLES} readOnly={readOnly} value={row.statut} onChange={(value) => setRow('statut', value)} /> },
-          { key: 'preuve', label: 'Preuve', width: 180, render: (row, setRow) => <CellInput readOnly={readOnly} value={row.preuve} onChange={(value) => setRow('preuve', value)} /> },
-        ]}
+      <Astuce ouvert={!readOnly && draft.perennisation.length === 0} titre="Astuce : faire durer le résultat">
+        <p>Sans standard, le problème revient. Choisissez ce qui fera durer le résultat (procédure, paramètres, formation, plan de maintenance, KPI suivi). Chaque action doit être <strong>réalisée avec sa preuve</strong> avant la clôture.</p>
+      </Astuce>
+
+      {!readOnly && (
+        <>
+          <span className="sar-field__label">Ajouter en un geste</span>
+          <Pastilles label="Types de pérennisation" options={types} value={presents} onChange={ajouterTypes} />
+        </>
+      )}
+      {draft.perennisation.length > 0 && restantes > 0 && (
+        <p className="fiche-section__warning">{restantes} action{restantes > 1 ? 's' : ''} à réaliser avec sa preuve avant de soumettre la clôture.</p>
+      )}
+
+      <CardsEditor
+        badges={(row) => <Badge tone={statutTone[row.statut] ?? 'neutral'}>{STATUTS_SIMPLES.find(([code]) => code === row.statut)?.[1] ?? 'À faire'}</Badge>}
         emptyLabel="Aucune action de pérennisation."
+        fields={[
+          { key: 'type', label: 'Type *', render: (row, setRow) => <CellSelect options={types} readOnly={readOnly} value={row.type} onChange={(value) => setRow('type', value)} /> },
+          { key: 'responsable_id', label: 'Responsable', render: (row, setRow) => <CellSelect options={peopleOptions(options?.responsables)} readOnly={readOnly} value={row.responsable_id} onChange={(value) => setRow('responsable_id', value)} /> },
+          { key: 'date', label: 'Date', render: (row, setRow) => <CellInput readOnly={readOnly} type="date" value={row.date} onChange={(value) => setRow('date', value)} /> },
+          { key: 'statut', label: 'Statut *', render: (row, setRow) => <CellSelect options={STATUTS_SIMPLES} placeholder={null} readOnly={readOnly} value={row.statut} onChange={(value) => setRow('statut', value)} /> },
+          { key: 'preuve', label: 'Preuve *', wide: true, render: (row, setRow) => <CellInput placeholder={PREUVES[row.type] ?? 'Référence du document ou de l’enregistrement'} readOnly={readOnly} value={row.preuve} onChange={(value) => setRow('preuve', value)} /> },
+        ]}
         newRow={() => ({ type: '', responsable_id: '', date: '', statut: 'A_FAIRE', preuve: '' })}
+        addLabel="Ajouter une autre action"
         readOnly={readOnly}
         rows={draft.perennisation}
+        title={(row, index) => (row.type ? libelle(row.type) : `Action ${index + 1}`)}
         onChange={(rows) => set('perennisation', rows)}
       />
     </div>

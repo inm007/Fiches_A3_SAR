@@ -38,7 +38,7 @@ class DemoFichesSeeder extends Seeder
      */
     private const array PARCOURS = [
         'SANS_PILOTE', 'OUVERT', 'BROUILLON', 'PLAN_PRET', 'ATTENTE_PRODUCTION', 'ATTENTE_DOMAINE', 'REFUSE',
-        'MOC_BLOQUE', 'EN_ATTENTE', 'MESURE', 'VERIF_J90', 'VERIF_NON_CONFORME', 'VALIDATION_CLOTURE', 'CLOTURE',
+        'MOC_BLOQUE', 'EN_ATTENTE', 'MESURE', 'VERIF_J90', 'VERIF_NON_CONFORME', 'VALIDATION_CLOTURE', 'CLOTURE', 'CLASSEE',
     ];
 
     private Carbon $aujourdhui;
@@ -78,6 +78,7 @@ class DemoFichesSeeder extends Seeder
             ['Réduire les déchets d’emballage du magasin', 'DIST', null, 'SUGGESTION_TERRAIN', 'COUT', 'QHSE', 'BROUILLON', 9, 0, 'restreint' => true],
             ['Capteur de niveau défaillant sur V-310', 'DIST', 'V-310', 'INCIDENT_PRESQUE_ACCIDENT', 'SECURITE_HSE', 'QHSE', 'OUVERT', 5, 0],
             ['Fuite d’huile au palier de la turbine T-02', 'UTIL', 'T-02', 'INSPECTION', 'FIABILITE', 'FIABILITE', 'SANS_PILOTE', 2, 0],
+            ['Fuite sur la pompe de charge P-201 (déclarée deux fois)', 'DIST', 'P-201', 'INCIDENT_PRESQUE_ACCIDENT', 'FIABILITE', 'FIABILITE', 'CLASSEE', 30, 0],
         ];
 
         foreach ($scenarios as $scenario) {
@@ -111,6 +112,13 @@ class DemoFichesSeeder extends Seeder
         ], $agent);
 
         if ($cible === 'SANS_PILOTE') {
+            return;
+        }
+
+        if ($cible === 'CLASSEE') {
+            $this->jour($debut - 2);
+            $this->workflow->transition($fiche, ['code' => 'T14', 'motif' => 'Doublon de la fiche sur la fuite de la pompe P-201, déjà traitée.'], $this->profil('direction.demo', 'DIRECTION', null));
+
             return;
         }
 
@@ -191,7 +199,7 @@ class DemoFichesSeeder extends Seeder
         // Réalisation des actions, puis T6.
         $this->jour($realisation);
         foreach ($ids['actions'] as $actionId) {
-            $this->actions->changerStatut(ActionA3::findOrFail($actionId), ['statut' => 'REALISE'], $pilote);
+            $this->actions->changerStatut(ActionA3::findOrFail($actionId), ['statut' => 'REALISE', 'preuve' => 'Ordre SAP soldé et compte rendu d’intervention'], $pilote);
         }
         $this->jour(max($realisation - 1, 0));
         $this->workflow->transition($fiche, ['code' => 'T6'], $pilote);
@@ -208,8 +216,9 @@ class DemoFichesSeeder extends Seeder
         ], $pilote);
         $this->workflow->transition($fiche, ['code' => 'T7'], $pilote);
 
-        // Contrôles J+30 et J+60.
+        // Contrôles J+30 et J+60 des actions, et maintien du KPI principal.
         $this->enregistrerControles($fiche, $realisation, ['J30' => 'CONFORME'], $pilote);
+        $this->mesurerMaintien($fiche, $realisation, 'J30', 76, $pilote);
         if ($cible === 'VERIF_NON_CONFORME') {
             $this->enregistrerControles($fiche, $realisation, ['J60' => 'NON_CONFORME'], $pilote);
             $this->jour(8);
@@ -220,6 +229,7 @@ class DemoFichesSeeder extends Seeder
         }
 
         $this->enregistrerControles($fiche, $realisation, ['J60' => 'CONFORME'], $pilote);
+        $this->mesurerMaintien($fiche, $realisation, 'J60', 75, $pilote);
         $this->remplirCloture($fiche, $pilote, $s);
         if ($cible === 'VERIF_J90') {
             return;
@@ -227,19 +237,20 @@ class DemoFichesSeeder extends Seeder
 
         // J+90 puis T8 et porte 2.
         $this->enregistrerControles($fiche, $realisation, ['J90' => 'CONFORME'], $pilote);
-        $this->jour($realisation - 91);
+        $this->mesurerMaintien($fiche, $realisation, 'J90', 74, $pilote);
+        $this->jour($realisation - 94);
         $this->workflow->transition($fiche, ['code' => 'T8'], $pilote);
         if ($cible === 'VALIDATION_CLOTURE') {
             return;
         }
 
-        $this->jour($realisation - 93);
+        $this->jour($realisation - 95);
         $controle = $this->profil('controle.demo', 'CONTROLE_GESTION', null);
         foreach ($fiche->gains()->get() as $gain) {
             $this->circuit->deciderGain($gain, 'VALIDE', $controle);
         }
         $this->deciderActives($fiche, 2, 'VALIDE', 'Gains vérifiés et cohérents avec les données SAP.');
-        $this->jour($realisation - 95);
+        $this->jour($realisation - 96);
         $this->deciderActives($fiche, 2, 'VALIDE', 'Clôture approuvée. Résultat à partager en revue mensuelle.');
     }
 
@@ -269,8 +280,8 @@ class DemoFichesSeeder extends Seeder
         ], $pilote);
 
         $this->sections->enregistrer($fiche, 3, ['indicateurs' => [
-            ['libelle' => 'Indicateur principal du phénomène', 'unite_mesure' => '%', 'sens' => 'baisse', 'reference' => 100, 'cible' => 80, 'actuelle' => 100, 'source' => 'SNCC', 'periode' => '3 derniers mois'],
-            ['libelle' => 'Taux de disponibilité de l’équipement', 'unite_mesure' => '%', 'sens' => 'hausse', 'reference' => 92, 'cible' => 95, 'actuelle' => 92, 'source' => 'GMAO', 'periode' => '3 derniers mois'],
+            ['libelle' => 'Indicateur principal du phénomène', 'unite_mesure' => '%', 'sens' => 'baisse', 'reference' => 100, 'cible' => 80, 'actuelle' => 100, 'source' => 'SNCC', 'periode' => '3 derniers mois', 'role' => 'PRINCIPAL'],
+            ['libelle' => 'Taux de disponibilité de l’équipement', 'unite_mesure' => '%', 'sens' => 'hausse', 'reference' => 92, 'cible' => 95, 'actuelle' => 92, 'source' => 'Tableau de bord', 'periode' => '3 derniers mois', 'role' => 'SUIVI'],
         ]], $pilote);
     }
 
@@ -281,13 +292,10 @@ class DemoFichesSeeder extends Seeder
      */
     private function remplirPlan(FicheA3 $fiche, ActiveProfile $pilote, ActiveProfile $agent, string $domaine, bool $mocSurDeuxiemeAction): array
     {
-        $indicateurs = $fiche->indicateurs()->orderBy('id')->pluck('id')->all();
         $this->sections->enregistrer($fiche, 4, [
             'objectif_smart' => 'Réduire l’indicateur de 20 % d’ici la date cible, sans dégrader la disponibilité.',
             'perimetre' => 'Équipements de l’unité concernés par le constat.',
             'resultats_attendus' => 'Indicateur principal ≤ 80 % pendant trois mois consécutifs.',
-            'indicateur_principal_id' => $indicateurs[0],
-            'indicateurs_a_ne_pas_degrader' => [],
         ], $pilote);
 
         $fiche = $this->sections->enregistrer($fiche, 5, ['methode_analyse' => '5_POURQUOI', 'methode_precision' => null, 'causes' => [
@@ -303,8 +311,8 @@ class DemoFichesSeeder extends Seeder
         $causes = $fiche->causes()->orderBy('numero')->pluck('id')->all();
         $risque = $fiche->risques()->value('id');
         $fiche = $this->sections->enregistrer($fiche, 6, ['actions' => [
-            ['cause_id' => $causes[0], 'description' => 'Remplacer les garnitures et contrôler l’alignement', 'type_action' => 'CORRECTIVE', 'responsable_id' => $agent->userId(), 'echeance' => today()->addDays(30)->toDateString(), 'cout_estime' => 1_800_000, 'risque_id' => $mocSurDeuxiemeAction ? null : $risque],
-            ['cause_id' => $causes[1], 'description' => 'Créer le plan d’inspection préventive dans la GMAO', 'type_action' => 'PREVENTIVE', 'responsable_id' => $pilote->userId(), 'echeance' => today()->addDays(45)->toDateString(), 'cout_estime' => 1_400_000, 'risque_id' => $mocSurDeuxiemeAction ? $risque : null],
+            ['cause_id' => $causes[0], 'description' => 'Remplacer les garnitures et contrôler l’alignement', 'type_action' => 'CORRECTIVE', 'responsable_id' => $agent->userId(), 'echeance' => today()->addDays(30)->toDateString(), 'cout_estime' => 1_800_000, 'risque_id' => $mocSurDeuxiemeAction ? null : $risque, 'critere_efficacite' => 'Plus aucune fuite constatée en ronde pendant un mois'],
+            ['cause_id' => $causes[1], 'description' => 'Créer le plan d’inspection préventive dans la GMAO', 'type_action' => 'PREVENTIVE', 'responsable_id' => $pilote->userId(), 'echeance' => today()->addDays(45)->toDateString(), 'cout_estime' => 1_400_000, 'risque_id' => $mocSurDeuxiemeAction ? $risque : null, 'critere_efficacite' => 'Inspections planifiées et réalisées à la date prévue'],
         ]], $pilote);
 
         return ['risque' => $risque, 'actions' => $fiche->actions()->orderBy('id')->pluck('id')->all()];
@@ -355,6 +363,19 @@ class DemoFichesSeeder extends Seeder
                 ], $pilote);
             }
         }
+    }
+
+    /**
+     * Mesure de maintien du KPI principal à J+30, J+60 ou J+90 de la mesure des résultats.
+     */
+    private function mesurerMaintien(FicheA3 $fiche, int $realisation, string $jalon, float $valeur, ActiveProfile $pilote): void
+    {
+        $this->jour($realisation - 3 - (int) substr($jalon, 1));
+        $this->sections->enregistrer($fiche, 8, [
+            'mesures' => [],
+            'objectif_atteint' => 'OUI',
+            'maintien' => [['jalon' => $jalon, 'valeur' => $valeur, 'date_mesure' => today()->toDateString(), 'commentaire' => 'Moyenne mensuelle relevée au SNCC']],
+        ], $pilote);
     }
 
     /**

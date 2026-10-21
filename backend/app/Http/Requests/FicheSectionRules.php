@@ -59,6 +59,7 @@ class FicheSectionRules
                 'indicateurs.*.reference' => ['nullable', 'numeric'],
                 'indicateurs.*.cible' => ['nullable', 'numeric'],
                 'indicateurs.*.actuelle' => ['nullable', 'numeric'],
+                'indicateurs.*.role' => ['nullable', Rule::in(['PRINCIPAL', 'A_NE_PAS_DEGRADER', 'SUIVI'])],
             ],
             4 => [
                 'objectif_smart' => $optionalText,
@@ -89,6 +90,7 @@ class FicheSectionRules
                 'actions.*.echeance' => ['required', 'date'],
                 'actions.*.cout_estime' => ['nullable', 'integer', 'min:0'],
                 'actions.*.risque_id' => ['nullable', 'integer'],
+                'actions.*.critere_efficacite' => ['nullable', 'string', 'max:2000'],
             ],
             7 => [
                 'domaines' => ['present', 'array'],
@@ -113,6 +115,11 @@ class FicheSectionRules
                 'mesures.*.periode_verification' => ['nullable', 'string', 'max:255'],
                 'objectif_atteint' => ['nullable', Rule::in(['OUI', 'PARTIELLEMENT', 'NON'])],
                 'ecart_objectif' => $optionalText,
+                'maintien' => ['nullable', 'array', 'max:3'],
+                'maintien.*.jalon' => ['required', Rule::in(['J30', 'J60', 'J90'])],
+                'maintien.*.valeur' => ['nullable', 'numeric'],
+                'maintien.*.date_mesure' => ['nullable', 'date', 'before_or_equal:today'],
+                'maintien.*.commentaire' => ['nullable', 'string', 'max:2000'],
             ],
             9 => [
                 'gains' => ['present', 'array', 'max:30'],

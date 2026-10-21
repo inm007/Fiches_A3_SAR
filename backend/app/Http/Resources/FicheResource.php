@@ -16,9 +16,12 @@ use App\Models\Validation;
 use App\Services\ActionService;
 use App\Services\ActiveProfile;
 use App\Services\Calculs;
+use App\Services\ControleEfficaciteService;
 use App\Services\FicheSectionService;
+use App\Services\FicheWorkflow;
 use App\Services\RelanceService;
 use App\Services\ValidationCircuit;
+use App\Support\Manque;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -68,6 +71,8 @@ class FicheResource extends JsonResource
             'confidentialite' => $fiche->confidentialite,
             'created_at' => $fiche->created_at?->toIso8601String(),
             'date_cloture' => $fiche->date_cloture?->toDateString(),
+            'date_resultats' => $fiche->date_resultats?->toDateString(),
+            'motif_classement' => $fiche->motif_classement,
             'declarant' => $this->personne($fiche->declarant),
             'pilote' => $this->personne($fiche->pilote),
             'copilotes' => $fiche->copilotes->sortBy('pivot.created_at')->values()->map(fn (User $user) => [
@@ -118,7 +123,13 @@ class FicheResource extends JsonResource
                 ...$risque->only(['id', 'domaine', 'description', 'moc_requis', 'moc_reference', 'moc_statut', 'moc_preuve', 'mesure_maitrise', 'responsable_id']),
                 'responsable' => $this->personne($risque->responsable),
             ]),
-            'resultats' => $fiche->only(['objectif_atteint', 'ecart_objectif']),
+            'resultats' => [
+                ...$fiche->only(['objectif_atteint', 'ecart_objectif']),
+                'objectif_suggere' => $this->objectifSuggere($fiche, $calculs),
+            ],
+            'maintien' => app(ControleEfficaciteService::class)->maintien($fiche),
+            'cloture_au_plus_tot' => app(ControleEfficaciteService::class)->clotureAuPlusTot($fiche),
+            'prochaine_etape' => $this->prochaineEtape($fiche),
             'gains' => [
                 'lignes' => $fiche->gains->sortBy('id')->values()->map(fn ($gain) => [
                     ...$gain->only(['id', 'categorie', 'hypothese_calcul', 'quantite', 'unite', 'cout_unitaire', 'montant_annuel', 'statut']),
@@ -165,6 +176,8 @@ class FicheResource extends JsonResource
             'apres' => $valeurApres,
             'date_mesure_apres' => $apres?->date_mesure?->toDateString(),
             'periode_verification' => $apres?->periode_verification,
+            'role' => $indicateur->principal ? 'PRINCIPAL' : ($indicateur->a_ne_pas_degrader ? 'A_NE_PAS_DEGRADER' : 'SUIVI'),
+            'cible_tenue' => $calculs->cibleTenue($valeurApres, $cible, $indicateur->sens),
             'ecart' => $calculs->ecart($actuelle, $cible ?? $reference),
             'ecart_apres' => $calculs->ecart($valeurApres, $cible ?? $reference),
             'amelioration_pourcent' => $calculs->ameliorationPourcent($actuelle, $valeurApres, $indicateur->sens),
@@ -181,7 +194,7 @@ class FicheResource extends JsonResource
         $statut = StatutAction::from($action->statut);
 
         return [
-            ...$action->only(['id', 'cause_id', 'description', 'type_action', 'responsable_id', 'cout_estime', 'statut', 'motif_statut', 'risque_id', 'action_origine_id', 'statut_avant_blocage']),
+            ...$action->only(['id', 'cause_id', 'description', 'type_action', 'responsable_id', 'cout_estime', 'statut', 'motif_statut', 'risque_id', 'action_origine_id', 'statut_avant_blocage', 'critere_efficacite', 'preuve_realisation']),
             'cause_numero' => $action->cause?->numero,
             'statut_libelle' => $statut->libelle(),
             'echeance' => $action->echeance?->toDateString(),
@@ -213,7 +226,7 @@ class FicheResource extends JsonResource
             && app(ValidationCircuit::class)->estActionnable($validation, $fiche);
 
         return [
-            ...$validation->only(['id', 'porte', 'decision', 'commentaire', 'version_fiche', 'ordre']),
+            ...$validation->only(['id', 'porte', 'decision', 'commentaire', 'version_fiche', 'ordre', 'section_concernee']),
             'role' => $validation->role?->only(['code', 'libelle']),
             'valideur' => $this->personne($validation->valideur),
             'partages' => $validation->partages->map(fn (User $user) => $this->personne($user))->values(),
@@ -223,6 +236,42 @@ class FicheResource extends JsonResource
             'actionnable' => $actionnable,
             'derniere_relance' => $derniere?->toIso8601String(),
             'relancable' => $relances !== null && app(RelanceService::class)->validationEnAttente($validation, $fiche) && ! $this->relanceRecente($derniere),
+        ];
+    }
+
+    /**
+     * Réponse proposée à « objectif atteint » à partir du KPI principal : Oui si l'après tient
+     * la cible, Partiellement s'il progresse sans l'atteindre, Non sinon. Le pilote confirme.
+     */
+    private function objectifSuggere(FicheA3 $fiche, Calculs $calculs): ?string
+    {
+        $principal = $fiche->indicateurs->firstWhere('principal', true);
+        $valeur = fn (string $type): ?float => ($mesure = $principal?->mesures->firstWhere('type', $type)) ? (float) $mesure->valeur : null;
+        if ($principal === null || $valeur('APRES') === null) {
+            return null;
+        }
+
+        $tenue = $calculs->cibleTenue($valeur('APRES'), $valeur('CIBLE'), $principal->sens);
+        $progres = $calculs->ameliorationPourcent($valeur('ACTUELLE'), $valeur('APRES'), $principal->sens);
+
+        return match (true) {
+            $tenue === true => 'OUI',
+            $progres !== null && $progres > 0 => 'PARTIELLEMENT',
+            $tenue === null && $progres === null => null,
+            default => 'NON',
+        };
+    }
+
+    /**
+     * @return array{code: string, conditions: array<int, array{message: string, emplacement: array<string, mixed>|null}>}|null
+     */
+    private function prochaineEtape(FicheA3 $fiche): ?array
+    {
+        $prochaine = app(FicheWorkflow::class)->prochaineEtape($fiche);
+
+        return $prochaine === null ? null : [
+            'code' => $prochaine['code'],
+            'conditions' => array_map(fn (string|Manque $manque) => Manque::versTableau($manque), array_values($prochaine['manques'])),
         ];
     }
 
@@ -281,6 +330,9 @@ class FicheResource extends JsonResource
         if ($peutBloquer && $etape === StatutEtape::EnAttente) {
             $transitions[] = 'T13';
         }
+        if ($profile->is(...FicheWorkflow::ROLES_CLASSEMENT) && in_array($etape, [StatutEtape::Ouvert, StatutEtape::EnCours], true)) {
+            $transitions[] = 'T14';
+        }
 
         $userId = $profile->userId();
 
@@ -289,7 +341,7 @@ class FicheResource extends JsonResource
             'sections_etat' => app(FicheSectionService::class)->etatsSections($fiche, $profile),
             'transitions' => array_values(array_unique($transitions)),
             'est_pilote' => $estPilote,
-            'peut_designer_pilote' => $profile->is('ADMIN_FONCTIONNEL') && $etape !== StatutEtape::Cloture,
+            'peut_designer_pilote' => $profile->is('ADMIN_FONCTIONNEL') && ! $etape->estFinale(),
             'peut_se_designer_pilote' => $profile->peutSeDesignerPilote($fiche),
             'peut_changer_confidentialite' => $estPilote || $profile->is('ADMIN_FONCTIONNEL'),
             'peut_commenter' => $profile->peutCommenter(),

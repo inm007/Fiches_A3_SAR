@@ -58,7 +58,7 @@ trait SimuleFiches
         $indicateur = $this->section($fiche, 3, ['indicateurs' => [
             ['libelle' => 'Consommation vapeur', 'unite_mesure' => 't/h', 'sens' => 'baisse', 'reference' => 100, 'cible' => 80, 'actuelle' => 100],
         ]])->assertOk()->assertJsonPath('data.indicateurs.0.ecart', 20)->json('data.indicateurs.0.id');
-        $this->section($fiche, 4, ['objectif_smart' => 'Réduire de 20 %', 'indicateur_principal_id' => $indicateur])->assertOk();
+        $this->section($fiche, 4, ['objectif_smart' => 'Réduire de 20 %', 'resultats_attendus' => 'Consommation sous 80 t/h pendant trois mois', 'indicateur_principal_id' => $indicateur])->assertOk();
         $cause = $this->section($fiche, 5, ['methode_analyse' => '5_POURQUOI', 'causes' => [
             ['categorie' => 'METHODE', 'libelle' => 'Aucun plan d’inspection des purgeurs', 'niveau' => 1, 'racine' => true],
         ]])->assertOk()->json('data.analyse.causes.0.id');
@@ -75,6 +75,7 @@ trait SimuleFiches
             'echeance' => today()->addMonth()->toDateString(),
             'cout_estime' => 3_200_000,
             'risque_id' => $risque,
+            'critere_efficacite' => 'Aucun purgeur fuyard à la ronde mensuelle',
         ]]])->assertOk()->json('data.actions.0.id');
 
         return ['indicateur' => $indicateur, 'cause' => $cause, 'risque' => $risque, 'action' => $action];
@@ -144,7 +145,9 @@ trait SimuleFiches
      */
     protected function statutAction(ActionA3 $action, string $statut, array $extra = []): TestResponse
     {
-        return $this->agir('PILOTE')->postJson("/api/actions/{$action->id}/statut", ['statut' => $statut, ...$extra]);
+        $preuve = $statut === 'REALISE' ? ['preuve' => 'Bon de travaux soldé'] : [];
+
+        return $this->agir('PILOTE')->postJson("/api/actions/{$action->id}/statut", ['statut' => $statut, ...$preuve, ...$extra]);
     }
 
     /**
@@ -154,6 +157,7 @@ trait SimuleFiches
     {
         return $this->agir('PILOTE')->patchJson("/api/controles/{$controle->id}", array_filter([
             'resultat' => $resultat,
+            'commentaire' => $resultat === 'CONFORME' ? 'Constat terrain conforme' : null,
             'action_corrective' => $corrective,
         ]));
     }
@@ -236,13 +240,26 @@ trait SimuleFiches
     }
 
     /**
-     * Contrôles J+30, J+60, J+90 conformes, sections 9 à 11, puis T8.
+     * Mesures des résultats faites il y a $jours jours, puis maintien J+30, J+60, J+90 du KPI principal.
+     */
+    protected function mesurerMaintien(FicheA3 $fiche, float $valeur = 75, int $jours = 95): void
+    {
+        $fiche->forceFill(['date_resultats' => today()->subDays($jours)])->save();
+        $this->section($fiche, 8, ['mesures' => [], 'maintien' => array_map(
+            fn (string $jalon) => ['jalon' => $jalon, 'valeur' => $valeur],
+            ['J30', 'J60', 'J90'],
+        )])->assertOk();
+    }
+
+    /**
+     * Contrôles J+30, J+60, J+90 conformes, maintien du KPI principal, sections 9 à 11, puis T8.
      */
     protected function amenerEnValidationCloture(FicheA3 $fiche, int $actionId): void
     {
         foreach (Controle::where('action_id', $actionId)->orderBy('date_echeance')->get() as $controle) {
             $this->controle($controle, 'CONFORME')->assertOk();
         }
+        $this->mesurerMaintien($fiche);
         $this->completerCloture($fiche);
         $this->transition($fiche, 'PILOTE', 'T8')->assertOk();
     }

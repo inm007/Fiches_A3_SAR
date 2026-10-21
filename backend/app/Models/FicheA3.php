@@ -50,6 +50,8 @@ class FicheA3 extends Model
         'ecart_objectif',
         'etape_avant_attente',
         'motif_attente',
+        'date_resultats',
+        'motif_classement',
     ];
 
     protected function casts(): array
@@ -59,6 +61,7 @@ class FicheA3 extends Model
             'date_lancement' => 'date',
             'date_cible' => 'date',
             'date_cloture' => 'date',
+            'date_resultats' => 'date',
             'sans_gain_chiffre' => 'boolean',
             'version' => 'integer',
             'cout_mise_en_oeuvre_b' => 'integer',
@@ -196,6 +199,11 @@ class FicheA3 extends Model
     public function validations(): HasMany
     {
         return $this->hasMany(Validation::class, 'fiche_id');
+    }
+
+    public function versions(): HasMany
+    {
+        return $this->hasMany(FicheVersion::class, 'fiche_id');
     }
 
     public function evenements(): HasMany

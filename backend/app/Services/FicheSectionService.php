@@ -8,6 +8,7 @@ use App\Enums\StatutEtape;
 use App\Exceptions\RegleMetierException;
 use App\Http\Requests\FicheSectionRules;
 use App\Models\ActionA3;
+use App\Models\Affectation;
 use App\Models\Equipement;
 use App\Models\FicheA3;
 use App\Models\FicheA3Indicateur;
@@ -96,6 +97,7 @@ class FicheSectionService
                 in_array($section, $editables, true) => ['etat' => 'editable', 'raison' => null],
                 ! $estPilote => ['etat' => 'lecture', 'raison' => 'Seul le pilote de la fiche modifie cette section.'],
                 $etape === StatutEtape::Cloture => ['etat' => 'fige', 'raison' => 'Fiche clôturée : plus aucune modification.'],
+                $etape === StatutEtape::ClasseSansSuite => ['etat' => 'fige', 'raison' => 'Fiche classée sans suite : plus aucune modification.'],
                 $etape === StatutEtape::EnAttente => ['etat' => 'fige', 'raison' => 'Fiche en attente : levez le blocage pour reprendre la saisie.'],
                 in_array($etape, [StatutEtape::EnValidationPlan, StatutEtape::EnValidationCloture], true) => ['etat' => 'fige', 'raison' => 'En validation : la saisie reprend après la décision des valideurs.'],
                 default => $this->etatHorsEtape($section, $ordre, $position),
@@ -193,6 +195,7 @@ class FicheSectionService
         if ($erreurs !== []) {
             throw RegleMetierException::conditionsManquantes('Identification invalide.', array_values($erreurs));
         }
+        $this->exigerPilotesDeLUnite($fiche, (int) $data['unite_id']);
 
         $fiche->fill(collect($data)->only([
             'titre', 'unite_id', 'equipement_id', 'sponsor_id', 'equipe', 'date_lancement', 'date_cible',
@@ -208,6 +211,25 @@ class FicheSectionService
                 'numero_avis' => $avis,
                 'numero_ordre' => $ordre,
             ])->save();
+        }
+    }
+
+    /**
+     * Le pilote, les responsables et les valideurs dépendent de l'unité : elle ne change que
+     * si chaque pilote de la fiche est aussi pilote de la nouvelle unité.
+     */
+    private function exigerPilotesDeLUnite(FicheA3 $fiche, int $uniteId): void
+    {
+        if ($uniteId === $fiche->unite_id) {
+            return;
+        }
+
+        foreach ($fiche->pilotesIds() as $piloteId) {
+            $estPilote = Affectation::query()->enCours()->where('user_id', $piloteId)->where('unite_id', $uniteId)
+                ->whereHas('role', fn ($query) => $query->where('code', 'PILOTE'))->exists();
+            if (! $estPilote) {
+                throw RegleMetierException::conditionsManquantes('Unité inchangée.', ['Le pilote n’est pas pilote de cette unité : demandez à l’administrateur fonctionnel de désigner un pilote de la nouvelle unité.']);
+            }
         }
     }
 
@@ -239,10 +261,22 @@ class FicheSectionService
      */
     private function section3(FicheA3 $fiche, array $data): void
     {
-        $this->sync($fiche->indicateurs(), $data['indicateurs'], 'indicateur', function (array $item, ?Model $existing) use ($fiche): Model {
+        // Le rôle de chaque indicateur (principal, à ne pas dégrader, suivi) se choisit ici ;
+        // la section 4 le reprend. Sans rôle envoyé, celui déjà enregistré est conservé.
+        $avecRoles = collect($data['indicateurs'])->contains(fn (array $item) => array_key_exists('role', $item));
+        if (collect($data['indicateurs'])->where('role', 'PRINCIPAL')->count() > 1) {
+            throw RegleMetierException::conditionsManquantes('Indicateurs invalides.', ['Un seul indicateur peut être le KPI principal.']);
+        }
+
+        $this->sync($fiche->indicateurs(), $data['indicateurs'], 'indicateur', function (array $item, ?Model $existing) use ($fiche, $avecRoles): Model {
             /** @var FicheA3Indicateur $indicateur */
             $indicateur = $existing ?? new FicheA3Indicateur(['fiche_id' => $fiche->id]);
-            $indicateur->fill(collect($item)->only(['libelle', 'unite_mesure', 'sens', 'source', 'periode'])->all())->save();
+            $indicateur->fill(collect($item)->only(['libelle', 'unite_mesure', 'sens', 'source', 'periode'])->all());
+            if ($avecRoles) {
+                $indicateur->principal = ($item['role'] ?? null) === 'PRINCIPAL';
+                $indicateur->a_ne_pas_degrader = ($item['role'] ?? null) === 'A_NE_PAS_DEGRADER';
+            }
+            $indicateur->save();
 
             foreach (['reference' => 'REFERENCE', 'cible' => 'CIBLE', 'actuelle' => 'ACTUELLE'] as $champ => $type) {
                 $this->enregistrerMesure($indicateur, $type, $item[$champ] ?? null);
@@ -267,12 +301,15 @@ class FicheSectionService
             throw RegleMetierException::conditionsManquantes('Indicateur invalide.', ['Les KPI doivent être choisis parmi les indicateurs de la section 3.']);
         }
 
-        foreach ($fiche->indicateurs()->get() as $indicateur) {
-            $estPrincipal = $principal !== null && $indicateur->id === (int) $principal;
-            $indicateur->update([
-                'principal' => $estPrincipal,
-                'a_ne_pas_degrader' => ! $estPrincipal && in_array($indicateur->id, $aNePasDegrader, true),
-            ]);
+        // Les rôles des indicateurs se choisissent en section 3 ; ils ne changent ici que s'ils sont envoyés.
+        if (array_key_exists('indicateur_principal_id', $data)) {
+            foreach ($fiche->indicateurs()->get() as $indicateur) {
+                $estPrincipal = $principal !== null && $indicateur->id === (int) $principal;
+                $indicateur->update([
+                    'principal' => $estPrincipal,
+                    'a_ne_pas_degrader' => ! $estPrincipal && in_array($indicateur->id, $aNePasDegrader, true),
+                ]);
+            }
         }
 
         $fiche->fill(collect($data)->only(['objectif_smart', 'perimetre', 'resultats_attendus'])->all());
@@ -297,6 +334,13 @@ class FicheSectionService
                 'numero' => $existing?->numero ?? $prochainNumero++,
             ]);
         });
+
+        // Numéros continus 1, 2, 3… dans l'ordre de saisie, même après une suppression.
+        foreach ($fiche->causes()->orderBy('numero')->orderBy('id')->get() as $index => $cause) {
+            if ($cause->numero !== $index + 1) {
+                $cause->update(['numero' => $index + 1]);
+            }
+        }
     }
 
     /**
@@ -316,14 +360,23 @@ class FicheSectionService
                 throw RegleMetierException::conditionsManquantes('Risque invalide.', ['Le MOC lié doit être un risque de la section 7.']);
             }
 
+            // Une action réalisée ou annulée (boucle précédente) est un fait : elle ne se réécrit plus.
+            if ($existing !== null && in_array($existing->statut, StatutAction::terminees(), true)) {
+                return $existing;
+            }
+
             /** @var ActionA3 $action */
             $action = $existing ?? new ActionA3(['fiche_id' => $fiche->id, 'statut' => StatutAction::AFaire->value]);
             $action->fill([
-                ...collect($item)->only(['cause_id', 'description', 'type_action', 'responsable_id', 'echeance', 'risque_id'])->all(),
+                ...collect($item)->only(['cause_id', 'description', 'type_action', 'responsable_id', 'echeance', 'risque_id', 'critere_efficacite'])->all(),
                 'cout_estime' => (int) ($item['cout_estime'] ?? 0),
             ])->save();
 
             return $action;
+        }, function (Model $action): void {
+            if (in_array($action->statut, StatutAction::terminees(), true)) {
+                throw RegleMetierException::conditionsManquantes('Suppression impossible.', ['Une action réalisée ou annulée reste dans la fiche : elle fait partie de son histoire.']);
+            }
         });
     }
 
@@ -378,6 +431,13 @@ class FicheSectionService
      */
     private function section8(FicheA3 $fiche, array $data): void
     {
+        // Après T7, la mesure Après et l'objectif sont acquis : seule la saisie du maintien reste ouverte.
+        if ($fiche->etape() === StatutEtape::VerificationMaintien) {
+            $this->enregistrerMaintien($fiche, $data['maintien'] ?? []);
+
+            return;
+        }
+
         $indicateurs = $fiche->indicateurs()->get()->keyBy('id');
         foreach ($data['mesures'] as $item) {
             $indicateur = $indicateurs->get((int) $item['indicateur_id']);
@@ -389,6 +449,41 @@ class FicheSectionService
         }
 
         $fiche->fill(collect($data)->only(['objectif_atteint', 'ecart_objectif'])->all());
+        $this->enregistrerMaintien($fiche, $data['maintien'] ?? []);
+    }
+
+    /**
+     * Mesures de maintien du KPI principal à J+30, J+60 et J+90 de la mesure des résultats,
+     * pendant la vérification du maintien, une fois leur date arrivée.
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     */
+    private function enregistrerMaintien(FicheA3 $fiche, array $items): void
+    {
+        $items = array_values(array_filter($items, fn (array $item) => ($item['valeur'] ?? null) !== null && $item['valeur'] !== ''));
+        if ($items === []) {
+            return;
+        }
+
+        $principal = $fiche->indicateurs()->where('principal', true)->first();
+        if ($fiche->etape() !== StatutEtape::VerificationMaintien || $principal === null || $fiche->date_resultats === null) {
+            throw RegleMetierException::conditionsManquantes('Maintien impossible.', ['Les mesures de maintien se saisissent pendant la vérification du maintien, sur le KPI principal.']);
+        }
+
+        foreach ($items as $item) {
+            $jours = ['J30' => 30, 'J60' => 60, 'J90' => 90][$item['jalon']];
+            $echeance = $fiche->date_resultats->copy()->addDays($jours);
+            if ($echeance->isAfter(today())) {
+                throw RegleMetierException::conditionsManquantes('Mesure pas encore disponible.', ['La mesure J+'.$jours.' se saisit à partir du '.$echeance->format('d/m/Y').'.']);
+            }
+
+            $type = 'MAINTIEN_'.$item['jalon'];
+            $principal->mesures()->updateOrCreate(['type' => $type], [
+                'valeur' => $item['valeur'],
+                'date_mesure' => $item['date_mesure'] ?? today()->toDateString(),
+                'commentaire' => $item['commentaire'] ?? null,
+            ]);
+        }
     }
 
     /**

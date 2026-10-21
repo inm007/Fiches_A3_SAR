@@ -91,6 +91,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/fiches/{fiche}/confidentialite', [FicheController::class, 'updateConfidentialite']);
     Route::get('/fiches/{fiche}/historique', [FicheController::class, 'historique']);
     Route::get('/fiches/{fiche}/options', [FicheController::class, 'options']);
+    Route::get('/fiches/{fiche}/versions', [FicheController::class, 'versions']);
     Route::post('/fiches/{fiche}/transitions', [WorkflowController::class, 'transition']);
     Route::get('/fiches/{fiche}/pieces-jointes', [PieceJointeController::class, 'index']);
     Route::post('/fiches/{fiche}/pieces-jointes', [PieceJointeController::class, 'store']);

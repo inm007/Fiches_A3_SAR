@@ -20,7 +20,7 @@ const nextSteps = {
 
 const stepLabels = { EN_COURS: 'Démarrer', REALISE: 'Réaliser', BLOQUE: 'Bloquer', ANNULE: 'Annuler', REPRENDRE: 'Reprendre' }
 
-const NOUVELLE_ACTION = { cause_id: '', description: '', type_action: '', responsable_id: '', echeance: '', cout_estime: '', risque_id: '', motif: '' }
+const NOUVELLE_ACTION = { cause_id: '', description: '', type_action: '', responsable_id: '', echeance: '', cout_estime: '', risque_id: '', critere_efficacite: '', motif: '' }
 
 /**
  * Pendant le suivi, le pilote reporte une échéance ou change le responsable d'une action
@@ -67,7 +67,7 @@ function AjouterActionModal({ fiche, options, refs, onClose, onSave }) {
   const [draft, setDraft] = useState(NOUVELLE_ACTION)
   const [saving, setSaving] = useState(false)
   const set = (field) => (value) => setDraft((current) => ({ ...current, [field]: value }))
-  const complete = draft.cause_id && draft.description.trim() && draft.type_action && draft.responsable_id && draft.echeance && draft.motif.trim()
+  const complete = draft.cause_id && draft.description.trim() && draft.type_action && draft.responsable_id && draft.echeance && draft.critere_efficacite.trim() && draft.motif.trim()
 
   async function save() {
     setSaving(true)
@@ -103,6 +103,7 @@ function AjouterActionModal({ fiche, options, refs, onClose, onSave }) {
         <TextInput label="Échéance" required type="date" value={draft.echeance} onChange={set('echeance')} />
         <TextInput label="Coût estimé (FCFA)" min="0" type="number" value={draft.cout_estime} onChange={set('cout_estime')} />
         <Select label="MOC lié" options={fiche.risques.filter((risque) => risque.moc_requis).map((risque) => [String(risque.id), `MOC — ${risque.description}`])} placeholder="Aucun" value={draft.risque_id} onChange={set('risque_id')} />
+        <div className="fiche-tab__form-wide"><TextArea hint="Ce que vous vérifierez aux contrôles J+30, J+60 et J+90." label="Critère d’efficacité : comment saurez-vous qu’elle a marché ?" required value={draft.critere_efficacite} onChange={set('critere_efficacite')} /></div>
         <div className="fiche-tab__form-wide"><TextArea hint="Pourquoi cette action s’ajoute au plan validé. Inscrit dans l’historique." label="Motif (obligatoire)" required value={draft.motif} onChange={set('motif')} /></div>
       </div>
     </Modal>
@@ -113,6 +114,7 @@ export default function ActionsTab({ fiche, options, refs, onChange, onError }) 
   const [dialog, setDialog] = useState(null)
   const [motif, setMotif] = useState('')
   const [date, setDate] = useState('')
+  const [preuve, setPreuve] = useState('')
   const [busy, setBusy] = useState(false)
   const [replanifiee, setReplanifiee] = useState(null)
   const [ajout, setAjout] = useState(false)
@@ -149,6 +151,7 @@ export default function ActionsTab({ fiche, options, refs, onChange, onError }) 
       setDialog(null)
       setMotif('')
       setDate('')
+      setPreuve('')
     } catch (error) {
       setDialog(null)
       onError(describeError(error))
@@ -177,7 +180,10 @@ export default function ActionsTab({ fiche, options, refs, onChange, onError }) 
         <h2>Actions</h2>
         {fiche.droits.peut_ajouter_action && <Button icon="plus" size="small" type="button" variant="secondary" onClick={() => setAjout(true)}>Ajouter une action</Button>}
       </div>
-      <p className="fiche-tab__help">Une action sous MOC ne démarre qu’avec un MOC clôturé, référencé et prouvé (B1). Réaliser une action crée ses contrôles J+30, J+60 et J+90. Le pilote peut reporter une échéance ou changer un responsable avec un motif.</p>
+      <p className="fiche-tab__help">
+        Ici, vous suivez le plan validé : démarrez chaque action, puis passez-la à « Réalisée » avec sa preuve (bon de travaux, photo, compte rendu).
+        La réalisation crée ses contrôles J+30, J+60 et J+90. Une action sous MOC ne démarre qu’avec le MOC clôturé. Vous pouvez reporter une échéance ou changer un responsable avec un motif.
+      </p>
       <table>
         <thead>
           <tr><th>Cause</th><th>Action</th><th>Responsable</th><th>Échéance</th><th>Coût</th><th>Statut</th><th>Suivi</th></tr>
@@ -192,6 +198,8 @@ export default function ActionsTab({ fiche, options, refs, onChange, onError }) 
                 <td>
                   {action.action_origine_id && <span className="fiche-tab__muted">Action corrective · </span>}
                   {action.description}
+                  {action.critere_efficacite && <div className="fiche-tab__muted">Critère : {action.critere_efficacite}</div>}
+                  {action.preuve_realisation && <div className="fiche-tab__muted">Preuve : {action.preuve_realisation}</div>}
                   {action.motif_statut && <div className="fiche-tab__muted">Motif : {action.motif_statut}</div>}
                   {action.manques_moc.length > 0 && <div className="fiche-tab__late">{action.manques_moc.join(' ')}</div>}
                 </td>
@@ -238,17 +246,21 @@ export default function ActionsTab({ fiche, options, refs, onChange, onError }) 
       <ConfirmDialog
         busy={busy}
         confirmLabel={dialog ? `${stepLabels[dialog.statut]} l’action` : ''}
-        disabled={dialog?.statut !== 'REALISE' && !motif.trim()}
+        disabled={dialog?.statut === 'REALISE' ? !preuve.trim() : !motif.trim()}
         open={Boolean(dialog)}
         title={dialog ? `${stepLabels[dialog.statut]} l’action` : ''}
         variant={dialog?.statut === 'REALISE' ? 'primary' : 'danger-solid'}
         onCancel={() => setDialog(null)}
-        onConfirm={() => apply(dialog.action, dialog.statut, dialog.statut === 'REALISE' ? { date_realisation: date || null } : { motif })}
+        onConfirm={() => apply(dialog.action, dialog.statut, dialog.statut === 'REALISE' ? { date_realisation: date || null, preuve } : { motif })}
       >
         <p>{dialog?.action.description}</p>
-        {dialog?.statut === 'REALISE'
-          ? <TextInput hint="Aujourd’hui par défaut ; jamais dans le futur." label="Date de réalisation" type="date" value={date} onChange={setDate} />
-          : <TextArea label="Motif (obligatoire)" required value={motif} onChange={setMotif} />}
+        {dialog?.statut === 'REALISE' ? (
+          <>
+            {dialog.action.critere_efficacite && <p className="fiche-tab__muted">Critère d’efficacité : {dialog.action.critere_efficacite}</p>}
+            <TextArea hint="Ce qui prouve que l’action est faite : n° de bon de travaux, photo jointe, compte rendu…" label="Preuve de réalisation" required value={preuve} onChange={setPreuve} />
+            <TextInput hint="Aujourd’hui par défaut ; jamais dans le futur." label="Date de réalisation" type="date" value={date} onChange={setDate} />
+          </>
+        ) : <TextArea label="Motif (obligatoire)" required value={motif} onChange={setMotif} />}
       </ConfirmDialog>
     </section>
   )

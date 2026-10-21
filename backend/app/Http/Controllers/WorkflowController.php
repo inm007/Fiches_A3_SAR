@@ -29,7 +29,7 @@ class WorkflowController extends Controller
     {
         $this->visible($fiche, $profile);
         $data = $request->validate([
-            'code' => ['required', Rule::in(['T2', 'T3', 'T6', 'T7', 'T8', 'T11', 'T12', 'T13'])],
+            'code' => ['required', Rule::in(['T2', 'T3', 'T6', 'T7', 'T8', 'T11', 'T12', 'T13', 'T14'])],
             'etape' => ['nullable', 'string', 'max:50'],
             'motif' => ['nullable', 'string', 'max:2000'],
         ]);
@@ -44,9 +44,10 @@ class WorkflowController extends Controller
             'decision' => ['required', Rule::in(['VALIDE', 'REFUSE'])],
             'commentaire' => ['nullable', 'string', 'max:2000'],
             'retour' => ['nullable', Rule::in(['MESURE_RESULTATS', 'VERIFICATION_MAINTIEN'])],
+            'section' => ['nullable', 'integer', 'between:1,11'],
         ]);
 
-        $validation = $workflow->decider($validation, $data['decision'], $data['commentaire'] ?? null, $data['retour'] ?? null, $profile);
+        $validation = $workflow->decider($validation, $data['decision'], $data['commentaire'] ?? null, $data['retour'] ?? null, $profile, $data['section'] ?? null);
 
         return new FicheResource($validation->fiche()->firstOrFail());
     }
@@ -75,6 +76,7 @@ class WorkflowController extends Controller
             'statut' => ['required', Rule::in(['EN_COURS', 'REALISE', 'ANNULE', 'BLOQUE', 'REPRENDRE'])],
             'motif' => ['nullable', 'string', 'max:2000'],
             'date_realisation' => ['nullable', 'date'],
+            'preuve' => ['nullable', 'string', 'max:2000'],
         ]);
 
         return new FicheResource($actions->changerStatut($action, $data, $profile)->fiche()->firstOrFail());
@@ -103,6 +105,7 @@ class WorkflowController extends Controller
             'echeance' => ['required', 'date'],
             'cout_estime' => ['nullable', 'integer', 'min:0'],
             'risque_id' => ['nullable', 'integer'],
+            'critere_efficacite' => ['required', 'string', 'max:2000'],
             'motif' => ['required', 'string', 'max:2000'],
         ]);
 

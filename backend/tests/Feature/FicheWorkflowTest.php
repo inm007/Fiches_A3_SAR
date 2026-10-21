@@ -94,6 +94,7 @@ class FicheWorkflowTest extends TestCase
             'echeance' => today()->addDays(10)->toDateString(),
         ])->assertOk();
         $this->controle($controles['J90'], 'CONFORME')->assertOk();
+        $this->mesurerMaintien($fiche);
         $this->completerCloture($fiche);
 
         $corrective = ActionA3::where('action_origine_id', $action->id)->firstOrFail();

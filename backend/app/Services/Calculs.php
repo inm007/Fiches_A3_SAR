@@ -32,6 +32,19 @@ class Calculs
     }
 
     /**
+     * Le résultat tient la cible : au moins la cible si la hausse est souhaitée, au plus si
+     * c'est la baisse. Null quand la valeur ou la cible manque (« Non calculable »).
+     */
+    public function cibleTenue(?float $valeur, ?float $cible, string $sens): ?bool
+    {
+        if ($valeur === null || $cible === null) {
+            return null;
+        }
+
+        return $sens === 'baisse' ? $valeur <= $cible : $valeur >= $cible;
+    }
+
+    /**
      * Gain annuel d'une ligne en FCFA entiers : quantité × coût unitaire, arrondi à l'entier.
      */
     public function gainAnnuel(float $quantite, int $coutUnitaire): int

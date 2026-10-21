@@ -23,6 +23,7 @@ class Validation extends Model
         'demandee_le',
         'decidee_le',
         'ordre',
+        'section_concernee',
     ];
 
     protected function casts(): array

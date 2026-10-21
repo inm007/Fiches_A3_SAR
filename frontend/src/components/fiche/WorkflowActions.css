@@ -3,3 +3,54 @@
   align-items: center;
   gap: 8px;
 }
+
+.workflow-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.workflow-actions__menu {
+  position: relative;
+}
+
+.workflow-actions__menu summary {
+  list-style: none;
+}
+
+.workflow-actions__menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.workflow-actions__items {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  right: 0;
+  display: grid;
+  min-width: 230px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  box-shadow: var(--shadow-pop);
+}
+
+.workflow-actions__items button {
+  padding: 9px 12px;
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--ink);
+  background: transparent;
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.workflow-actions__items button:hover:not(:disabled) {
+  background: var(--gray-100);
+}
+
+.workflow-actions__items button.is-danger {
+  color: var(--button-danger-text);
+}

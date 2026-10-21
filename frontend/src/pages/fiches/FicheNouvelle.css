@@ -141,3 +141,18 @@
   color: var(--gray-700);
   font-size: var(--text-sm);
 }
+
+.fiche-nouvelle-page__doublons {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.fiche-nouvelle-page__doublons li {
+  margin: 2px 0;
+}
+
+.fiche-nouvelle-page__note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}

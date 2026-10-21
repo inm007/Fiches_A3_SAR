@@ -127,3 +127,27 @@
 .fiche-tab__form-wide {
   grid-column: 1 / -1;
 }
+
+.fiche-tab__resume {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 4px;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--gray-50);
+  font-size: var(--text-sm);
+}
+
+.fiche-tab__resume div {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.fiche-tab__resume dt {
+  color: var(--text-muted);
+}
+
+.fiche-tab__resume dd {
+  margin: 0;
+}

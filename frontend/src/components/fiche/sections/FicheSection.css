@@ -88,3 +88,125 @@
   padding: 10px;
   border-top: 1px solid var(--border);
 }
+
+.fiche-section__warning {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius-md);
+  color: var(--warning);
+  background: var(--warning-bg);
+  font-size: var(--text-sm);
+}
+
+.fiche-section__kpi {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--brand-500);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  font-size: var(--text-sm);
+}
+
+.fiche-section__kpi strong {
+  font-size: var(--text-lg);
+}
+
+.fiche-section__kpi-label {
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fiche-section__suggestion {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: -6px;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.fiche-section__group {
+  display: grid;
+  gap: 10px;
+}
+
+.fiche-section__group-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--text-md, 15px);
+  font-weight: 600;
+}
+
+.fiche-section__list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fiche-section__list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fiche-section__ok { color: var(--success); }
+.fiche-section__ko { color: var(--error); }
+
+@media (max-width: 720px) {
+  .fiche-section__grid,
+  .fiche-section__totaux {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.fiche-section__maintien {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.fiche-section__signatures {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.fiche-section__signature {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  font-size: var(--text-sm);
+}
+
+.fiche-section__signature header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fiche-section__signature.is-valide { border-left-color: var(--success); }
+.fiche-section__signature.is-refuse { border-left-color: var(--error); }
+.fiche-section__signature.is-en_attente { border-left-color: var(--warning-solid); }
+
+.fiche-section__signature q {
+  color: var(--gray-700);
+  font-style: italic;
+}

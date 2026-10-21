@@ -3,6 +3,7 @@ import { formatDate } from '../../utils/format.js'
 import './FichePrintView.css'
 
 const RESULTATS = { CONFORME: 'Conforme', NON_CONFORME: 'Non conforme' }
+const ROLES = { PRINCIPAL: 'KPI principal', A_NE_PAS_DEGRADER: 'À ne pas dégrader', SUIVI: 'Suivi' }
 
 function referenceLabel(refs, list, id) {
   return refs?.listes?.[list]?.find((item) => item.id === id)?.libelle ?? id
@@ -48,7 +49,7 @@ function Table({ headers, rows }) {
   )
 }
 
-function FichePrintView({ fiche, refs }) {
+function FichePrintView({ fiche, refs, copie }) {
   const identification = fiche.identification
   const gains = fiche.gains
 
@@ -58,7 +59,8 @@ function FichePrintView({ fiche, refs }) {
         <div>
           <p>Société Africaine de Raffinage · Amélioration continue</p>
           <h1>{fiche.titre}</h1>
-          <strong>{fiche.numero_a3} · Version {fiche.version}</strong>
+          <strong>{fiche.numero_a3} · Boucle {fiche.version}</strong>
+          {copie && <span>Copie figée du {new Date(copie.created_at).toLocaleDateString('fr-FR')} ({copie.evenement === 'CLOTURE' ? 'clôture' : 'soumission du plan'})</span>}
         </div>
         <div className="fiche-print__status">
           <b>{fiche.statut_etape_libelle}</b>
@@ -94,9 +96,9 @@ function FichePrintView({ fiche, refs }) {
           ]} />
         </Section>
         <Section number={3} title="Situation actuelle">
-          <Table headers={['Indicateur', 'Unité', 'Référence', 'Cible', 'Actuelle', 'Source / période']} rows={fiche.indicateurs.map((item) => ({
+          <Table headers={['Indicateur', 'Rôle', 'Unité', 'Référence', 'Cible', 'Actuelle', 'Source / période']} rows={fiche.indicateurs.map((item) => ({
             id: item.id,
-            values: [item.libelle, item.unite_mesure, item.reference, item.cible, item.actuelle, [item.source, item.periode].filter(Boolean).join(' · ')],
+            values: [item.libelle, ROLES[item.role] ?? null, item.unite_mesure, item.reference, item.cible, item.actuelle, [item.source, item.periode].filter(Boolean).join(' · ')],
           }))} />
         </Section>
         <Section number={4} title="Objectif">
@@ -117,9 +119,9 @@ function FichePrintView({ fiche, refs }) {
           }))} />
         </Section>
         <Section number={6} title="Plan de contre-mesures">
-          <Table headers={['Action', 'Type', 'Responsable', 'Échéance', 'Statut', 'Coût estimé']} rows={fiche.actions.map((item) => ({
+          <Table headers={['Action', 'Type', 'Responsable', 'Échéance', 'Statut', 'Coût estimé', 'Critère d’efficacité']} rows={fiche.actions.map((item) => ({
             id: item.id,
-            values: [item.description, item.type_action, item.responsable?.nom ?? null, item.echeance, item.statut_libelle, item.cout_estime],
+            values: [item.description, item.type_action, item.responsable?.nom ?? null, item.echeance, item.statut_libelle, item.cout_estime, item.critere_efficacite],
           }))} />
         </Section>
         <Section number={7} title="Risques et MOC">
@@ -140,6 +142,12 @@ function FichePrintView({ fiche, refs }) {
             id: item.id,
             values: [item.libelle, item.cible, item.apres, item.date_mesure_apres, item.periode_verification],
           }))} />
+          {(fiche.maintien ?? []).some((jalon) => jalon.valeur !== null) && (
+            <Table headers={['Maintien du KPI principal', 'Échéance', 'Valeur', 'Mesuré le', 'Commentaire']} rows={fiche.maintien.map((jalon) => ({
+              id: jalon.jalon,
+              values: [jalon.jalon.replace('J', 'J+'), formatDate(jalon.echeance), jalon.valeur, jalon.date_mesure ? formatDate(jalon.date_mesure) : null, jalon.commentaire],
+            }))} />
+          )}
         </Section>
         <Section number={9} title="Gains économiques">
           <Table headers={['Catégorie', 'Hypothèse', 'Quantité', 'Unité', 'Coût unitaire', 'Montant annuel', 'Statut']} rows={gains.lignes.map((item) => ({

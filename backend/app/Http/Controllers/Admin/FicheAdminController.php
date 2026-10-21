@@ -96,8 +96,8 @@ class FicheAdminController extends AdminController
         $userId = (int) $validated['user_id'];
         $motif = trim($validated['motif']);
 
-        if ($fiche->statut_etape === StatutEtape::Cloture->value) {
-            throw ValidationException::withMessages(['user_id' => 'Une fiche clôturée ne se partage plus.']);
+        if ($fiche->etape()->estFinale()) {
+            throw ValidationException::withMessages(['user_id' => 'Une fiche clôturée ou classée ne se partage plus.']);
         }
         if ($fiche->pilote_id === null) {
             throw ValidationException::withMessages(['user_id' => 'Désignez d’abord le pilote de la fiche.']);
@@ -205,8 +205,8 @@ class FicheAdminController extends AdminController
         if ($piloteId === $fiche->pilote_id) {
             return;
         }
-        if ($fiche->statut_etape === StatutEtape::Cloture->value) {
-            throw ValidationException::withMessages(['pilote_id' => 'Le pilote d’une fiche clôturée ne change plus.']);
+        if ($fiche->etape()->estFinale()) {
+            throw ValidationException::withMessages(['pilote_id' => 'Le pilote d’une fiche clôturée ou classée ne change plus.']);
         }
         if ($fiche->statut_etape !== StatutEtape::Ouvert->value) {
             if ($piloteId === null) {
