@@ -41,6 +41,8 @@ class CycleA3RenforceTest extends TestCase
 
         $this->assertSame($pilote->id, FicheA3::findOrFail($id)->pilote_id);
         $this->assertTrue(EvenementHistorique::where('fiche_id', $id)->where('type', 'DESIGNATION_PILOTE')->exists());
+        $this->transition(FicheA3::findOrFail($id), 'PILOTE', 'T2')->assertUnprocessable();
+        $this->pertinenceValidee(FicheA3::findOrFail($id));
         $this->transition(FicheA3::findOrFail($id), 'PILOTE', 'T2')->assertOk();
     }
 

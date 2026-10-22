@@ -36,7 +36,13 @@ function Resume({ fiche, validation }) {
         </div>
       )}
       <div><dt>Objectif</dt><dd>{fiche.objectif.objectif_smart ?? '—'}</dd></div>
-      {validation.porte === 1 ? (
+      {validation.porte === 0 && (
+        <>
+          <div><dt>Contexte</dt><dd>{fiche.contexte.contexte ?? '—'}</dd></div>
+          <div><dt>Initiateur</dt><dd>{fiche.declarant?.nom ?? '—'}{fiche.departement && ` · ${fiche.departement.libelle}`}</dd></div>
+        </>
+      )}
+      {validation.porte === 0 ? null : validation.porte === 1 ? (
         <>
           <div><dt>Plan</dt><dd>{plural(actions.length, 'action')} · coût estimé {formatFcfa(actions.reduce((somme, action) => somme + (action.cout_estime ?? 0), 0))}</dd></div>
           <div><dt>Risques</dt><dd>{fiche.risques.length ? `${plural(fiche.risques.length, 'risque')}, dont ${plural(moc.length, 'MOC')}` : 'Aucun risque déclaré'}</dd></div>

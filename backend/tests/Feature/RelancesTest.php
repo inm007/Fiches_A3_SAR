@@ -138,7 +138,8 @@ class RelancesTest extends TestCase
         Parametre::updateOrCreate(['cle' => 'validation_reminders_enabled'], ['valeur' => '1']);
         $this->artisan('a3:relances')->assertSuccessful();
         $this->assertDatabaseHas('relances', ['cible_type' => Validation::class, 'cible_id' => $validation->id, 'mode' => 'AUTOMATIQUE']);
-        $this->assertSame(0, Relance::where('cible_type', Validation::class)->where('cible_id', '!=', $validation->id)->count());
+        // Les directeurs sont sollicités en même temps : chaque demande en attente est relancée une fois.
+        $this->assertSame(Validation::where('fiche_id', $validation->fiche_id)->where('decision', 'EN_ATTENTE')->count(), Relance::where('cible_type', Validation::class)->count());
     }
 
     private function premiereDemande(FicheA3 $fiche): Validation

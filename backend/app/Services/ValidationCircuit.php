@@ -6,6 +6,7 @@ use App\Enums\Domaine;
 use App\Enums\StatutEtape;
 use App\Exceptions\RegleMetierException;
 use App\Models\Affectation;
+use App\Models\DomaineRole;
 use App\Models\FicheA3;
 use App\Models\Gain;
 use App\Models\Role;
@@ -14,7 +15,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Crée et résout les demandes des portes 1 et 2 (PRD §7). Ne modifie jamais l'étape :
+ * Crée et résout les demandes des portes 0 (pertinence), 1 (plan) et 2 (clôture). Ne modifie jamais l'étape :
  * FicheWorkflow s'en charge à partir des résultats de ce service.
  */
 class ValidationCircuit
@@ -23,22 +24,39 @@ class ValidationCircuit
 
     public const string DIRECTION = 'DIRECTION';
 
-    public function __construct(private readonly HistoryLogger $history) {}
+    public function __construct(
+        private readonly HistoryLogger $history,
+        private readonly Organigramme $organigramme,
+    ) {}
 
     /**
-     * Rôles sollicités à la porte 1 : Production / Exploitation d'abord (ordre 1),
-     * puis les valideurs des domaines cochés, en parallèle (ordre 2).
+     * Porte 0 : le chef du département de l'initiateur valide la pertinence de l'idée.
+     *
+     * @return array<string, int>
+     */
+    public function rolesPorte0(): array
+    {
+        return [Organigramme::ROLE_CHEF => 1];
+    }
+
+    /**
+     * Rôles sollicités à la porte 1 : les directeurs des domaines cochés, tous en même
+     * temps (ordre 1), selon la correspondance de l'écran Circuit de validation ; pour
+     * « Autres », le directeur choisi par le pilote. Tous doivent approuver.
      *
      * @return array<string, int> code du rôle => ordre
      */
     public function rolesPorte1(FicheA3 $fiche): array
     {
-        $roles = ['VALIDEUR_PRODUCTION' => 1];
+        $correspondance = DomaineRole::correspondance();
+        $roles = [];
 
         foreach ($fiche->domaines()->with('roleValideur:id,code')->get() as $domaine) {
-            $code = $domaine->roleValideur?->code;
-            if ($code !== null && ! isset($roles[$code])) {
-                $roles[$code] = 2;
+            $codes = $domaine->domaine === Domaine::Autres->value
+                ? array_filter([$domaine->roleValideur?->code])
+                : ($correspondance[$domaine->domaine] ?? []);
+            foreach ($codes as $code) {
+                $roles[$code] = 1;
             }
         }
 
@@ -62,7 +80,11 @@ class ValidationCircuit
      */
     public function rolesPorte(FicheA3 $fiche, int $porte): array
     {
-        return $porte === 1 ? $this->rolesPorte1($fiche) : $this->rolesPorte2($fiche);
+        return match ($porte) {
+            0 => $this->rolesPorte0(),
+            1 => $this->rolesPorte1($fiche),
+            default => $this->rolesPorte2($fiche),
+        };
     }
 
     /**
@@ -81,6 +103,13 @@ class ValidationCircuit
      */
     public function titulaires(string $roleCode, FicheA3 $fiche): Collection
     {
+        // Le chef de département vient de l'organigramme, pas des affectations par unité.
+        if ($roleCode === Organigramme::ROLE_CHEF) {
+            return collect([$this->organigramme->chefDe($fiche)])
+                ->filter(fn (?int $id) => $id !== null && ! in_array($id, $fiche->pilotesIds(), true))
+                ->values();
+        }
+
         $base = Affectation::query()
             ->enCours()
             ->whereHas('role', fn ($query) => $query->where('code', $roleCode))
@@ -201,6 +230,11 @@ class ValidationCircuit
         $manques = [];
         foreach (array_keys($roles) as $code) {
             if ($this->titulaire($code, $fiche) === null) {
+                if ($code === Organigramme::ROLE_CHEF) {
+                    $manques[] = 'Aucun chef actif n’est désigné pour le département « '.($fiche->departement?->libelle ?? '?').' » : demandez à l’administrateur fonctionnel de compléter l’organigramme.';
+
+                    continue;
+                }
                 $libelle = Role::where('code', $code)->value('libelle') ?? $code;
                 $manques[] = "Aucun titulaire du rôle « {$libelle} » n’est affecté à l’unité de la fiche ni au périmètre global.";
             }
@@ -277,7 +311,11 @@ class ValidationCircuit
      */
     public function estActionnable(Validation $validation, FicheA3 $fiche): bool
     {
-        $etapeAttendue = $validation->porte === 1 ? StatutEtape::EnValidationPlan : StatutEtape::EnValidationCloture;
+        $etapeAttendue = match ($validation->porte) {
+            0 => StatutEtape::EnValidationPertinence,
+            1 => StatutEtape::EnValidationPlan,
+            default => StatutEtape::EnValidationCloture,
+        };
         if ($validation->decision !== 'EN_ATTENTE' || $fiche->etape() !== $etapeAttendue) {
             return false;
         }
@@ -344,6 +382,10 @@ class ValidationCircuit
     public function empreinte(FicheA3 $fiche, string $roleCode): array
     {
         $contenu = match ($roleCode) {
+            Organigramme::ROLE_CHEF => [
+                $fiche->only(['titre', 'type_amelioration', 'date_cible', 'contexte', 'enonce_probleme', 'objectif_smart', 'resultats_attendus']),
+                $fiche->indicateurs()->with('mesures:id,indicateur_id,type,valeur')->orderBy('id')->get(['id', 'libelle', 'principal'])->toArray(),
+            ],
             'VALIDEUR_PRODUCTION' => [
                 $fiche->only(['titre', 'objectif_smart', 'perimetre', 'methode_analyse', 'date_cible']),
                 $fiche->causes()->orderBy('id')->get(['libelle', 'categorie', 'racine'])->toArray(),
@@ -369,12 +411,7 @@ class ValidationCircuit
      */
     private function domainesDuRole(string $roleCode): array
     {
-        return collect(Domaine::cases())
-            ->filter(fn (Domaine $domaine) => $domaine->roleValideur() === $roleCode)
-            ->map(fn (Domaine $domaine) => $domaine->value)
-            ->push(Domaine::Autres->value)
-            ->values()
-            ->all();
+        return [...DomaineRole::domainesDuRole($roleCode), Domaine::Autres->value];
     }
 
     /**

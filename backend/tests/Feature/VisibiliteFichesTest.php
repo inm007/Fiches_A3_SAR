@@ -84,10 +84,10 @@ class VisibiliteFichesTest extends TestCase
         $this->designerPilote($fiche);
         $this->transition($fiche, 'PILOTE', 'T2')->assertOk();
         $this->completerPlan($fiche);
-        $this->nevoitPas($this->acteurs['VALIDEUR_PRODUCTION'], $fiche);
+        $this->nevoitPas($this->acteurs['VALIDEUR_HSE'], $fiche);
 
         $this->transition($fiche, 'PILOTE', 'T3')->assertOk();
-        $this->voit('VALIDEUR_PRODUCTION', $fiche);
+        $this->voit('VALIDEUR_HSE', $fiche);
     }
 
     public function test_management_control_sees_fiches_with_gains_only(): void

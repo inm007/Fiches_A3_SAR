@@ -96,6 +96,7 @@ class FicheSectionRules
                 'domaines' => ['present', 'array'],
                 'domaines.*.domaine' => ['required', Rule::enum(Domaine::class)],
                 'domaines.*.valideur_role_code' => ['nullable', Rule::in(Domaine::rolesValideurs())],
+                'domaines.*.precision' => ['nullable', 'string', 'max:255'],
                 'risques' => ['present', 'array', 'max:50'],
                 'risques.*.id' => ['nullable', 'integer'],
                 'risques.*.domaine' => ['required', Rule::enum(Domaine::class)],

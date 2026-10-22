@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\AffectationController;
+use App\Http\Controllers\Admin\CircuitController;
+use App\Http\Controllers\Admin\EntiteController;
 use App\Http\Controllers\Admin\EquipementController;
 use App\Http\Controllers\Admin\FicheAdminController;
 use App\Http\Controllers\Admin\ListeController;
@@ -49,6 +51,13 @@ Route::prefix('admin')
         Route::post('/units', [UniteController::class, 'store']);
         Route::patch('/units/{unite}', [UniteController::class, 'update']);
 
+        Route::get('/entities', [EntiteController::class, 'index']);
+        Route::post('/entities', [EntiteController::class, 'store']);
+        Route::patch('/entities/{entite}', [EntiteController::class, 'update']);
+
+        Route::get('/circuit', [CircuitController::class, 'index']);
+        Route::put('/circuit', [CircuitController::class, 'update']);
+
         Route::get('/equipment', [EquipementController::class, 'index']);
         Route::post('/equipment', [EquipementController::class, 'store']);
         Route::patch('/equipment/{equipement}', [EquipementController::class, 'update']);
@@ -87,6 +96,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/fiches', [FicheController::class, 'store']);
     Route::get('/fiches/{fiche}', [FicheController::class, 'show']);
     Route::post('/fiches/{fiche}/me-designer', [FicheController::class, 'meDesigner']);
+    Route::post('/fiches/{fiche}/membres', [FicheController::class, 'ajouterMembre']);
+    Route::delete('/fiches/{fiche}/membres/{user}', [FicheController::class, 'retirerMembre']);
     Route::put('/fiches/{fiche}/sections/{section}', [FicheController::class, 'updateSection'])->whereNumber('section');
     Route::post('/fiches/{fiche}/confidentialite', [FicheController::class, 'updateConfidentialite']);
     Route::get('/fiches/{fiche}/historique', [FicheController::class, 'historique']);

@@ -111,10 +111,6 @@ class DemoFichesSeeder extends Seeder
             'confidentialite' => ($s['restreint'] ?? false) ? 'RESTREINT' : 'NORMAL',
         ], $agent);
 
-        if ($cible === 'SANS_PILOTE') {
-            return;
-        }
-
         if ($cible === 'CLASSEE') {
             $this->jour($debut - 2);
             $this->workflow->transition($fiche, ['code' => 'T14', 'motif' => 'Doublon de la fiche sur la fuite de la pompe P-201, déjà traitée.'], $this->profil('direction.demo', 'DIRECTION', null));
@@ -122,20 +118,22 @@ class DemoFichesSeeder extends Seeder
             return;
         }
 
-        // Désignation du pilote par l'administrateur fonctionnel.
-        $this->jour($debut - 1);
-        $admin = User::where('identifiant', 'admin-fonctionnel.demo')->firstOrFail();
-        $fiche->update(['pilote_id' => $pilote->userId()]);
-        $this->history->log($fiche, $admin->id, 'DESIGNATION_PILOTE', 'pilote_id', null, $pilote->userId());
-        $this->notifications->notify([$pilote->userId()], $fiche, 'DESIGNATION_PILOTE', 'Vous êtes désigné pilote de cette fiche.', auteurId: $admin->id);
+        // L'initiateur renseigne les sections 1 à 4 puis soumet la pertinence (T0).
+        $this->remplirDebut($fiche, $agent, $type, $origine, $equipementCode);
+        if ($cible === 'SANS_PILOTE') {
+            return;
+        }
 
+        $this->jour($debut - 1);
+        $this->workflow->transition($fiche, ['code' => 'T0'], $agent);
         if ($cible === 'OUVERT') {
             return;
         }
 
+        // Le chef de département valide : le seul pilote de l'unité reçoit la fiche (T2 automatique).
         $this->jour($debut - 2);
-        $this->workflow->transition($fiche, ['code' => 'T2'], $pilote);
-        $this->remplirDebut($fiche, $pilote, $type, $origine, $equipementCode);
+        $this->deciderActives($fiche, 0, 'VALIDE', 'Idée pertinente : à approfondir avec l’équipe.');
+        $fiche->refresh();
 
         if ($cible === 'BROUILLON') {
             return;
@@ -154,8 +152,9 @@ class DemoFichesSeeder extends Seeder
             return;
         }
 
+        // Les directeurs reçoivent la demande en même temps ; la Production répond la première.
         $this->jour($debut - 6);
-        $this->deciderActives($fiche, 1, 'VALIDE', 'Plan cohérent avec les contraintes d’exploitation.');
+        $this->deciderActives($fiche, 1, 'VALIDE', 'Plan cohérent avec les contraintes d’exploitation.', 'VALIDEUR_PRODUCTION');
         if ($cible === 'ATTENTE_DOMAINE') {
             return;
         }
@@ -254,7 +253,7 @@ class DemoFichesSeeder extends Seeder
         $this->deciderActives($fiche, 2, 'VALIDE', 'Clôture approuvée. Résultat à partager en revue mensuelle.');
     }
 
-    private function remplirDebut(FicheA3 $fiche, ActiveProfile $pilote, string $type, string $origine, ?string $equipementCode): void
+    private function remplirDebut(FicheA3 $fiche, ActiveProfile $initiateur, string $type, string $origine, ?string $equipementCode): void
     {
         $this->sections->enregistrer($fiche, 1, [
             'titre' => $fiche->titre,
@@ -269,7 +268,7 @@ class DemoFichesSeeder extends Seeder
             'type_amelioration' => $type,
             'origine_id' => $this->valeurId('origine', $origine),
             'origine_precision' => null,
-        ], $pilote);
+        ], $initiateur);
 
         $this->sections->enregistrer($fiche, 2, [
             'contexte' => 'Le phénomène est apparu après le dernier redémarrage et se répète plusieurs fois par mois.',
@@ -277,27 +276,27 @@ class DemoFichesSeeder extends Seeder
             'frequence_id' => $this->valeurId('frequence', 'RECURRENTE'),
             'impacts' => ['HSE' => 'Exposition des opérateurs lors des interventions', 'PRODUCTION' => 'Perte de débit pendant les dérives'],
             'impact_financier_estime' => random_int(5, 40) * 1_000_000,
-        ], $pilote);
+        ], $initiateur);
 
         $this->sections->enregistrer($fiche, 3, ['indicateurs' => [
             ['libelle' => 'Indicateur principal du phénomène', 'unite_mesure' => '%', 'sens' => 'baisse', 'reference' => 100, 'cible' => 80, 'actuelle' => 100, 'source' => 'SNCC', 'periode' => '3 derniers mois', 'role' => 'PRINCIPAL'],
             ['libelle' => 'Taux de disponibilité de l’équipement', 'unite_mesure' => '%', 'sens' => 'hausse', 'reference' => 92, 'cible' => 95, 'actuelle' => 92, 'source' => 'Tableau de bord', 'periode' => '3 derniers mois', 'role' => 'SUIVI'],
-        ]], $pilote);
+        ]], $initiateur);
+
+        $this->sections->enregistrer($fiche, 4, [
+            'objectif_smart' => 'Réduire l’indicateur de 20 % d’ici la date cible, sans dégrader la disponibilité.',
+            'perimetre' => 'Équipements de l’unité concernés par le constat.',
+            'resultats_attendus' => 'Indicateur principal ≤ 80 % pendant trois mois consécutifs.',
+        ], $initiateur);
     }
 
     /**
-     * Sections 4 à 7 : de quoi satisfaire B2.
+     * Sections 5 à 7 : de quoi satisfaire B2.
      *
      * @return array{risque: int, actions: array<int, int>}
      */
     private function remplirPlan(FicheA3 $fiche, ActiveProfile $pilote, ActiveProfile $agent, string $domaine, bool $mocSurDeuxiemeAction): array
     {
-        $this->sections->enregistrer($fiche, 4, [
-            'objectif_smart' => 'Réduire l’indicateur de 20 % d’ici la date cible, sans dégrader la disponibilité.',
-            'perimetre' => 'Équipements de l’unité concernés par le constat.',
-            'resultats_attendus' => 'Indicateur principal ≤ 80 % pendant trois mois consécutifs.',
-        ], $pilote);
-
         $fiche = $this->sections->enregistrer($fiche, 5, ['methode_analyse' => '5_POURQUOI', 'methode_precision' => null, 'causes' => [
             ['categorie' => 'MATERIEL', 'libelle' => 'Usure prématurée des garnitures', 'niveau' => 1, 'racine' => false, 'preuve' => 'Rapport d’expertise'],
             ['categorie' => 'METHODE', 'libelle' => 'Aucun plan d’inspection préventive', 'niveau' => 2, 'racine' => true, 'preuve' => 'Revue de la GMAO'],
@@ -381,11 +380,12 @@ class DemoFichesSeeder extends Seeder
     /**
      * Décide toutes les demandes actives d'une porte, au nom du valideur sollicité.
      */
-    private function deciderActives(FicheA3 $fiche, int $porte, string $decision, string $commentaire): void
+    private function deciderActives(FicheA3 $fiche, int $porte, string $decision, string $commentaire, ?string $seulRole = null): void
     {
         $fiche->refresh();
         $demandes = Validation::where('fiche_id', $fiche->id)->where('porte', $porte)->where('decision', 'EN_ATTENTE')->with('role')->get()
-            ->filter(fn (Validation $validation) => $this->circuit->estActionnable($validation, $fiche));
+            ->filter(fn (Validation $validation) => $this->circuit->estActionnable($validation, $fiche)
+                && ($seulRole === null || $validation->role->code === $seulRole));
 
         foreach ($demandes as $validation) {
             $affectation = Affectation::where('user_id', $validation->valideur_id)->where('role_id', $validation->role_id)->firstOrFail();

@@ -20,9 +20,11 @@ const Notifications = lazy(() => import('./pages/workflow/Notifications.jsx'))
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword.jsx'))
 const ResetPassword = lazy(() => import('./pages/auth/ResetPassword.jsx'))
 const Affectations = lazy(() => import('./pages/admin/Affectations.jsx'))
+const CircuitValidation = lazy(() => import('./pages/admin/CircuitValidation.jsx'))
 const Droits = lazy(() => import('./pages/admin/Droits.jsx'))
 const Equipements = lazy(() => import('./pages/admin/Equipements.jsx'))
 const Listes = lazy(() => import('./pages/admin/Listes.jsx'))
+const Organigramme = lazy(() => import('./pages/admin/Organigramme.jsx'))
 const ParametresFonctionnels = lazy(() => import('./pages/admin/ParametresFonctionnels.jsx'))
 const Unites = lazy(() => import('./pages/admin/Unites.jsx'))
 const Utilisateurs = lazy(() => import('./pages/admin/Utilisateurs.jsx'))
@@ -65,6 +67,8 @@ function App() {
                     <Route path="/admin/utilisateurs" element={<Utilisateurs />} />
                     <Route path="/admin/affectations" element={<Affectations />} />
                     <Route path="/admin/droits" element={<Droits />} />
+                    <Route path="/admin/organigramme" element={<Organigramme />} />
+                    <Route path="/admin/circuit" element={<CircuitValidation />} />
                     <Route path="/admin/unites" element={<Unites />} />
                     <Route path="/admin/equipements" element={<Equipements />} />
                     <Route path="/admin/listes" element={<Listes />} />

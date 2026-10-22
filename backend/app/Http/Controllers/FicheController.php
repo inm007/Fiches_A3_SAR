@@ -10,14 +10,17 @@ use App\Http\Controllers\Concerns\ResolvesVisibleFiche;
 use App\Http\Requests\FicheSectionRules;
 use App\Http\Resources\FicheResource;
 use App\Models\Affectation;
+use App\Models\DomaineRole;
 use App\Models\FicheA3;
 use App\Models\FicheVersion;
 use App\Models\Role;
+use App\Models\User;
 use App\Services\ActiveProfile;
 use App\Services\FicheSectionService;
 use App\Services\FicheVisibility;
 use App\Services\FicheWorkflow;
 use App\Services\HistoryLogger;
+use App\Services\NotificationService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -153,6 +156,54 @@ class FicheController extends Controller
         return new FicheResource($fiche);
     }
 
+    /**
+     * Le pilote ajoute un membre à l'équipe : n'importe quel utilisateur actif, même hors
+     * de sa direction ; le membre voit la fiche et renseigne l'analyse et le suivi.
+     */
+    public function ajouterMembre(Request $request, FicheA3 $fiche, ActiveProfile $profile, HistoryLogger $history, NotificationService $notifications): FicheResource
+    {
+        $this->visible($fiche, $profile);
+        $data = $request->validate(['user_id' => ['required', 'integer', Rule::exists('users', 'id')->where('actif', true)]]);
+        $this->exigerGestionEquipe($fiche, $profile);
+
+        if ($fiche->estPilote((int) $data['user_id'])) {
+            throw RegleMetierException::conditionsManquantes('Membre non ajouté.', ['Cette personne pilote déjà la fiche.']);
+        }
+
+        DB::transaction(function () use ($fiche, $data, $profile, $history, $notifications): void {
+            if ($fiche->membres()->whereKey($data['user_id'])->exists()) {
+                return;
+            }
+            $fiche->membres()->attach($data['user_id'], ['ajoute_par' => $profile->userId()]);
+            $history->log($fiche, $profile->userId(), 'AJOUT_MEMBRE', 'equipe', null, (int) $data['user_id']);
+            $notifications->notify([(int) $data['user_id']], $fiche, 'AJOUT_MEMBRE', 'Vous faites partie de l’équipe de cette fiche : vous pouvez renseigner l’analyse et le suivi.', auteurId: $profile->userId());
+        });
+
+        return new FicheResource($fiche->refresh());
+    }
+
+    public function retirerMembre(FicheA3 $fiche, User $user, ActiveProfile $profile, HistoryLogger $history): FicheResource
+    {
+        $this->visible($fiche, $profile);
+        $this->exigerGestionEquipe($fiche, $profile);
+
+        if ($fiche->membres()->detach($user->id) > 0) {
+            $history->log($fiche, $profile->userId(), 'RETRAIT_MEMBRE', 'equipe', $user->id, null);
+        }
+
+        return new FicheResource($fiche->refresh());
+    }
+
+    private function exigerGestionEquipe(FicheA3 $fiche, ActiveProfile $profile): void
+    {
+        if (! $profile->estPiloteDe($fiche)) {
+            throw RegleMetierException::interdit('Seul le pilote de la fiche gère son équipe.');
+        }
+        if (! $fiche->etape()->estActive()) {
+            throw RegleMetierException::conflit('L’équipe ne change plus à cette étape.');
+        }
+    }
+
     public function updateSection(Request $request, FicheA3 $fiche, int $section, ActiveProfile $profile, FicheSectionService $sections): FicheResource
     {
         $this->visible($fiche, $profile);
@@ -246,6 +297,9 @@ class FicheController extends Controller
             'sponsors' => $this->titulaires(['DIRECTION'], null),
             'pilotes' => $this->titulaires(['PILOTE'], $fiche->unite_id, false),
             'roles_valideurs' => Role::whereIn('code', Domaine::rolesValideurs())->orderBy('id')->get(['code', 'libelle']),
+            'directeurs_par_domaine' => collect(DomaineRole::correspondance())->map(fn (array $codes) => Role::whereIn('code', $codes)->orderBy('id')->pluck('libelle')->all()),
+            'membres_possibles' => User::query()->where('actif', true)->orderBy('nom')->orderBy('prenom')->get(['id', 'nom', 'prenom'])
+                ->map(fn (User $user) => ['id' => $user->id, 'nom' => $user->nom_complet])->values(),
         ]]);
     }
 

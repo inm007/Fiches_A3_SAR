@@ -6,6 +6,7 @@ function EtapeBadge({ etape }) {
   const config = ETAPES[etape] ?? { label: etape, tone: 'neutral' }
   const phase = {
     OUVERT: 'opening',
+    EN_VALIDATION_PERTINENCE: 'opening',
     EN_COURS: 'planning',
     EN_VALIDATION_PLAN: 'planning',
     REALISATION_ACTIONS: 'realization',

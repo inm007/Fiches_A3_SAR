@@ -13,6 +13,7 @@ class FicheA3Domaine extends Model
         'fiche_id',
         'domaine',
         'valideur_role_id',
+        'precision',
     ];
 
     public function fiche(): BelongsTo

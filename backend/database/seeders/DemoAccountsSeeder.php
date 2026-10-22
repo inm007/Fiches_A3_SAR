@@ -3,10 +3,12 @@
 namespace Database\Seeders;
 
 use App\Models\Affectation;
+use App\Models\Entite;
 use App\Models\Equipement;
 use App\Models\Role;
 use App\Models\Unite;
 use App\Models\User;
+use App\Services\Organigramme;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use RuntimeException;
@@ -41,6 +43,7 @@ class DemoAccountsSeeder extends Seeder
         'VALIDEUR_PROCEDE' => [['valideur-procede.demo', 'Cheikh', 'Diop'], ['valideur-procede2.demo', 'Mariama', 'Kane']],
         'VALIDEUR_MAINTENANCE' => [['valideur-maintenance.demo', 'Aliou', 'Cissé'], ['valideur-maintenance2.demo', 'Rokhaya', 'Faye']],
         'VALIDEUR_INSPECTION' => [['valideur-inspection.demo', 'Ndeye', 'Thiam'], ['valideur-inspection2.demo', 'Pape', 'Seck']],
+        'VALIDEUR_DSI' => [['valideur-dsi.demo', 'Adama', 'Faye'], ['valideur-dsi2.demo', 'Bineta', 'Sall']],
         'CONTROLE_GESTION' => [['controle.demo', 'Awa', 'Ndour'], ['controle2.demo', 'Babacar', 'Mbengue']],
         'DIRECTION' => [['direction.demo', 'Ibrahima', 'Sy'], ['direction2.demo', 'Coumba', 'Gueye']],
         'ADMIN_FONCTIONNEL' => [['admin-fonctionnel.demo', 'Mariama', 'Diouf'], ['admin-fonctionnel2.demo', 'Lamine', 'Camara']],
@@ -56,6 +59,39 @@ class DemoAccountsSeeder extends Seeder
         'DIST' => [['P-201', 'Pompe de charge brut'], ['F-101', 'Four de distillation'], ['E-104', 'Rebouilleur colonne C-101'], ['V-310', 'Ballon de reflux']],
         'REF' => [['K-301', 'Compresseur de recyclage H2'], ['R-401', 'Réacteur de reformage'], ['E-420', 'Échangeur du train de préchauffe']],
         'UTIL' => [['T-02', 'Turbine à vapeur'], ['P-650', 'Pompe d’eau de refroidissement'], ['L-12', 'Ligne vapeur moyenne pression']],
+    ];
+
+    /**
+     * Organigramme de démonstration : code => [libellé, type, parent, responsable].
+     *
+     * @var array<string, array{0: string, 1: string, 2: string|null, 3: string|null}>
+     */
+    private const array ORGANIGRAMME = [
+        'DIR-PROD' => ['Direction de la Production', 'DIRECTION', null, null],
+        'DEP-EXP' => ['Département Exploitation', 'DEPARTEMENT', 'DIR-PROD', 'chef.demo'],
+        'SRV-DIST' => ['Service Distillation', 'SERVICE', 'DEP-EXP', null],
+        'SRV-REF' => ['Service Reformage', 'SERVICE', 'DEP-EXP', null],
+        'SRV-UTIL' => ['Service Utilités', 'SERVICE', 'DEP-EXP', null],
+        'DIR-TECH' => ['Direction Technique', 'DIRECTION', null, null],
+        'DEP-MAINT' => ['Département Maintenance', 'DEPARTEMENT', 'DIR-TECH', 'chef2.demo'],
+        'SRV-MECA' => ['Service Mécanique', 'SERVICE', 'DEP-MAINT', null],
+    ];
+
+    /**
+     * Chefs de département (le profil leur est donné par l'organigramme) et rattachements.
+     *
+     * @var array<string, array{0: string, 1: string, 2: string}>
+     */
+    private const array CHEFS = [
+        'chef.demo' => ['Mamadou', 'Diagne', 'DEP-EXP'],
+        'chef2.demo' => ['Aminata', 'Touré', 'DEP-MAINT'],
+    ];
+
+    private const array RATTACHEMENTS = [
+        'agent.demo' => 'SRV-DIST',
+        'agent2.demo' => 'SRV-REF',
+        'pilote.demo' => 'SRV-DIST',
+        'pilote2.demo' => 'SRV-MECA',
     ];
 
     public function run(): void
@@ -106,5 +142,38 @@ class DemoAccountsSeeder extends Seeder
                 }
             }
         }
+
+        $this->organigramme();
+    }
+
+    private function organigramme(): void
+    {
+        foreach (self::CHEFS as $identifiant => [$prenom, $nom]) {
+            User::updateOrCreate(['identifiant' => $identifiant], [
+                'prenom' => $prenom,
+                'nom' => $nom,
+                'email' => $identifiant.'@example.test',
+                'password' => Hash::make(self::DEMO_PASSWORD),
+                'auth_source' => 'local',
+                'actif' => true,
+            ]);
+        }
+
+        $entites = [];
+        foreach (self::ORGANIGRAMME as $code => [$libelle, $type, $parent, $responsable]) {
+            $entites[$code] = Entite::updateOrCreate(['code' => $code], [
+                'libelle' => $libelle,
+                'type' => $type,
+                'parent_id' => $parent ? $entites[$parent]->id : null,
+                'responsable_id' => $responsable ? User::where('identifiant', $responsable)->value('id') : null,
+                'actif' => true,
+            ]);
+        }
+
+        foreach ([...self::RATTACHEMENTS, ...array_map(fn (array $chef) => $chef[2], self::CHEFS)] as $identifiant => $code) {
+            User::where('identifiant', $identifiant)->update(['entite_id' => $entites[$code]->id]);
+        }
+
+        app(Organigramme::class)->synchroniserChefs();
     }
 }

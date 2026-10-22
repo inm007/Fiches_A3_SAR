@@ -45,7 +45,7 @@ function Validations() {
     setError(null)
     try {
       await ficheService.decision(demande.id, { decision, commentaire: commentaire || null, retour: demande.porte === 2 ? 'VERIFICATION_MAINTIEN' : null })
-      toast(decision === 'VALIDE' ? `${demande.fiche.numero_a3} — demande approuvée` : `${demande.fiche.numero_a3} — refus enregistré, le pilote est notifié`)
+      toast(decision === 'VALIDE' ? `${demande.fiche.numero_a3} — demande approuvée` : `${demande.fiche.numero_a3} — refus enregistré, ${demande.porte === 0 ? 'l’initiateur' : 'le pilote'} est notifié`)
       setRefus(null)
       setCommentaire('')
       refreshCounters()
@@ -86,7 +86,7 @@ function Validations() {
         <>
           <ListToolbar className="validations-page__toolbar">
             <SearchField placeholder="N°, titre, rôle…" value={filters.q} onChange={list.setFilter('q')} />
-            <FilterSelect label="Porte" options={[['1', 'Porte 1'], ['2', 'Porte 2']]} value={filters.porte} onChange={list.setFilter('porte')} />
+            <FilterSelect label="Porte" options={[['0', 'Porte 0 (pertinence)'], ['1', 'Porte 1 (plan)'], ['2', 'Porte 2 (clôture)']]} value={filters.porte} onChange={list.setFilter('porte')} />
             <FilterSelect label="Ancienneté" options={[['ancienne', `${SEUIL_ANCIENNETE} jours et plus`], ['recente', `Moins de ${SEUIL_ANCIENNETE} jours`]]} value={filters.anciennete} onChange={list.setFilter('anciennete')} />
             <ToolbarActions>
               <ResultCount count={filteredDemandes.length} singular="demande" />

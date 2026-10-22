@@ -83,7 +83,7 @@ enum Permission: string
      */
     public function rolesReglables(): array
     {
-        $decideurs = [...Domaine::rolesValideurs(), 'CONTROLE_GESTION', 'DIRECTION'];
+        $decideurs = ['CHEF_DEPARTEMENT', ...Domaine::rolesValideurs(), 'CONTROLE_GESTION', 'DIRECTION'];
 
         return match ($this) {
             self::DeclarerFiche => ['DIRECTION'],
@@ -104,7 +104,7 @@ enum Permission: string
         return match ($this) {
             self::DeclarerFiche => [],
             self::VoirHistorique => ['DIRECTION', 'ADMIN_FONCTIONNEL'],
-            self::Commenter => [...Domaine::rolesValideurs(), 'CONTROLE_GESTION', 'DIRECTION'],
+            self::Commenter => ['CHEF_DEPARTEMENT', ...Domaine::rolesValideurs(), 'CONTROLE_GESTION', 'DIRECTION'],
             self::Relancer => ['DIRECTION', 'ADMIN_FONCTIONNEL'],
             self::MettreEnAttente => ['DIRECTION'],
         };

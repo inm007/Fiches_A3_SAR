@@ -1,10 +1,11 @@
 import { Select, TextInput } from '../../ui/FormControls.jsx'
 import { ConfidentialiteBadge } from '../EtapeBadge.jsx'
+import EquipeFiche from '../EquipeFiche.jsx'
 import Astuce, { ListeNoms } from './Astuce.jsx'
 import { listOptions, peopleOptions } from './options.js'
 import './FicheSection.css'
 
-export default function Section01Identification({ draft, set, fiche, refs, options, readOnly }) {
+export default function Section01Identification({ draft, set, fiche, refs, options, readOnly, onFicheChange }) {
   const equipements = (refs?.equipements ?? [])
     .filter((equipement) => String(equipement.unite_id) === String(draft.unite_id))
     .map((equipement) => [String(equipement.id), `${equipement.code} — ${equipement.libelle}`])
@@ -14,9 +15,10 @@ export default function Section01Identification({ draft, set, fiche, refs, optio
     <div className="fiche-section">
       <Astuce ouvert={!readOnly && !draft.sponsor_id} titre="Astuce : qui porte la fiche ?">
         <ul>
-          <li><strong>Pilote</strong> : la personne qui mène la fiche de bout en bout. Il est désigné par l’administrateur, ou se désigne lui-même s’il est pilote de l’unité.</li>
+          <li><strong>Initiateur</strong> : il remplit les sections 1 à 4 et les soumet à son chef de département, qui juge la pertinence de l’idée.</li>
+          <li><strong>Pilote</strong> : la personne qui mène la fiche de bout en bout. Après la validation de la pertinence, la fiche part au pilote (ou au premier pilote qui la prend en charge s’ils sont plusieurs).</li>
           <li><strong>Sponsor</strong> : le responsable de la Direction qui soutient le sujet, débloque les moyens et donne l’accord final à la clôture.</li>
-          <li><strong>Équipe</strong> : les personnes qui travaillent avec le pilote (opérateur, maintenance, procédé…). Elles n’ont pas de droit particulier dans l’outil.</li>
+          <li><strong>Équipe</strong> : le pilote ajoute des membres, même d’une autre direction. Ils renseignent l’analyse et le suivi. Les participants sans compte s’ajoutent par leur nom.</li>
         </ul>
       </Astuce>
 
@@ -46,12 +48,13 @@ export default function Section01Identification({ draft, set, fiche, refs, optio
         />
         <ListeNoms
           hint="Ajoutez chaque personne puis appuyez sur Entrée."
-          label="Équipe"
+          label="Participants sans compte"
           readOnly={readOnly}
           value={draft.equipe}
           onChange={(value) => set('equipe', value)}
         />
       </div>
+      {fiche.pilote && <EquipeFiche fiche={fiche} options={options} onChange={onFicheChange} />}
 
       <h3>Dates et références</h3>
       <div className="fiche-section__grid">

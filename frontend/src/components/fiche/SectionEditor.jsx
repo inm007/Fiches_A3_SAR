@@ -93,7 +93,7 @@ function SectionEditor({ fiche, section, refs, options, onSaved, onError, onNavi
           {dernier && <span>Dernier enregistrement : {dernier.par ?? 'inconnu'}, le {formatDateTime(dernier.le)}.</span>}
         </p>
       )}
-      <Component draft={draft} fiche={fiche} options={options} readOnly={!editable} refs={refs} set={set} onPrintCopy={onPrintCopy} />
+      <Component draft={draft} fiche={fiche} options={options} readOnly={!editable} refs={refs} set={set} onFicheChange={onSaved} onPrintCopy={onPrintCopy} />
       <footer>
         {editable && state !== 'idle' && <SaveIndicator state={state === 'error' ? 'error' : state} />}
         {state === 'error' && failure && <span className="section-editor__failure">{failure}</span>}

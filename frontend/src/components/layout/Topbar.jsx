@@ -15,6 +15,8 @@ const routeNames = {
   '/notifications': 'Notifications',
   '/admin/utilisateurs': 'Utilisateurs',
   '/admin/affectations': 'Affectations',
+  '/admin/organigramme': 'Organigramme',
+  '/admin/circuit': 'Circuit de validation',
   '/admin/unites': 'Unités',
   '/admin/equipements': 'Équipements',
   '/admin/listes': 'Listes de choix',

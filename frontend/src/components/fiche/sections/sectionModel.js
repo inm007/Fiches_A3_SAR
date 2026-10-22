@@ -131,13 +131,14 @@ export const sectionModel = {
   },
   7: {
     toDraft: (fiche) => ({
-      domaines: fiche.domaines.map((domaine) => ({ domaine: domaine.domaine, valideur_role_code: domaine.valideur_role_code ?? '' })),
+      domaines: fiche.domaines.map((domaine) => ({ domaine: domaine.domaine, valideur_role_code: domaine.valideur_role_code ?? '', precision: domaine.precision ?? '' })),
       risques: fiche.risques.map((risque) => ({ ...risque, responsable_id: toText(risque.responsable_id) })),
     }),
     toPayload: (draft) => ({
       domaines: draft.domaines.map((domaine) => ({
         domaine: domaine.domaine,
         valideur_role_code: domaine.domaine === 'AUTRES' ? nullable(domaine.valideur_role_code) : null,
+        precision: domaine.domaine === 'AUTRES' ? nullable(domaine.precision) : null,
       })),
       risques: draft.risques.map((row) => ({
         ...keepId(row),

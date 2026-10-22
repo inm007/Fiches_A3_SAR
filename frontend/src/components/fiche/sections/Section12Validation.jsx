@@ -8,7 +8,7 @@ import './FicheSection.css'
 
 const decisionTone = { EN_ATTENTE: 'warning', VALIDE: 'success', REFUSE: 'error', ANNULE: 'neutral' }
 const EVENEMENTS = { SOUMISSION_PLAN: 'Plan soumis en validation', CLOTURE: 'Fiche clôturée' }
-const PORTES = [[1, 'Porte 1 : validation du plan'], [2, 'Porte 2 : validation de la clôture']]
+const PORTES = [[0, 'Porte 0 : pertinence (chef de département)'], [1, 'Porte 1 : validation du plan (directeurs)'], [2, 'Porte 2 : validation de la clôture']]
 
 export default function Section12Validation({ fiche, onPrintCopy }) {
   const [copies, setCopies] = useState(null)

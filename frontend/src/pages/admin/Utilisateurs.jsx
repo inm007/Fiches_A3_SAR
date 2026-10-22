@@ -12,7 +12,16 @@ const fields = [
     { value: 'ldap', label: 'Annuaire' },
   ] },
   { name: 'ldap_dn', label: 'Identifiant annuaire (DN LDAP)', maxLength: 255, showWhen: (values) => values.auth_source === 'ldap' },
+  {
+    name: 'entite_id',
+    label: 'Entité de rattachement',
+    type: 'select',
+    optionsKey: 'entities',
+    hint: 'Direction, département ou service (écran Organigramme). Ses fiches partent en validation de pertinence chez le chef de son département.',
+  },
 ]
+
+const related = [{ key: 'entities', endpoint: '/admin/entities' }]
 
 function formatFrenchDateTime(value) {
   if (!value) return 'Jamais'
@@ -35,7 +44,7 @@ const columns = [
   {
     key: 'name',
     label: 'Utilisateur',
-    width: '30%',
+    width: '26%',
     searchValue: (user) => `${user.prenom} ${user.nom} ${user.identifiant}`,
     render: (user) => (
       <div className="admin-entity__user">
@@ -49,11 +58,20 @@ const columns = [
       </div>
     ),
   },
-  { key: 'email', label: 'Courriel', width: '24%', className: 'data-table__secondary-column', filterable: false, titleValue: (user) => user.email },
+  { key: 'email', label: 'Courriel', width: '20%', className: 'data-table__secondary-column', filterable: false, titleValue: (user) => user.email },
+  {
+    key: 'entite',
+    label: 'Entité',
+    width: '15%',
+    value: (user) => user.entite ?? 'Non rattaché',
+    render: (user) => user.entite
+      ? <span className="data-table__cell-text" title={user.entite}>{user.entite}</span>
+      : <span className="admin-entity__never">Non rattaché</span>,
+  },
   {
     key: 'auth_source',
     label: 'Source',
-    width: '13%',
+    width: '10%',
     className: 'data-table__secondary-column',
     value: (user) => user.auth_source === 'ldap' ? 'Annuaire' : 'Locale',
     render: (user) => <Badge>{user.auth_source === 'ldap' ? 'Annuaire' : 'Locale'}</Badge>,
@@ -61,14 +79,14 @@ const columns = [
   {
     key: 'actif',
     label: 'État',
-    width: '12%',
+    width: '10%',
     value: (user) => user.actif ? 'Actif' : 'Inactif',
     render: (user) => <Badge tone={user.actif ? 'active' : 'inactive'}>{user.actif ? 'Actif' : 'Inactif'}</Badge>,
   },
   {
     key: 'derniere_connexion',
     label: 'Dernière connexion',
-    width: '21%',
+    width: '19%',
     className: 'data-table__date-column',
     value: (user) => formatFrenchDateTime(user.derniere_connexion),
     render: (user) => user.derniere_connexion
@@ -81,6 +99,7 @@ const exportColumns = [
   { key: 'identifiant', label: 'Identifiant' },
   { key: 'name', label: 'Nom', value: (user) => `${user.prenom} ${user.nom}` },
   { key: 'email', label: 'Courriel' },
+  { key: 'entite', label: 'Entité', value: (user) => user.entite ?? '' },
   { key: 'auth_source', label: 'Source', value: (user) => user.auth_source === 'ldap' ? 'Annuaire' : 'Locale' },
   { key: 'actif', label: 'Actif', value: (user) => user.actif ? 'Oui' : 'Non' },
   { key: 'derniere_connexion', label: 'Dernière connexion', value: (user) => user.derniere_connexion ? new Date(user.derniere_connexion).toLocaleString('fr-FR') : 'Jamais' },
@@ -105,6 +124,7 @@ function Utilisateurs() {
       exportColumns={exportColumns}
       extraActions={extraActions}
       fields={fields}
+      related={related}
       messages={{ created: (user) => (user?.lien_envoye ? 'Compte créé : le lien de définition du mot de passe est envoyé.' : 'Compte créé.') }}
       title="Administration des utilisateurs"
     />

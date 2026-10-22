@@ -42,10 +42,10 @@ class FicheSectionService
         $resultats = [StatutEtape::MesureResultats, StatutEtape::VerificationMaintien];
 
         return [
-            1 => [StatutEtape::EnCours],
-            2 => [StatutEtape::EnCours],
-            3 => [StatutEtape::EnCours],
-            4 => [StatutEtape::EnCours],
+            1 => [StatutEtape::Ouvert, StatutEtape::EnCours],
+            2 => [StatutEtape::Ouvert, StatutEtape::EnCours],
+            3 => [StatutEtape::Ouvert, StatutEtape::EnCours],
+            4 => [StatutEtape::Ouvert, StatutEtape::EnCours],
             5 => [StatutEtape::EnCours],
             6 => [StatutEtape::EnCours],
             7 => [StatutEtape::EnCours, StatutEtape::RealisationActions],
@@ -57,18 +57,40 @@ class FicheSectionService
     }
 
     /**
+     * Sections que les membres de l'équipe renseignent : analyse et suivi. L'identification
+     * et l'objectif (1 à 4) restent au pilote : ils ont été validés par le chef de département.
+     */
+    public const array SECTIONS_EQUIPE = [5, 6, 7, 8, 9, 10, 11];
+
+    /**
+     * Ouvert, avant la validation de la pertinence : l'initiateur renseigne les sections 1 à 4.
+     * Ensuite : le pilote, toutes les sections ouvertes à l'étape ; un membre de l'équipe,
+     * celles d'analyse et de suivi.
+     *
      * @return array<int, int>
      */
     public function sectionsEditables(FicheA3 $fiche, ActiveProfile $profile): array
     {
-        if (! $profile->estPiloteDe($fiche)) {
-            return [];
+        $etape = $fiche->etape();
+        $ouvertes = collect(self::etapesEditables())
+            ->filter(fn (array $etapes) => in_array($etape, $etapes, true))
+            ->keys();
+
+        if ($etape === StatutEtape::Ouvert) {
+            $initiateur = $fiche->declarant_id === $profile->userId() || $profile->estPiloteDe($fiche);
+
+            return $initiateur && $fiche->pertinence_validee_le === null ? $ouvertes->all() : [];
         }
 
-        return collect(self::etapesEditables())
-            ->filter(fn (array $etapes) => in_array($fiche->etape(), $etapes, true))
-            ->keys()
-            ->all();
+        if ($profile->estPiloteDe($fiche)) {
+            return $ouvertes->all();
+        }
+
+        if ($fiche->estMembre($profile->userId())) {
+            return $ouvertes->intersect(self::SECTIONS_EQUIPE)->values()->all();
+        }
+
+        return [];
     }
 
     /**
@@ -83,9 +105,10 @@ class FicheSectionService
     {
         $editables = $this->sectionsEditables($fiche, $profile);
         $estPilote = $profile->estPiloteDe($fiche);
+        $estMembre = $fiche->estMembre($profile->userId());
         $etape = $fiche->etape();
         $ordre = [
-            StatutEtape::Ouvert, StatutEtape::EnCours, StatutEtape::EnValidationPlan, StatutEtape::RealisationActions,
+            StatutEtape::Ouvert, StatutEtape::EnValidationPertinence, StatutEtape::EnCours, StatutEtape::EnValidationPlan, StatutEtape::RealisationActions,
             StatutEtape::MesureResultats, StatutEtape::VerificationMaintien, StatutEtape::EnValidationCloture, StatutEtape::Cloture,
         ];
         $position = array_search($etape, $ordre, true);
@@ -95,7 +118,11 @@ class FicheSectionService
             $etats[] = ['numero' => $section, ...match (true) {
                 $section === 12 => ['etat' => 'auto', 'raison' => 'Remplie par les décisions des valideurs.'],
                 in_array($section, $editables, true) => ['etat' => 'editable', 'raison' => null],
-                ! $estPilote => ['etat' => 'lecture', 'raison' => 'Seul le pilote de la fiche modifie cette section.'],
+                $etape === StatutEtape::Ouvert && $fiche->pertinence_validee_le === null && $section <= 4 => ['etat' => 'lecture', 'raison' => 'Seul l’initiateur renseigne cette section avant la validation de la pertinence.'],
+                $etape === StatutEtape::Ouvert && $section <= 4 => ['etat' => 'fige', 'raison' => 'Pertinence validée : la section rouvre quand le pilote commence l’analyse.'],
+                $etape === StatutEtape::EnValidationPertinence => ['etat' => 'fige', 'raison' => 'En validation de la pertinence : la saisie reprend après la décision du chef de département.'],
+                $estMembre && ! $estPilote && ! in_array($section, self::SECTIONS_EQUIPE, true) => ['etat' => 'lecture', 'raison' => 'Seul le pilote modifie l’identification et l’objectif.'],
+                ! $estPilote && ! $estMembre => ['etat' => 'lecture', 'raison' => 'Seuls le pilote et son équipe modifient cette section.'],
                 $etape === StatutEtape::Cloture => ['etat' => 'fige', 'raison' => 'Fiche clôturée : plus aucune modification.'],
                 $etape === StatutEtape::ClasseSansSuite => ['etat' => 'fige', 'raison' => 'Fiche classée sans suite : plus aucune modification.'],
                 $etape === StatutEtape::EnAttente => ['etat' => 'fige', 'raison' => 'Fiche en attente : levez le blocage pour reprendre la saisie.'],
@@ -395,11 +422,17 @@ class FicheSectionService
         $fiche->domaines()->whereNotIn('domaine', $codes)->delete();
 
         foreach (collect($data['domaines'])->unique('domaine') as $item) {
+            // Les directeurs d'un domaine viennent de la correspondance ; pour « Autres »,
+            // le pilote précise le domaine et choisit le directeur qui valide.
             $domaine = Domaine::from($item['domaine']);
-            $roleCode = $domaine->roleValideur() ?? ($item['valideur_role_code'] ?? null);
+            $autres = $domaine === Domaine::Autres;
+            $roleCode = $autres ? ($item['valideur_role_code'] ?? null) : null;
             $fiche->domaines()->updateOrCreate(
                 ['domaine' => $domaine->value],
-                ['valideur_role_id' => $roleCode ? Role::where('code', $roleCode)->value('id') : null],
+                [
+                    'valideur_role_id' => $roleCode ? Role::where('code', $roleCode)->value('id') : null,
+                    'precision' => $autres ? (trim((string) ($item['precision'] ?? '')) ?: null) : null,
+                ],
             );
         }
 

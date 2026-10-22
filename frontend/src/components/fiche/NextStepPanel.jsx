@@ -9,7 +9,8 @@ import { refreshCounters } from '../../hooks/useCounters.js'
 import './NextStepPanel.css'
 
 const ATTENTES = {
-  EN_VALIDATION_PLAN: 'Le plan est chez les valideurs. Vous serez prévenu de chaque décision ; en cas de refus, la section en cause est indiquée.',
+  EN_VALIDATION_PERTINENCE: 'La fiche est chez le chef de département, qui juge la pertinence de l’idée. Une fois validée, elle part au pilote ; en cas de refus, son commentaire vous revient.',
+  EN_VALIDATION_PLAN: 'Le plan est chez les directeurs des domaines cochés, tous en même temps. Vous serez prévenu de chaque décision ; en cas de refus, la section en cause est indiquée.',
   EN_VALIDATION_CLOTURE: 'La clôture est chez le Contrôle de gestion (gains) puis la Direction.',
 }
 
@@ -23,7 +24,7 @@ function NextStepPanel({ fiche, onChange, onError, onNavigate }) {
   const prochaine = fiche.prochaine_etape
   const attente = ATTENTES[fiche.statut_etape]
 
-  if (attente && fiche.droits.est_pilote) {
+  if (attente && (fiche.droits.est_pilote || (fiche.statut_etape === 'EN_VALIDATION_PERTINENCE' && !fiche.droits.transitions.length))) {
     return (
       <aside className="next-step next-step--neutral">
         <h2><Icon name="clock" size={18} />En attente de validation</h2>

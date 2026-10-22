@@ -8,6 +8,7 @@ namespace App\Enums;
 enum StatutEtape: string
 {
     case Ouvert = 'OUVERT';
+    case EnValidationPertinence = 'EN_VALIDATION_PERTINENCE';
     case EnCours = 'EN_COURS';
     case EnValidationPlan = 'EN_VALIDATION_PLAN';
     case RealisationActions = 'REALISATION_ACTIONS';
@@ -22,6 +23,7 @@ enum StatutEtape: string
     {
         return match ($this) {
             self::Ouvert => 'Ouvert',
+            self::EnValidationPertinence => 'En validation de la pertinence',
             self::EnCours => 'En cours',
             self::EnValidationPlan => 'En validation du plan',
             self::RealisationActions => 'Réalisation des actions',
@@ -40,7 +42,7 @@ enum StatutEtape: string
     public function statutGeneral(): string
     {
         return match ($this) {
-            self::Ouvert => 'OUVERT',
+            self::Ouvert, self::EnValidationPertinence => 'OUVERT',
             self::EnAttente => 'EN_ATTENTE',
             self::Cloture => 'CLOTURE',
             self::ClasseSansSuite => 'CLASSE',

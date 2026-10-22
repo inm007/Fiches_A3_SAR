@@ -18,7 +18,7 @@ export const TODO_TYPES = {
 }
 
 const PHASES = [
-  { code: 'ouverture', label: 'Ouverture', color: 'var(--chart-phase-opening)', stages: ['OUVERT'] },
+  { code: 'ouverture', label: 'Ouverture', color: 'var(--chart-phase-opening)', stages: ['OUVERT', 'EN_VALIDATION_PERTINENCE'] },
   { code: 'plan', label: 'Planification', color: 'var(--chart-phase-planning)', stages: ['EN_COURS', 'EN_VALIDATION_PLAN'] },
   { code: 'realisation', label: 'Réalisation', color: 'var(--chart-phase-realization)', stages: ['REALISATION_ACTIONS'] },
   { code: 'verification', label: 'Vérification', color: 'var(--chart-phase-verification)', stages: ['MESURE_RESULTATS', 'VERIFICATION_MAINTIEN', 'EN_VALIDATION_CLOTURE'] },
@@ -36,7 +36,7 @@ const ACTION_STATUSES = [
 
 /** Profil de tableau de bord : les valideurs partagent la même vue. */
 export function dashboardKind(roleCode) {
-  if (VALIDATOR_ROLES.includes(roleCode)) return 'VALIDEUR'
+  if (VALIDATOR_ROLES.includes(roleCode) || roleCode === 'CHEF_DEPARTEMENT') return 'VALIDEUR'
   return ['AGENT', 'PILOTE', 'CONTROLE_GESTION', 'DIRECTION', 'ADMIN_FONCTIONNEL'].includes(roleCode) ? roleCode : 'AGENT'
 }
 

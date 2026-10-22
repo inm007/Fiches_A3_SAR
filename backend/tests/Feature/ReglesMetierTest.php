@@ -55,16 +55,17 @@ class ReglesMetierTest extends TestCase
         $this->section($fiche, 7, ['domaines' => [['domaine' => 'QHSE'], ['domaine' => 'AUTRES']], 'risques' => $this->risquesActuels($fiche)])->assertOk();
 
         $this->transition($fiche, 'PILOTE', 'T3')->assertUnprocessable()
-            ->assertJsonFragment(['Section 7 : choisir le valideur du domaine « Autres ».']);
+            ->assertJsonFragment(['Section 7 : préciser le domaine « Autres ».'])
+            ->assertJsonFragment(['Section 7 : choisir le directeur qui valide le domaine « Autres ».']);
 
         // Le valideur choisi pour « Autres » n'a aucun titulaire dans l'unité ni au global.
         Affectation::where('role_id', $this->roleId('VALIDEUR_INSPECTION'))->update(['actif' => false]);
-        $this->section($fiche, 7, ['domaines' => [['domaine' => 'QHSE'], ['domaine' => 'AUTRES', 'valideur_role_code' => 'VALIDEUR_INSPECTION']], 'risques' => $this->risquesActuels($fiche)])->assertOk();
+        $this->section($fiche, 7, ['domaines' => [['domaine' => 'QHSE'], ['domaine' => 'AUTRES', 'precision' => 'Environnement', 'valideur_role_code' => 'VALIDEUR_INSPECTION']], 'risques' => $this->risquesActuels($fiche)])->assertOk();
         $this->transition($fiche, 'PILOTE', 'T3')->assertUnprocessable()
             ->assertJsonFragment(['Aucun titulaire du rôle « Valideur Inspection / Intégrité » n’est affecté à l’unité de la fiche ni au périmètre global.']);
     }
 
-    public function test_domains_map_to_validators_production_first_and_duplicates_merged(): void
+    public function test_checked_domains_solicit_their_directors_all_at_once(): void
     {
         $fiche = $this->ficheEnCours();
         $this->completerPlan($fiche);
@@ -75,12 +76,37 @@ class ReglesMetierTest extends TestCase
         $this->transition($fiche, 'PILOTE', 'T3')->assertOk();
         $demandes = Validation::where('fiche_id', $fiche->id)->with('role')->get()->mapWithKeys(fn ($v) => [$v->role->code => $v->ordre]);
 
-        $this->assertEquals([
-            'VALIDEUR_PRODUCTION' => 1, 'VALIDEUR_PROCEDE' => 2, 'VALIDEUR_MAINTENANCE' => 2, 'VALIDEUR_INSPECTION' => 2, 'VALIDEUR_HSE' => 2,
-        ], $demandes->all());
-        $this->assertCount(5, $demandes);
-        $this->assertTrue(NotificationInterne::where('fiche_id', $fiche->id)->where('user_id', $this->acteurs['VALIDEUR_PRODUCTION'][0]->id)->where('type', 'DEMANDE_VALIDATION')->exists());
-        $this->assertFalse(NotificationInterne::where('fiche_id', $fiche->id)->where('user_id', $this->acteurs['VALIDEUR_HSE'][0]->id)->where('type', 'DEMANDE_VALIDATION')->exists());
+        // DT pour procédé, fiabilité et intégrité (une seule demande), DT et DSI pour la cybersécurité, DHSE pour QHSE.
+        $this->assertEquals(['VALIDEUR_PROCEDE' => 1, 'VALIDEUR_DSI' => 1, 'VALIDEUR_HSE' => 1], $demandes->all());
+        foreach (['VALIDEUR_PROCEDE', 'VALIDEUR_DSI', 'VALIDEUR_HSE'] as $role) {
+            $this->assertTrue(NotificationInterne::where('fiche_id', $fiche->id)->where('user_id', $this->acteurs[$role][0]->id)->where('type', 'DEMANDE_VALIDATION')->exists());
+        }
+        $this->assertFalse(Validation::where('fiche_id', $fiche->id)->whereHas('role', fn ($q) => $q->where('code', 'VALIDEUR_PRODUCTION'))->exists());
+
+        // Le plan n'est approuvé qu'une fois tous les directeurs d'accord.
+        $this->decider($this->demande($fiche, 'VALIDEUR_HSE'), 'VALIDEUR_HSE', 'VALIDE')->assertOk();
+        $this->decider($this->demande($fiche, 'VALIDEUR_DSI'), 'VALIDEUR_DSI', 'VALIDE')->assertOk();
+        $this->assertSame('EN_VALIDATION_PLAN', $fiche->refresh()->statut_etape);
+        $this->decider($this->demande($fiche, 'VALIDEUR_PROCEDE'), 'VALIDEUR_PROCEDE', 'VALIDE')->assertOk();
+        $this->assertSame('REALISATION_ACTIONS', $fiche->refresh()->statut_etape);
+    }
+
+    public function test_admin_changes_which_directors_validate_a_domain(): void
+    {
+        $this->agir('PILOTE')->getJson('/api/admin/circuit')->assertForbidden();
+        $this->agir('ADMIN_FONCTIONNEL')->putJson('/api/admin/circuit', ['domaines' => [['domaine' => 'QHSE', 'roles' => []]]])
+            ->assertUnprocessable();
+        $this->agir('ADMIN_FONCTIONNEL')->putJson('/api/admin/circuit', ['domaines' => [['domaine' => 'QHSE', 'roles' => ['VALIDEUR_HSE', 'VALIDEUR_PRODUCTION']]]])
+            ->assertOk()
+            ->assertJsonPath('data.domaines.0.roles', ['VALIDEUR_PRODUCTION', 'VALIDEUR_HSE']);
+
+        $fiche = $this->ficheEnCours();
+        $this->completerPlan($fiche);
+        $this->transition($fiche, 'PILOTE', 'T3')->assertOk();
+        $this->assertEqualsCanonicalizing(
+            ['VALIDEUR_HSE', 'VALIDEUR_PRODUCTION'],
+            Validation::where('fiche_id', $fiche->id)->with('role')->get()->pluck('role.code')->all(),
+        );
     }
 
     // ---- B6, B7, B8 et conflits -------------------------------------------------------
@@ -104,14 +130,13 @@ class ReglesMetierTest extends TestCase
     public function test_b8_pilot_holding_a_validator_role_is_never_solicited(): void
     {
         [$pilote] = $this->acteurs['PILOTE'];
-        Affectation::create(['user_id' => $pilote->id, 'role_id' => $this->roleId('VALIDEUR_PRODUCTION'), 'unite_id' => $this->unite->id, 'actif' => true]);
-        Affectation::where('user_id', $this->acteurs['VALIDEUR_PRODUCTION'][0]->id)->update(['actif' => false]);
-        Affectation::where('role_id', $this->roleId('VALIDEUR_PRODUCTION'))->where('user_id', '!=', $pilote->id)->update(['actif' => false]);
+        Affectation::create(['user_id' => $pilote->id, 'role_id' => $this->roleId('VALIDEUR_HSE'), 'unite_id' => $this->unite->id, 'actif' => true]);
+        Affectation::where('role_id', $this->roleId('VALIDEUR_HSE'))->where('user_id', '!=', $pilote->id)->update(['actif' => false]);
 
         $fiche = $this->ficheEnCours();
         $this->completerPlan($fiche);
         $this->transition($fiche, 'PILOTE', 'T3')->assertUnprocessable()
-            ->assertJsonFragment(['Aucun titulaire du rôle « Valideur Production / Exploitation » n’est affecté à l’unité de la fiche ni au périmètre global.']);
+            ->assertJsonFragment(['Aucun titulaire du rôle « Directeur QHSE (DHSE) » n’est affecté à l’unité de la fiche ni au périmètre global.']);
     }
 
     public function test_refusal_requires_comment_closes_pending_requests_and_notifies_pilot(): void

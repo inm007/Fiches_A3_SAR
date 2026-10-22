@@ -1,6 +1,6 @@
 import Badge from '../../ui/Badge.jsx'
 import Icon from '../../ui/Icon.jsx'
-import { Checkbox, Select } from '../../ui/FormControls.jsx'
+import { Checkbox, Select, TextInput } from '../../ui/FormControls.jsx'
 import { DOMAINES, MOC_STATUTS } from '../../../utils/constants.js'
 import Astuce, { Pastilles } from './Astuce.jsx'
 import CardsEditor from './CardsEditor.jsx'
@@ -17,30 +17,27 @@ export default function Section07RisquesMoc({ draft, set, fiche, options, readOn
   const domaineOptions = DOMAINES.map(([code, label]) => [code, label])
   const autres = draft.domaines.find((domaine) => domaine.domaine === 'AUTRES')
 
-  const choisirDomaines = (choisis) => set('domaines', choisis.map((code) => draft.domaines.find((domaine) => domaine.domaine === code) ?? { domaine: code, valideur_role_code: '' }))
+  const choisirDomaines = (choisis) => set('domaines', choisis.map((code) => draft.domaines.find((domaine) => domaine.domaine === code) ?? { domaine: code, valideur_role_code: '', precision: '' }))
+  const changerAutres = (champ, valeur) => set('domaines', draft.domaines.map((domaine) => (domaine.domaine === 'AUTRES' ? { ...domaine, [champ]: valeur } : domaine)))
 
   // Un risque rattaché à un domaine coche ce domaine : son valideur sera sollicité.
   const changerRisques = (rows) => {
     set('risques', rows)
     const manquants = [...new Set(rows.map((row) => row.domaine).filter((code) => code && !codes.includes(code)))]
-    if (manquants.length > 0) set('domaines', [...draft.domaines, ...manquants.map((code) => ({ domaine: code, valideur_role_code: '' }))])
+    if (manquants.length > 0) set('domaines', [...draft.domaines, ...manquants.map((code) => ({ domaine: code, valideur_role_code: '', precision: '' }))])
   }
 
-  const valideurs = [
-    { libelle: 'Valideur Production / Exploitation', note: 'toujours en premier' },
-    ...[...new Set(draft.domaines.filter((domaine) => domaine.domaine !== 'PRODUCTION').map((domaine) => (domaine.domaine === 'AUTRES'
-      ? (options?.roles_valideurs?.find((role) => role.code === domaine.valideur_role_code)?.libelle ?? 'Valideur « Autres » à choisir')
-      : DOMAINES.find(([code]) => code === domaine.domaine)?.[2])))]
-      .filter((libelle) => libelle && libelle !== 'Valideur Production / Exploitation')
-      .map((libelle) => ({ libelle })),
-  ]
+  // Directeurs sollicités en même temps : la correspondance de l'écran Circuit de validation, plus celui choisi pour « Autres ».
+  const valideurs = [...new Set(draft.domaines.flatMap((domaine) => (domaine.domaine === 'AUTRES'
+    ? [options?.roles_valideurs?.find((role) => role.code === domaine.valideur_role_code)?.libelle ?? 'Directeur « Autres » à choisir']
+    : options?.directeurs_par_domaine?.[domaine.domaine] ?? [])))]
 
   return (
     <div className="fiche-section">
       <Astuce ouvert={!readOnly && draft.domaines.length === 0} titre="Astuce : risques, MOC et valideurs">
         <ul>
           <li>Toute modification du procédé, d’un équipement, d’une protection, d’une procédure ou des conditions opératoires passe par un <strong>MOC</strong> (gestion du changement).</li>
-          <li>Chaque domaine coché ajoute son valideur au circuit du plan. Ajouter un risque d’un domaine coche ce domaine.</li>
+          <li>Chaque domaine coché ajoute son ou ses directeurs au circuit du plan. Ils reçoivent la demande en même temps et doivent tous approuver. Ajouter un risque d’un domaine coche ce domaine.</li>
           <li>Pendant la réalisation, seul le suivi des MOC (référence, statut, preuve) reste modifiable.</li>
         </ul>
       </Astuce>
@@ -48,23 +45,35 @@ export default function Section07RisquesMoc({ draft, set, fiche, options, readOn
       <h3>Domaines concernés *</h3>
       <Pastilles label="Domaines concernés" options={domaineOptions} readOnly={structureLocked} value={codes} onChange={choisirDomaines} />
       {autres && (
-        <Select
-          label="Valideur du domaine « Autres »"
-          options={(options?.roles_valideurs ?? []).map((role) => [role.code, role.libelle])}
-          readOnly={structureLocked}
-          required
-          value={autres.valideur_role_code}
-          onChange={(code) => set('domaines', draft.domaines.map((domaine) => (domaine.domaine === 'AUTRES' ? { ...domaine, valideur_role_code: code } : domaine)))}
-        />
+        <div className="fiche-section__grid">
+          <TextInput
+            hint="Ex. : environnement, finances, informatique…"
+            label="Préciser le domaine « Autres »"
+            readOnly={structureLocked}
+            required
+            value={autres.precision}
+            onChange={(valeur) => changerAutres('precision', valeur)}
+          />
+          <Select
+            hint="La personne qui a ce profil reçoit la demande de validation."
+            label="Directeur qui valide « Autres »"
+            options={(options?.roles_valideurs ?? []).map((role) => [role.code, role.libelle])}
+            readOnly={structureLocked}
+            required
+            value={autres.valideur_role_code}
+            onChange={(code) => changerAutres('valideur_role_code', code)}
+          />
+        </div>
       )}
 
       <div className="fiche-section__kpi">
-        <span className="fiche-section__kpi-label">Valideurs qui seront sollicités, dans l’ordre</span>
+        <span className="fiche-section__kpi-label">Directeurs sollicités en même temps (tous doivent approuver)</span>
+        {valideurs.length === 0 && <p className="fiche-section__muted">Cochez au moins un domaine.</p>}
         <ul className="fiche-section__list">
-          {valideurs.map((valideur) => (
-            <li key={valideur.libelle}>
+          {valideurs.map((libelle) => (
+            <li key={libelle}>
               <Icon className="fiche-section__ok" name="check" size={15} />
-              <span>{valideur.libelle}{valideur.note && <span className="fiche-section__muted"> ({valideur.note})</span>}</span>
+              <span>{libelle}</span>
             </li>
           ))}
         </ul>
