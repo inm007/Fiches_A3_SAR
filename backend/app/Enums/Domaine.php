@@ -3,7 +3,7 @@
 namespace App\Enums;
 
 /**
- * Domaines concernés (section 7) et valideur sollicité à la porte 1 (PRD §7).
+ * Domaines concernés (section 7) : chacun sollicite un ou plusieurs directeurs à la porte 1.
  */
 enum Domaine: string
 {
@@ -15,26 +15,44 @@ enum Domaine: string
     case SureteCybersecurite = 'SURETE_CYBERSECURITE';
     case Autres = 'AUTRES';
 
-    /**
-     * Rôle valideur déduit du domaine ; « Autres » est choisi par le pilote.
-     */
-    public function roleValideur(): ?string
+    public function libelle(): string
     {
         return match ($this) {
-            self::Qhse => 'VALIDEUR_HSE',
-            self::Procede, self::SureteCybersecurite => 'VALIDEUR_PROCEDE',
-            self::Fiabilite => 'VALIDEUR_MAINTENANCE',
-            self::Integrite => 'VALIDEUR_INSPECTION',
-            self::Production => 'VALIDEUR_PRODUCTION',
-            self::Autres => null,
+            self::Qhse => 'QHSE',
+            self::Procede => 'Procédé',
+            self::Fiabilite => 'Fiabilité',
+            self::Integrite => 'Intégrité',
+            self::Production => 'Production',
+            self::SureteCybersecurite => 'Sûreté / Cybersécurité',
+            self::Autres => 'Autres',
         };
     }
 
     /**
+     * Directeurs sollicités à la porte 1 à l'installation ; l'administrateur fonctionnel
+     * modifie ensuite la correspondance (écran Circuit de validation, table domaine_roles).
+     * « Autres » n'a pas de correspondance : le pilote choisit le directeur sur la fiche.
+     *
+     * @return array<int, string>
+     */
+    public function rolesParDefaut(): array
+    {
+        return match ($this) {
+            self::Qhse => ['VALIDEUR_HSE'],
+            self::Procede, self::Fiabilite, self::Integrite => ['VALIDEUR_PROCEDE'],
+            self::SureteCybersecurite => ['VALIDEUR_PROCEDE', 'VALIDEUR_DSI'],
+            self::Production => ['VALIDEUR_PRODUCTION'],
+            self::Autres => [],
+        };
+    }
+
+    /**
+     * Rôles de directeurs qui valident le plan (porte 1).
+     *
      * @return array<int, string>
      */
     public static function rolesValideurs(): array
     {
-        return ['VALIDEUR_PRODUCTION', 'VALIDEUR_HSE', 'VALIDEUR_PROCEDE', 'VALIDEUR_MAINTENANCE', 'VALIDEUR_INSPECTION'];
+        return ['VALIDEUR_PRODUCTION', 'VALIDEUR_HSE', 'VALIDEUR_PROCEDE', 'VALIDEUR_DSI', 'VALIDEUR_MAINTENANCE', 'VALIDEUR_INSPECTION'];
     }
 }

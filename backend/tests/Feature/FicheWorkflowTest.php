@@ -45,10 +45,9 @@ class FicheWorkflowTest extends TestCase
         $production = $this->demande($fiche, 'VALIDEUR_PRODUCTION');
         $hse = $this->demande($fiche, 'VALIDEUR_HSE');
         $this->assertSame(1, $production->ordre);
-        $this->assertSame(2, $hse->ordre);
+        $this->assertSame(1, $hse->ordre);
 
-        // Production / Exploitation passe en premier (PRD §7).
-        $this->decider($hse, 'VALIDEUR_HSE', 'VALIDE')->assertConflict();
+        // Les directeurs des domaines cochés sont sollicités en même temps.
         $this->decider($production, 'VALIDEUR_PRODUCTION', 'VALIDE')->assertOk();
 
         // B6 : refus sans commentaire interdit ; T5 ramène la fiche à En cours.
@@ -211,7 +210,7 @@ class FicheWorkflowTest extends TestCase
 
         $this->transition($fiche, 'PILOTE', 'T3')
             ->assertUnprocessable()
-            ->assertJsonFragment(['Aucun titulaire du rôle « Valideur HSE » n’est affecté à l’unité de la fiche ni au périmètre global.']);
+            ->assertJsonFragment(['Aucun titulaire du rôle « Directeur QHSE (DHSE) » n’est affecté à l’unité de la fiche ni au périmètre global.']);
     }
 
     public function test_stale_transition_returns_conflict(): void
@@ -301,6 +300,11 @@ class FicheWorkflowTest extends TestCase
             ->assertJsonPath('data.actions_par_statut.A_FAIRE', 0)
             ->assertJsonPath('data.fiches_creees_par_mois.5.total', 0);
 
+        // Une fiche attend un pilote une fois sa pertinence validée.
+        $this->agir('ADMIN_FONCTIONNEL')->getJson('/api/tableau-de-bord')
+            ->assertOk()
+            ->assertJsonPath('data.a_traiter', []);
+        $this->pertinenceValidee($fiche);
         $this->agir('ADMIN_FONCTIONNEL')->getJson('/api/tableau-de-bord')
             ->assertOk()
             ->assertJsonPath('data.a_traiter.0.libelle', 'Désigner le pilote');

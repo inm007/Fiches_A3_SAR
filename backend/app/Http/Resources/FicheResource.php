@@ -2,14 +2,17 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\Domaine;
 use App\Enums\Permission;
 use App\Enums\StatutAction;
 use App\Enums\StatutEtape;
 use App\Models\ActionA3;
+use App\Models\DomaineRole;
 use App\Models\EvenementHistorique;
 use App\Models\FicheA3;
 use App\Models\FicheA3Indicateur;
 use App\Models\Relance;
+use App\Models\Role;
 use App\Models\User;
 use App\Models\ValeurListe;
 use App\Models\Validation;
@@ -42,7 +45,7 @@ class FicheResource extends JsonResource
         /** @var FicheA3 $fiche */
         $fiche = $this->resource->loadMissing([
             'unite:id,code,libelle', 'equipement:id,code,libelle,reference_sap', 'origine:id,code,libelle', 'frequence:id,code,libelle',
-            'declarant:id,nom,prenom', 'pilote:id,nom,prenom', 'copilotes:id,nom,prenom', 'sponsor:id,nom,prenom', 'referenceSap',
+            'declarant:id,nom,prenom', 'pilote:id,nom,prenom', 'copilotes:id,nom,prenom', 'membres:id,nom,prenom', 'sponsor:id,nom,prenom', 'departement.responsable:id,nom,prenom', 'referenceSap',
             'impacts', 'indicateurs.mesures', 'causes', 'domaines.roleValideur:id,code,libelle', 'risques.responsable:id,nom,prenom',
             'actions.responsable:id,nom,prenom', 'actions.controles', 'actions.cause:id,numero', 'gains', 'perennisations.responsable:id,nom,prenom',
             'lecons', 'validations.role:id,code,libelle', 'validations.valideur:id,nom,prenom', 'validations.partages:id,nom,prenom',
@@ -57,6 +60,8 @@ class FicheResource extends JsonResource
         $categoriesGain = ValeurListe::query()->deLaListe('categorie_gain')->pluck('libelle', 'code');
         $typesPerennisation = ValeurListe::query()->deLaListe('type_perennisation')->pluck('libelle', 'code');
         $relances = $this->dernieresRelances($fiche, $profile);
+        $correspondance = DomaineRole::correspondance();
+        $rolesLibelles = Role::query()->pluck('libelle', 'code');
 
         return [
             'id' => $fiche->id,
@@ -80,6 +85,13 @@ class FicheResource extends JsonResource
                 'depuis' => $user->pivot->created_at?->toIso8601String(),
                 'motif' => $user->pivot->motif,
             ]),
+            'membres' => $fiche->membres->sortBy('pivot.created_at')->values()->map(fn (User $user) => $this->personne($user)),
+            'departement' => $fiche->departement === null ? null : [
+                'id' => $fiche->departement->id,
+                'libelle' => $fiche->departement->libelle,
+                'chef' => $this->personne($fiche->departement->responsable),
+            ],
+            'pertinence_validee_le' => $fiche->pertinence_validee_le?->toIso8601String(),
             'derniers_enregistrements' => $this->derniersEnregistrements($fiche, $profile),
 
             'identification' => [
@@ -116,8 +128,12 @@ class FicheResource extends JsonResource
             'actions' => $fiche->actions->sortBy('id')->values()->map(fn (ActionA3 $action) => $this->action($action, $fiche, $relances)),
             'domaines' => $fiche->domaines->map(fn ($domaine) => [
                 'domaine' => $domaine->domaine,
+                'precision' => $domaine->precision,
                 'valideur_role_code' => $domaine->roleValideur?->code,
                 'valideur_role' => $domaine->roleValideur?->libelle,
+                'directeurs' => $domaine->domaine === Domaine::Autres->value
+                    ? array_filter([$domaine->roleValideur?->libelle])
+                    : array_map(fn (string $code) => $rolesLibelles[$code] ?? $code, $correspondance[$domaine->domaine] ?? []),
             ]),
             'risques' => $fiche->risques->sortBy('id')->values()->map(fn ($risque) => [
                 ...$risque->only(['id', 'domaine', 'description', 'moc_requis', 'moc_reference', 'moc_statut', 'moc_preuve', 'mesure_maitrise', 'responsable_id']),
@@ -314,15 +330,22 @@ class FicheResource extends JsonResource
         $peutBloquer = $estPilote || $profile->peut(Permission::MettreEnAttente);
 
         $transitions = [];
+        $workflow = app(FicheWorkflow::class);
+        if ($etape === StatutEtape::Ouvert && $fiche->pertinence_validee_le === null && $workflow->peutSoumettrePertinence($fiche, $profile)) {
+            $transitions[] = 'T0';
+        }
+        if ($workflow->peutPrendreEnCharge($fiche, $profile)) {
+            $transitions[] = 'T2';
+        }
         if ($estPilote) {
-            $transitions = match ($etape) {
-                StatutEtape::Ouvert => ['T2'],
+            $transitions = [...$transitions, ...match ($etape) {
+                StatutEtape::Ouvert => $fiche->pertinence_validee_le === null ? [] : ['T2'],
                 StatutEtape::EnCours => ['T3'],
                 StatutEtape::RealisationActions => ['T6'],
                 StatutEtape::MesureResultats => ['T7', 'T11'],
                 StatutEtape::VerificationMaintien => ['T8', 'T11'],
                 default => [],
-            };
+            }];
         }
         if ($peutBloquer && $etape->estActive()) {
             $transitions[] = 'T12';
@@ -330,7 +353,7 @@ class FicheResource extends JsonResource
         if ($peutBloquer && $etape === StatutEtape::EnAttente) {
             $transitions[] = 'T13';
         }
-        if ($profile->is(...FicheWorkflow::ROLES_CLASSEMENT) && in_array($etape, [StatutEtape::Ouvert, StatutEtape::EnCours], true)) {
+        if ($profile->is(...FicheWorkflow::ROLES_CLASSEMENT) && in_array($etape, [StatutEtape::Ouvert, StatutEtape::EnValidationPertinence, StatutEtape::EnCours], true)) {
             $transitions[] = 'T14';
         }
 
@@ -341,6 +364,8 @@ class FicheResource extends JsonResource
             'sections_etat' => app(FicheSectionService::class)->etatsSections($fiche, $profile),
             'transitions' => array_values(array_unique($transitions)),
             'est_pilote' => $estPilote,
+            'est_membre' => $fiche->estMembre($userId),
+            'peut_gerer_equipe' => $estPilote && $etape->estActive(),
             'peut_designer_pilote' => $profile->is('ADMIN_FONCTIONNEL') && ! $etape->estFinale(),
             'peut_se_designer_pilote' => $profile->peutSeDesignerPilote($fiche),
             'peut_changer_confidentialite' => $estPilote || $profile->is('ADMIN_FONCTIONNEL'),

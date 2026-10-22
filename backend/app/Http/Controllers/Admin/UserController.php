@@ -23,7 +23,7 @@ class UserController extends AdminController
     public function index(): JsonResponse
     {
         $users = User::query()
-            ->with(['affectations.role:id,code,libelle', 'affectations.unite:id,code,libelle'])
+            ->with(['affectations.role:id,code,libelle', 'affectations.unite:id,code,libelle', 'entite:id,libelle'])
             ->orderBy('nom')
             ->orderBy('prenom')
             ->get();
@@ -41,6 +41,7 @@ class UserController extends AdminController
             'auth_source' => ['sometimes', Rule::in(['local', 'ldap'])],
             'ldap_dn' => ['nullable', 'string', 'max:255', 'unique:users,ldap_dn'],
             'actif' => ['sometimes', 'boolean'],
+            'entite_id' => ['nullable', 'integer', 'exists:entites,id'],
         ]);
         $this->validerSourceLdap($validated['auth_source'] ?? 'local', $validated['ldap_dn'] ?? null);
 
@@ -72,6 +73,7 @@ class UserController extends AdminController
             'auth_source' => ['sometimes', 'required', Rule::in(['local', 'ldap'])],
             'ldap_dn' => ['sometimes', 'nullable', 'string', 'max:255', Rule::unique('users', 'ldap_dn')->ignore($user->id)],
             'actif' => ['sometimes', 'boolean'],
+            'entite_id' => ['sometimes', 'nullable', 'integer', 'exists:entites,id'],
         ]);
 
         $authSource = $validated['auth_source'] ?? $user->auth_source;
@@ -181,7 +183,8 @@ class UserController extends AdminController
     private function userData(User $user): array
     {
         return [
-            ...$user->only(['id', 'identifiant', 'nom', 'prenom', 'email', 'auth_source', 'ldap_dn', 'actif', 'derniere_connexion']),
+            ...$user->only(['id', 'identifiant', 'nom', 'prenom', 'email', 'auth_source', 'ldap_dn', 'actif', 'derniere_connexion', 'entite_id']),
+            'entite' => $user->entite?->libelle,
             'affectations' => $user->affectations->map(fn (Affectation $affectation) => $this->affectationData($affectation))->values(),
         ];
     }
@@ -191,6 +194,6 @@ class UserController extends AdminController
      */
     private function auditData(User $user): array
     {
-        return $user->only(['identifiant', 'nom', 'prenom', 'email', 'auth_source', 'ldap_dn', 'actif']);
+        return $user->only(['identifiant', 'nom', 'prenom', 'email', 'auth_source', 'ldap_dn', 'actif', 'entite_id']);
     }
 }

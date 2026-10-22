@@ -33,7 +33,7 @@ trait SimuleFiches
         $this->withHeaders(['Origin' => 'http://localhost:5173', 'Referer' => 'http://localhost:5173/']);
 
         $this->unite = Unite::create(['code' => 'U-'.Str::random(6), 'libelle' => 'Unité de test', 'actif' => true]);
-        foreach (['AGENT', 'PILOTE', 'VALIDEUR_PRODUCTION', 'VALIDEUR_HSE', 'VALIDEUR_PROCEDE', 'VALIDEUR_MAINTENANCE', 'VALIDEUR_INSPECTION', 'CONTROLE_GESTION', 'DIRECTION'] as $role) {
+        foreach (['AGENT', 'PILOTE', 'VALIDEUR_PRODUCTION', 'VALIDEUR_HSE', 'VALIDEUR_PROCEDE', 'VALIDEUR_DSI', 'VALIDEUR_MAINTENANCE', 'VALIDEUR_INSPECTION', 'CONTROLE_GESTION', 'DIRECTION'] as $role) {
             $this->acteurs[$role] = $this->acteur($role, $this->unite->id);
         }
         $this->acteurs['ADMIN_FONCTIONNEL'] = $this->acteur('ADMIN_FONCTIONNEL', null);
@@ -63,7 +63,7 @@ trait SimuleFiches
             ['categorie' => 'METHODE', 'libelle' => 'Aucun plan d’inspection des purgeurs', 'niveau' => 1, 'racine' => true],
         ]])->assertOk()->json('data.analyse.causes.0.id');
         $risque = $this->section($fiche, 7, [
-            'domaines' => [['domaine' => 'QHSE']],
+            'domaines' => [['domaine' => 'PRODUCTION'], ['domaine' => 'QHSE']],
             'risques' => [['domaine' => 'QHSE', 'description' => 'Fuite vapeur', 'moc_requis' => true, 'moc_statut' => 'OUVERT']],
         ])->assertOk()->json('data.risques.0.id');
         [$pilote] = $this->acteurs['PILOTE'];
@@ -116,8 +116,18 @@ trait SimuleFiches
         ];
     }
 
+    /**
+     * Porte 0 franchie sans passer par le chef de département : la plupart des tests
+     * portent sur la suite du cycle (le circuit de pertinence a ses propres tests).
+     */
+    protected function pertinenceValidee(FicheA3 $fiche): void
+    {
+        $fiche->refresh()->forceFill(['pertinence_validee_le' => now()])->save();
+    }
+
     protected function designerPilote(FicheA3 $fiche): void
     {
+        $this->pertinenceValidee($fiche);
         [$pilote] = $this->acteurs['PILOTE'];
         $this->agir('ADMIN_FONCTIONNEL')->patchJson("/api/admin/fiches/{$fiche->id}", ['pilote_id' => $pilote->id])->assertOk();
     }

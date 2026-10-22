@@ -196,7 +196,11 @@ class TableauDeBordController extends Controller
         $items = $validations->map(fn (Validation $validation) => [
             'fiche_id' => $validation->fiche_id,
             'numero_a3' => $validation->fiche->numero_a3,
-            'libelle' => $validation->porte === 1 ? 'Valider le plan (porte 1)' : 'Valider la clôture (porte 2)',
+            'libelle' => match ($validation->porte) {
+                0 => 'Valider la pertinence (porte 0)',
+                1 => 'Valider le plan (porte 1)',
+                default => 'Valider la clôture (porte 2)',
+            },
             'delai' => (int) $validation->demandee_le->startOfDay()->diffInDays(today()).' j',
             'type' => 'validation',
         ]);
@@ -234,12 +238,13 @@ class TableauDeBordController extends Controller
                 'type' => 'controle',
             ]);
 
-        $sansPilote = $profile->is('ADMIN_FONCTIONNEL')
-            ? $visibles()->whereNull('pilote_id')->where('statut_etape', StatutEtape::Ouvert->value)->orderBy('created_at')->limit(5)->get(['id', 'numero_a3', 'created_at'])
+        // Pertinence validée, sans pilote : un pilote la prend en charge, ou l'administrateur la confie.
+        $sansPilote = $profile->is('ADMIN_FONCTIONNEL', 'PILOTE')
+            ? $visibles()->whereNull('pilote_id')->whereNotNull('pertinence_validee_le')->where('statut_etape', StatutEtape::Ouvert->value)->orderBy('created_at')->limit(5)->get(['id', 'numero_a3', 'created_at'])
                 ->map(fn (FicheA3 $fiche) => [
                     'fiche_id' => $fiche->id,
                     'numero_a3' => $fiche->numero_a3,
-                    'libelle' => 'Désigner le pilote',
+                    'libelle' => $profile->is('PILOTE') ? 'Prendre la fiche en charge' : 'Désigner le pilote',
                     'delai' => (int) $fiche->created_at->startOfDay()->diffInDays(today()).' j',
                     'type' => 'pilote',
                 ])

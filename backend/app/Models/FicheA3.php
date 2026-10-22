@@ -52,6 +52,8 @@ class FicheA3 extends Model
         'motif_attente',
         'date_resultats',
         'motif_classement',
+        'departement_id',
+        'pertinence_validee_le',
     ];
 
     protected function casts(): array
@@ -62,6 +64,7 @@ class FicheA3 extends Model
             'date_cible' => 'date',
             'date_cloture' => 'date',
             'date_resultats' => 'date',
+            'pertinence_validee_le' => 'datetime',
             'sans_gain_chiffre' => 'boolean',
             'version' => 'integer',
             'cout_mise_en_oeuvre_b' => 'integer',
@@ -139,6 +142,30 @@ class FicheA3 extends Model
     {
         $query->where(fn (Builder $q) => $q->where('pilote_id', $userId)
             ->orWhereHas('copilotes', fn (Builder $c) => $c->where('users.id', $userId)));
+    }
+
+    /**
+     * Équipe de la fiche, choisie par le pilote : les membres voient la fiche et
+     * renseignent l'analyse et le suivi ; seul le pilote soumet et change d'étape.
+     */
+    public function membres(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'fiche_membres', 'fiche_id', 'user_id')
+            ->withPivot(['ajoute_par'])
+            ->withTimestamps();
+    }
+
+    public function estMembre(?int $userId): bool
+    {
+        return $userId !== null && $this->membres->contains('id', $userId);
+    }
+
+    /**
+     * Département de l'initiateur, figé à la soumission de la pertinence (porte 0).
+     */
+    public function departement(): BelongsTo
+    {
+        return $this->belongsTo(Entite::class, 'departement_id');
     }
 
     public function sponsor(): BelongsTo

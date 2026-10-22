@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\Affectation;
 use App\Models\Role;
+use App\Services\Organigramme;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -18,7 +19,7 @@ class AffectationController extends AdminController
     /**
      * Rôles rattachés à une unité ; les autres (Contrôle de gestion, Direction, administrateurs) sont globaux.
      */
-    private const array ROLES_PAR_UNITE = ['AGENT', 'PILOTE', 'VALIDEUR_PRODUCTION', 'VALIDEUR_HSE', 'VALIDEUR_PROCEDE', 'VALIDEUR_MAINTENANCE', 'VALIDEUR_INSPECTION'];
+    private const array ROLES_PAR_UNITE = ['AGENT', 'PILOTE', 'VALIDEUR_PRODUCTION', 'VALIDEUR_HSE', 'VALIDEUR_PROCEDE', 'VALIDEUR_DSI', 'VALIDEUR_MAINTENANCE', 'VALIDEUR_INSPECTION'];
 
     /**
      * Rôles en lecture seule : leur définition est fixée par les seeders.
@@ -100,7 +101,11 @@ class AffectationController extends AdminController
      */
     private function validerPerimetre(int $roleId, int|string|null $uniteId, bool $exigerUniteActive = true): void
     {
-        $parUnite = in_array(Role::query()->findOrFail($roleId)->code, self::ROLES_PAR_UNITE, true);
+        $code = Role::query()->findOrFail($roleId)->code;
+        if ($code === Organigramme::ROLE_CHEF) {
+            throw ValidationException::withMessages(['role_id' => 'Le profil Chef de département suit l’organigramme : désignez le responsable du département dans l’écran Organigramme.']);
+        }
+        $parUnite = in_array($code, self::ROLES_PAR_UNITE, true);
         if ($parUnite !== ($uniteId !== null)) {
             throw ValidationException::withMessages(['unite_id' => $parUnite
                 ? 'Ce rôle nécessite une affectation à une unité.'

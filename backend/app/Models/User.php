@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['identifiant', 'nom', 'prenom', 'email', 'password', 'auth_source', 'ldap_dn', 'actif', 'derniere_connexion'])]
+#[Fillable(['identifiant', 'nom', 'prenom', 'email', 'password', 'auth_source', 'ldap_dn', 'actif', 'derniere_connexion', 'entite_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -34,6 +35,14 @@ class User extends Authenticatable
     protected function nomComplet(): Attribute
     {
         return Attribute::get(fn (): string => trim($this->prenom.' '.$this->nom));
+    }
+
+    /**
+     * Entité de rattachement dans l'organigramme (service, département ou direction).
+     */
+    public function entite(): BelongsTo
+    {
+        return $this->belongsTo(Entite::class);
     }
 
     public function affectations(): HasMany
