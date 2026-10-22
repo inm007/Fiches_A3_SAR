@@ -22,6 +22,8 @@ const adminLinks = [
   { label: 'Utilisateurs', to: '/admin/utilisateurs', icon: 'users' },
   { label: 'Affectations', to: '/admin/affectations', icon: 'assignments' },
   { label: 'Droits des rôles', to: '/admin/droits', icon: 'lock' },
+  { label: 'Organigramme', to: '/admin/organigramme', icon: 'org' },
+  { label: 'Circuit de validation', to: '/admin/circuit', icon: 'circuit' },
   { label: 'Unités', to: '/admin/unites', icon: 'unit' },
   { label: 'Équipements', to: '/admin/equipements', icon: 'equipment' },
   { label: 'Listes de choix', to: '/admin/listes', icon: 'lists' },

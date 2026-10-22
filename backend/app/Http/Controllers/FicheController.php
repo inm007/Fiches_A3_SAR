@@ -10,6 +10,7 @@ use App\Http\Controllers\Concerns\ResolvesVisibleFiche;
 use App\Http\Requests\FicheSectionRules;
 use App\Http\Resources\FicheResource;
 use App\Models\Affectation;
+use App\Models\DomaineRole;
 use App\Models\FicheA3;
 use App\Models\FicheVersion;
 use App\Models\Role;
@@ -296,6 +297,7 @@ class FicheController extends Controller
             'sponsors' => $this->titulaires(['DIRECTION'], null),
             'pilotes' => $this->titulaires(['PILOTE'], $fiche->unite_id, false),
             'roles_valideurs' => Role::whereIn('code', Domaine::rolesValideurs())->orderBy('id')->get(['code', 'libelle']),
+            'directeurs_par_domaine' => collect(DomaineRole::correspondance())->map(fn (array $codes) => Role::whereIn('code', $codes)->orderBy('id')->pluck('libelle')->all()),
             'membres_possibles' => User::query()->where('actif', true)->orderBy('nom')->orderBy('prenom')->get(['id', 'nom', 'prenom'])
                 ->map(fn (User $user) => ['id' => $user->id, 'nom' => $user->nom_complet])->values(),
         ]]);

@@ -11,6 +11,8 @@ export const ficheService = {
   list: (params) => apiRequest(`/fiches?${new URLSearchParams(params)}`),
   create: (data) => send('/fiches', 'POST', data).then((result) => result.data),
   get: (id) => apiRequest(`/fiches/${id}`).then((result) => result.data),
+  ajouterMembre: (id, userId) => send(`/fiches/${id}/membres`, 'POST', { user_id: userId }).then((result) => result.data),
+  retirerMembre: (id, userId) => send(`/fiches/${id}/membres/${userId}`, 'DELETE').then((result) => result.data),
   meDesignerPilote: (id) => send(`/fiches/${id}/me-designer`, 'POST').then((result) => result.data),
   options: (id) => apiRequest(`/fiches/${id}/options`).then((result) => result.data),
   saveSection: (id, section, data) => send(`/fiches/${id}/sections/${section}`, 'PUT', data).then((result) => result.data),

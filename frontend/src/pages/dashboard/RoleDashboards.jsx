@@ -159,7 +159,7 @@ export function ValideurDashboard({ data, hello, roleLabel }) {
         actions={<HeroButton icon="validation" to="/validations">Ouvrir ma file de validation</HeroButton>}
         eyebrow={roleLabel || 'Validation'}
         highlights={[
-          { label: 'En validation', value: data ? Number(data.par_etape?.EN_VALIDATION_PLAN ?? 0) + Number(data.par_etape?.EN_VALIDATION_CLOTURE ?? 0) : '—' },
+          { label: 'En validation', value: data ? Number(data.par_etape?.EN_VALIDATION_PERTINENCE ?? 0) + Number(data.par_etape?.EN_VALIDATION_PLAN ?? 0) + Number(data.par_etape?.EN_VALIDATION_CLOTURE ?? 0) : '—' },
           ...overview(data).slice(1),
         ]}
         text={data

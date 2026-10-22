@@ -4,16 +4,18 @@ export const VALIDATOR_ROLES = [
   'VALIDEUR_PRODUCTION',
   'VALIDEUR_HSE',
   'VALIDEUR_PROCEDE',
+  'VALIDEUR_DSI',
   'VALIDEUR_MAINTENANCE',
   'VALIDEUR_INSPECTION',
 ]
 
-export const BUSINESS_ROLES = ['AGENT', 'PILOTE', ...VALIDATOR_ROLES, 'CONTROLE_GESTION', 'DIRECTION', 'ADMIN_FONCTIONNEL']
+export const BUSINESS_ROLES = ['AGENT', 'PILOTE', 'CHEF_DEPARTEMENT', ...VALIDATOR_ROLES, 'CONTROLE_GESTION', 'DIRECTION', 'ADMIN_FONCTIONNEL']
 
-export const DECIDING_ROLES = [...VALIDATOR_ROLES, 'CONTROLE_GESTION', 'DIRECTION']
+export const DECIDING_ROLES = ['CHEF_DEPARTEMENT', ...VALIDATOR_ROLES, 'CONTROLE_GESTION', 'DIRECTION']
 
 export const ETAPES = {
   OUVERT: { label: 'Ouvert', tone: 'ouvert' },
+  EN_VALIDATION_PERTINENCE: { label: 'En validation de la pertinence', tone: 'validation' },
   EN_COURS: { label: 'En cours', tone: 'encours' },
   EN_VALIDATION_PLAN: { label: 'En validation du plan', tone: 'validation' },
   REALISATION_ACTIONS: { label: 'Réalisation des actions', tone: 'realisation' },
@@ -26,7 +28,7 @@ export const ETAPES = {
 }
 
 export const PARCOURS = [
-  'OUVERT', 'EN_COURS', 'EN_VALIDATION_PLAN', 'REALISATION_ACTIONS',
+  'OUVERT', 'EN_VALIDATION_PERTINENCE', 'EN_COURS', 'EN_VALIDATION_PLAN', 'REALISATION_ACTIONS',
   'MESURE_RESULTATS', 'VERIFICATION_MAINTIEN', 'EN_VALIDATION_CLOTURE', 'CLOTURE',
 ]
 
@@ -47,6 +49,7 @@ export const STATUTS_ACTION = {
 }
 
 export const TRANSITIONS = {
+  T0: { label: 'Soumettre au chef de département', primary: true },
   T2: { label: 'Commencer l’analyse', primary: true },
   T3: { label: 'Soumettre le plan', primary: true },
   T6: { label: 'Terminer les actions', primary: true },
@@ -60,8 +63,9 @@ export const TRANSITIONS = {
 
 // Ce que débloque chaque transition, affiché dans le panneau « Prochaine étape ».
 export const PROCHAINES_ETAPES = {
-  T2: { titre: 'Commencer l’analyse', texte: 'Vous prenez la fiche en main : les sections 1 à 7 s’ouvrent à la saisie.' },
-  T3: { titre: 'Soumettre le plan', texte: 'Le plan part en validation : Production / Exploitation d’abord, puis les valideurs des domaines cochés.' },
+  T0: { titre: 'Soumettre au chef de département', texte: 'Renseignez les sections 1 à 4 (identification, contexte, situation actuelle, objectif) : votre chef de département jugera la pertinence de l’idée, puis la fiche partira au pilote.' },
+  T2: { titre: 'Commencer l’analyse', texte: 'Vous prenez la fiche en main : les sections 1 à 7 s’ouvrent à la saisie, pour vous et votre équipe.' },
+  T3: { titre: 'Soumettre le plan', texte: 'Le plan part en même temps chez les directeurs des domaines cochés : tous doivent l’approuver.' },
   T6: { titre: 'Terminer la réalisation', texte: 'Toutes les actions sont réalisées ou annulées : vous pourrez mesurer les résultats.' },
   T7: { titre: 'Passer à la vérification du maintien', texte: 'La mesure Après est faite et l’objectif atteint : le maintien se vérifie à J+30, J+60 et J+90.' },
   T8: { titre: 'Soumettre la clôture', texte: 'Le Contrôle de gestion (si gains) puis la Direction valident la clôture.' },
@@ -90,15 +94,20 @@ export const IMPACTS = [
   ['SURETE', 'Sûreté et cybersécurité'],
 ]
 
+// Les directeurs sollicités pour chaque domaine viennent du serveur (écran Circuit de validation).
 export const DOMAINES = [
-  ['QHSE', 'QHSE', 'Valideur HSE'],
-  ['PROCEDE', 'Procédé', 'Valideur Procédé / Technique'],
-  ['FIABILITE', 'Fiabilité', 'Valideur Maintenance'],
-  ['INTEGRITE', 'Intégrité', 'Valideur Inspection / Intégrité'],
-  ['PRODUCTION', 'Production / Exploitation', 'Valideur Production / Exploitation'],
-  ['SURETE_CYBERSECURITE', 'Sûreté / Cybersécurité', 'Valideur Procédé / Technique'],
-  ['AUTRES', 'Autres', 'Valideur choisi par le pilote'],
+  ['QHSE', 'QHSE'],
+  ['PROCEDE', 'Procédé'],
+  ['FIABILITE', 'Fiabilité'],
+  ['INTEGRITE', 'Intégrité'],
+  ['PRODUCTION', 'Production / Exploitation'],
+  ['SURETE_CYBERSECURITE', 'Sûreté / Cybersécurité'],
+  ['AUTRES', 'Autres'],
 ]
+
+export const TYPES_ENTITE = [['DIRECTION', 'Direction'], ['DEPARTEMENT', 'Département'], ['SERVICE', 'Service']]
+
+export const PORTES = { 0: 'Pertinence', 1: 'Plan', 2: 'Clôture' }
 
 export const MOC_STATUTS = [['A_OUVRIR', 'À ouvrir'], ['OUVERT', 'Ouvert'], ['CLOTURE', 'Clôturé']]
 

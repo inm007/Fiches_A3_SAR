@@ -46,6 +46,8 @@ const paths = {
   download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
   comment: 'M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.4A8 8 0 1 1 21 12z',
   pause: 'M9 5v14M15 5v14',
+  org: 'M9 3h6v4H9zM3 17h6v4H3zM15 17h6v4h-6zM12 7v5M6 17v-5h12v5',
+  circuit: 'M5 6a2 2 0 1 0 0 .01M19 6a2 2 0 1 0 0 .01M12 18a2 2 0 1 0 0 .01M7 6h10M6 8l5 8M18 8l-5 8',
 }
 
 function Icon({ name, size = 20, className = '' }) {
