@@ -5,7 +5,7 @@ Outil de suivi des fiches A3 d'amélioration continue de la SAR : déclaration d
 
 ## Démarrage rapide
 
-Prérequis : PHP 8.3+, Composer, PostgreSQL, Node.js.
+Prérequis : PHP 8.5.12+ (ou 8.4.27+), Composer, PostgreSQL, Node.js.
 
 ```bash
 # 1. Backend

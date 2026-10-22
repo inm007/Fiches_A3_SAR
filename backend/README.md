@@ -3,7 +3,7 @@
 API Laravel de l'application P13 de numérisation de la fiche A3 d'amélioration continue de la SAR. Elle porte toutes les règles métier : authentification, droits, workflow, validations, contrôles d'efficacité, gains, historique et notifications. Le frontend React ne fait qu'afficher et saisir.
 
 ## Prérequis
-| PHP | 8.5 (minimum 8.3), extensions `pdo_pgsql`, `mbstring`, `openssl` |
+| PHP | 8.5.12 ou plus récent (minimum 8.4.27 en 8.4), extensions `pdo_pgsql`, `mbstring`, `openssl` |
 | Composer | 2.x |
 | PostgreSQL | 18.6 |
 | Laravel | 13.35 |
