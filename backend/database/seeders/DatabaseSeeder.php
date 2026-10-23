@@ -22,9 +22,11 @@ class DatabaseSeeder extends Seeder
             $this->call(DemoAccountsSeeder::class);
         }
 
-        // 15 fiches simulées à des étapes différentes : démonstration locale seulement (jamais en test ni en production).
+        // Fiches simulées compte par compte et activité autour (commentaires, pièces jointes, relances, journal) :
+        // démonstration locale seulement, jamais en test ni en production.
         if (app()->environment('local')) {
             $this->call(DemoFichesSeeder::class);
+            $this->call(DemoActiviteSeeder::class);
         }
     }
 }
