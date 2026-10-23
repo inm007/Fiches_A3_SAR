@@ -406,3 +406,44 @@ Ne sont plus ouverts : le modèle relationnel (PRD 12 et diagramme v2), la matri
 Sont inclus : application React, backend Laravel, PostgreSQL, Sanctum, API REST, workflow, validations, actions, contrôles d'efficacité, mesures, gains, pièces jointes, commentaires, historique, notifications internes, relances, courriel de réinitialisation, export PDF A3.
 
 Sont exclus : connexion LDAP réelle, appels SAP, SNCC et GMAO, notifications par courriel, WebSocket, export Excel, tablette et mobile, déploiement en production, analyse antivirus.
+
+## 20. Avenant du 23 octobre 2026
+
+Les changements techniques qui accompagnent l'avenant du PRD (circuit pilote, chef choisi et sponsor) sont les suivants.
+
+**Données.**
+- La migration `2026_10_23_000001_circuit_pilote_chef_sponsor` ajoute `fiches_a3.chef_pertinence_id`, une clé étrangère vers `users`.
+- Elle reprend le chef du département figé des fiches déjà soumises, puis supprime `departement_id` et `equipe`.
+- Elle rend facultatives les colonnes `gains.quantite`, `unite` et `cout_unitaire`, qui sont conservées pour l'historique. Seul `montant_annuel` est saisi.
+
+**Workflow.**
+- La transition T2 disparaît.
+- T0, déclenchée par le pilote depuis l'étape Ouvert, exige que les sections 1 à 4 soient complètes (sponsor et chef compris) et que le chef choisi soit disponible.
+- La décision de porte 0 accepte `classer: true` avec un refus : la fiche passe alors en Classée sans suite. Un refus sans ce champ ramène la fiche à Ouvert.
+- La validation de la pertinence fixe la date de lancement et fait passer la fiche à En cours.
+
+**Circuit (`ValidationCircuit`).**
+- Titulaire de la porte 0 : `chef_pertinence_id`.
+- Titulaire du rôle sponsor à la porte 2 : `sponsor_id`. Ce rôle est Direction si le sponsor le détient, sinon son premier rôle de directeur.
+- Pilotes, pilotes associés et membres de l'équipe sont exclus de toutes les demandes (B8).
+
+**API.**
+- `GET /fiches/{id}/options` renvoie `sponsors` (directeurs), `chefs` et `chef_propose`.
+- Il renvoie `membres_possibles` (agents et pilotes actifs) au pilote seulement.
+- `POST /fiches/{id}/pieces-jointes` accepte `action_id` ou `perennisation_id`. Les deux champs s'excluent.
+- La section 9 attend `gains.*.montant_annuel`.
+
+**Sécurité.**
+- Connexion : 5 échecs par identifiant et 50 par adresse IP sur 15 minutes. Une connexion réussie ne remet pas à zéro le compteur de l'adresse.
+- `TRUSTED_PROXIES` (configuration `app.trusted_proxies`) déclare les reverse proxies de confiance.
+- Le middleware `SecurityHeaders` pose `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, et HSTS en HTTPS.
+- Une requête à l'API sans session répond 401 au lieu de chercher une route de connexion.
+
+**Tests.**
+- PHPUnit tourne sur la base `fiche_a3_test` avec `RefreshDatabase` et ne touche plus la base de démonstration.
+- Les nouveaux tests couvrent :
+  - le circuit de pertinence ;
+  - l'équipe ;
+  - les seuils de connexion, la réponse 401 et les en-têtes de sécurité ;
+  - les gains saisis à la main ;
+  - les preuves facultatives et leurs pièces jointes.
