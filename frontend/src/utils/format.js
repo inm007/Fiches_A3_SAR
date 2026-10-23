@@ -27,11 +27,6 @@ export function formatPercent(value) {
   return value === null || value === undefined ? 'Non calculable' : `${decimalFormatter.format(value)} %`
 }
 
-export function formatPayback(years) {
-  if (years === null || years === undefined) return 'Non calculable'
-  return `${decimalFormatter.format(years)} an(s) · ${decimalFormatter.format(years * 12)} mois`
-}
-
 export function libelle(pairs, code) {
   return pairs.find(([value]) => value === code)?.[1] ?? code ?? '—'
 }

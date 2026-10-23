@@ -50,7 +50,6 @@ export const STATUTS_ACTION = {
 
 export const TRANSITIONS = {
   T0: { label: 'Soumettre au chef de département', primary: true },
-  T2: { label: 'Commencer l’analyse', primary: true },
   T3: { label: 'Soumettre le plan', primary: true },
   T6: { label: 'Terminer les actions', primary: true },
   T7: { label: 'Passer à la vérification du maintien', primary: true },
@@ -63,12 +62,11 @@ export const TRANSITIONS = {
 
 // Ce que débloque chaque transition, affiché dans le panneau « Prochaine étape ».
 export const PROCHAINES_ETAPES = {
-  T0: { titre: 'Soumettre au chef de département', texte: 'Renseignez les sections 1 à 4 (identification, contexte, situation actuelle, objectif) : votre chef de département jugera la pertinence de l’idée, puis la fiche partira au pilote.' },
-  T2: { titre: 'Commencer l’analyse', texte: 'Vous prenez la fiche en main : les sections 1 à 7 s’ouvrent à la saisie, pour vous et votre équipe.' },
+  T0: { titre: 'Soumettre au chef de département', texte: 'Renseignez les sections 1 à 4 (identification et sponsor, contexte, situation actuelle, objectif) et choisissez en section 4 le chef qui juge la pertinence. Une fois validée, vous constituez l’équipe et poursuivez l’analyse.' },
   T3: { titre: 'Soumettre le plan', texte: 'Le plan part en même temps chez les directeurs des domaines cochés : tous doivent l’approuver.' },
   T6: { titre: 'Terminer la réalisation', texte: 'Toutes les actions sont réalisées ou annulées : vous pourrez mesurer les résultats.' },
   T7: { titre: 'Passer à la vérification du maintien', texte: 'La mesure Après est faite et l’objectif atteint : le maintien se vérifie à J+30, J+60 et J+90.' },
-  T8: { titre: 'Soumettre la clôture', texte: 'Le Contrôle de gestion (si gains) puis la Direction valident la clôture.' },
+  T8: { titre: 'Soumettre la clôture', texte: 'Le Contrôle de gestion (si gains) puis le directeur sponsor valident la clôture.' },
 }
 
 export const ROLES_INDICATEUR = [

@@ -1,4 +1,5 @@
 import Badge from '../../ui/Badge.jsx'
+import JoindrePreuve from '../JoindrePreuve.jsx'
 import { STATUTS_SIMPLES } from '../../../utils/constants.js'
 import Astuce, { Pastilles } from './Astuce.jsx'
 import CardsEditor from './CardsEditor.jsx'
@@ -15,7 +16,7 @@ const PREUVES = {
   KPI_TABLEAU_DE_BORD: 'Tableau de bord où le KPI est suivi',
 }
 
-export default function Section10Perennisation({ draft, set, options, refs, readOnly }) {
+export default function Section10Perennisation({ draft, set, fiche, options, refs, readOnly }) {
   const types = listOptions(refs, 'type_perennisation')
   const libelle = (code) => types.find(([value]) => value === code)?.[1] ?? code
   const presents = draft.perennisation.map((ligne) => ligne.type)
@@ -23,12 +24,13 @@ export default function Section10Perennisation({ draft, set, options, refs, read
     const nouveaux = codes.filter((code) => !presents.includes(code))
     if (nouveaux.length) set('perennisation', [...draft.perennisation, ...nouveaux.map((type) => ({ type, responsable_id: '', date: '', statut: 'A_FAIRE', preuve: '' }))])
   }
-  const restantes = draft.perennisation.filter((ligne) => ligne.statut !== 'REALISE' || !ligne.preuve?.trim()).length
+  const restantes = draft.perennisation.filter((ligne) => ligne.statut !== 'REALISE').length
+  const peutJoindre = fiche.droits.peut_ajouter_piece_jointe
 
   return (
     <div className="fiche-section">
       <Astuce ouvert={!readOnly && draft.perennisation.length === 0} titre="Astuce : faire durer le résultat">
-        <p>Sans standard, le problème revient. Choisissez ce qui fera durer le résultat (procédure, paramètres, formation, plan de maintenance, KPI suivi). Chaque action doit être <strong>réalisée avec sa preuve</strong> avant la clôture.</p>
+        <p>Sans standard, le problème revient. Choisissez ce qui fera durer le résultat (procédure, paramètres, formation, plan de maintenance, KPI suivi). Chaque action doit être <strong>réalisée</strong> avant la clôture. La preuve est facultative : une référence écrite, et si vous le souhaitez un document ou une photo joints.</p>
       </Astuce>
 
       {!readOnly && (
@@ -38,7 +40,7 @@ export default function Section10Perennisation({ draft, set, options, refs, read
         </>
       )}
       {draft.perennisation.length > 0 && restantes > 0 && (
-        <p className="fiche-section__warning">{restantes} action{restantes > 1 ? 's' : ''} à réaliser avec sa preuve avant de soumettre la clôture.</p>
+        <p className="fiche-section__warning">{restantes} action{restantes > 1 ? 's' : ''} à réaliser avant de soumettre la clôture.</p>
       )}
 
       <CardsEditor
@@ -49,7 +51,15 @@ export default function Section10Perennisation({ draft, set, options, refs, read
           { key: 'responsable_id', label: 'Responsable', render: (row, setRow) => <CellSelect options={peopleOptions(options?.responsables)} readOnly={readOnly} value={row.responsable_id} onChange={(value) => setRow('responsable_id', value)} /> },
           { key: 'date', label: 'Date', render: (row, setRow) => <CellInput readOnly={readOnly} type="date" value={row.date} onChange={(value) => setRow('date', value)} /> },
           { key: 'statut', label: 'Statut *', render: (row, setRow) => <CellSelect options={STATUTS_SIMPLES} placeholder={null} readOnly={readOnly} value={row.statut} onChange={(value) => setRow('statut', value)} /> },
-          { key: 'preuve', label: 'Preuve *', wide: true, render: (row, setRow) => <CellInput placeholder={PREUVES[row.type] ?? 'Référence du document ou de l’enregistrement'} readOnly={readOnly} value={row.preuve} onChange={(value) => setRow('preuve', value)} /> },
+          { key: 'preuve', label: 'Preuve (facultative)', wide: true, render: (row, setRow) => <CellInput placeholder={PREUVES[row.type] ?? 'Référence du document ou de l’enregistrement'} readOnly={readOnly} value={row.preuve} onChange={(value) => setRow('preuve', value)} /> },
+          ...(peutJoindre ? [{
+            key: 'fichier',
+            label: 'Pièce jointe',
+            wide: true,
+            render: (row) => (row.id
+              ? <JoindrePreuve fiche={fiche} perennisationId={row.id} />
+              : <span className="fiche-section__muted">Enregistrez la section pour joindre un fichier.</span>),
+          }] : []),
         ]}
         newRow={() => ({ type: '', responsable_id: '', date: '', statut: 'A_FAIRE', preuve: '' })}
         addLabel="Ajouter une autre action"

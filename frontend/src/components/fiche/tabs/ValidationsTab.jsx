@@ -13,6 +13,18 @@ import './FicheTab.css'
 
 const tones = { EN_ATTENTE: 'warning', VALIDE: 'success', REFUSE: 'error', ANNULE: 'neutral' }
 const steps = { EN_ATTENTE: 'is-wait', VALIDE: 'is-ok', REFUSE: 'is-ko' }
+// Libellés des boutons et de la boîte de dialogue selon la décision choisie.
+const CHOIX = {
+  VALIDE: { bouton: 'Approuver', titre: 'Approuver la demande', confirmer: 'Approuver', variant: 'primary', toast: 'Demande approuvée' },
+  REFUSE: { bouton: 'Refuser', titre: 'Refuser la demande', confirmer: 'Confirmer le refus', variant: 'danger-solid', toast: 'Refus enregistré — le pilote est notifié' },
+  REFAIRE: { bouton: 'À refaire', titre: 'Renvoyer la fiche à refaire', confirmer: 'Renvoyer au pilote', variant: 'danger-solid', toast: 'Fiche renvoyée au pilote' },
+  RENVOYER: { bouton: 'Renvoyer', titre: 'Renvoyer la fiche au pilote', confirmer: 'Renvoyer au pilote', variant: 'danger-solid', toast: 'Fiche renvoyée au pilote' },
+  CLASSER: { bouton: 'Classer sans suite', titre: 'Classer la fiche sans suite', confirmer: 'Classer sans suite', variant: 'danger-solid', toast: 'Fiche classée sans suite' },
+}
+
+// Porte 0 : le chef valide, renvoie à refaire ou classe ; porte 2 : le sponsor valide ou renvoie.
+const choixDe = (porte) => (porte === 0 ? ['VALIDE', 'REFAIRE', 'CLASSER'] : porte === 2 ? ['VALIDE', 'RENVOYER'] : ['VALIDE', 'REFUSE'])
+
 const RETOURS = [
   ['VERIFICATION_MAINTIEN', 'Le maintien, les gains, la pérennisation ou les leçons sont à reprendre'],
   ['MESURE_RESULTATS', 'La mesure des résultats est à refaire'],
@@ -39,7 +51,9 @@ function Resume({ fiche, validation }) {
       {validation.porte === 0 && (
         <>
           <div><dt>Contexte</dt><dd>{fiche.contexte.contexte ?? '—'}</dd></div>
-          <div><dt>Initiateur</dt><dd>{fiche.declarant?.nom ?? '—'}{fiche.departement && ` · ${fiche.departement.libelle}`}</dd></div>
+          <div><dt>Déclarant</dt><dd>{fiche.declarant?.nom ?? '—'}</dd></div>
+          <div><dt>Pilote</dt><dd>{fiche.pilote?.nom ?? '—'}</dd></div>
+          <div><dt>Sponsor</dt><dd>{fiche.identification.sponsor?.nom ?? '—'}</dd></div>
         </>
       )}
       {validation.porte === 0 ? null : validation.porte === 1 ? (
@@ -51,7 +65,7 @@ function Resume({ fiche, validation }) {
         <>
           <div><dt>Objectif atteint</dt><dd>{{ OUI: 'Oui', PARTIELLEMENT: 'Partiellement', NON: 'Non' }[fiche.resultats.objectif_atteint] ?? '—'}</dd></div>
           <div><dt>Maintien</dt><dd>{(fiche.maintien ?? []).map((jalon) => `${jalon.jalon.replace('J', 'J+')} : ${jalon.valeur === null ? '—' : formatNumber(jalon.valeur)}`).join(' · ')}</dd></div>
-          <div><dt>Gains</dt><dd>{fiche.gains.sans_gain_chiffre ? 'Sans gain chiffré' : `${formatFcfa(fiche.gains.total_a)} par an · gain net ${formatFcfa(fiche.gains.gain_net)}`}</dd></div>
+          <div><dt>Gains</dt><dd>{fiche.gains.sans_gain_chiffre ? 'Sans gain chiffré' : `${formatFcfa(fiche.gains.total_a)} par an, dont ${formatFcfa(fiche.gains.total_a_valide)} validés`}</dd></div>
         </>
       )}
     </dl>
@@ -85,12 +99,14 @@ export default function ValidationsTab({ fiche, onChange, onError }) {
     }
   }
 
-  const decide = (validation, decision) => run(() => ficheService.decision(validation.id, {
-    decision,
+  const refus = dialog && dialog.decision !== 'VALIDE'
+  const decide = (validation, choix) => run(() => ficheService.decision(validation.id, {
+    decision: choix === 'VALIDE' ? 'VALIDE' : 'REFUSE',
     commentaire: commentaire || null,
     retour: validation.porte === 2 ? retour : null,
-    section: decision === 'REFUSE' && section ? Number(section) : null,
-  }), decision === 'VALIDE' ? 'Demande approuvée' : 'Refus enregistré — le pilote est notifié')
+    section: choix !== 'VALIDE' && choix !== 'CLASSER' && section ? Number(section) : null,
+    classer: choix === 'CLASSER',
+  }), CHOIX[choix].toast)
 
   return (
     <section className="fiche-tab" data-fiche-tab="validations">
@@ -126,7 +142,7 @@ export default function ValidationsTab({ fiche, onChange, onError }) {
 
       <ol className="sar-timeline">
         {fiche.validations.length === 0 && (
-          <li><b>Porte 1 — Production / Exploitation, puis les domaines cochés</b><span className="fiche-tab__muted">À la soumission du plan</span></li>
+          <li><b>Porte 0 — Chef de département choisi en section 4</b><span className="fiche-tab__muted">Quand le pilote soumet les sections 1 à 4</span></li>
         )}
         {fiche.validations.map((validation) => (
           <li className={steps[validation.decision]} key={validation.id}>
@@ -151,41 +167,43 @@ export default function ValidationsTab({ fiche, onChange, onError }) {
             )}
             {validation.actionnable && (
               <span className="fiche-tab__buttons">
-                <Button disabled={busy} size="small" type="button" variant="success" onClick={() => setDialog({ validation, decision: 'VALIDE' })}>Approuver</Button>
-                <Button disabled={busy} size="small" type="button" variant="danger" onClick={() => setDialog({ validation, decision: 'REFUSE' })}>Refuser</Button>
+                {choixDe(validation.porte).map((choix) => (
+                  <Button disabled={busy} key={choix} size="small" type="button" variant={choix === 'VALIDE' ? 'success' : 'danger'} onClick={() => setDialog({ validation, decision: choix })}>{CHOIX[choix].bouton}</Button>
+                ))}
               </span>
             )}
           </li>
         ))}
         {fiche.validations.length > 0 && !porte2 && (
-          <li><b>Porte 2 — Contrôle de gestion (si gains), puis Direction</b><span className="fiche-tab__muted">Après les mesures et les contrôles</span></li>
+          <li><b>Porte 2 — Contrôle de gestion (si gains), puis le directeur sponsor</b><span className="fiche-tab__muted">Après les mesures et les contrôles</span></li>
         )}
       </ol>
 
       <ConfirmDialog
         busy={busy}
-        confirmLabel={dialog?.decision === 'REFUSE' ? 'Confirmer le refus' : 'Approuver'}
-        disabled={dialog?.decision === 'REFUSE' && !commentaire.trim()}
+        confirmLabel={dialog ? CHOIX[dialog.decision].confirmer : ''}
+        disabled={refus && !commentaire.trim()}
         open={Boolean(dialog)}
-        title={dialog?.decision === 'REFUSE' ? 'Refuser la demande' : 'Approuver la demande'}
-        variant={dialog?.decision === 'REFUSE' ? 'danger-solid' : 'primary'}
+        title={dialog ? CHOIX[dialog.decision].titre : ''}
+        variant={dialog ? CHOIX[dialog.decision].variant : 'primary'}
         onCancel={() => setDialog(null)}
         onConfirm={() => decide(dialog.validation, dialog.decision)}
       >
         {dialog && <Resume fiche={fiche} validation={dialog.validation} />}
-        {dialog?.decision === 'REFUSE' && <p className="fiche-tab__muted">Dites au pilote ce qu’il doit corriger : le commentaire est obligatoire.</p>}
-        <TextArea label={dialog?.decision === 'REFUSE' ? 'Motif du refus' : 'Commentaire'} required={dialog?.decision === 'REFUSE'} value={commentaire} onChange={setCommentaire} />
-        {dialog?.decision === 'REFUSE' && (
+        {refus && dialog.decision !== 'CLASSER' && <p className="fiche-tab__muted">Dites au pilote ce qu’il doit corriger : le commentaire est obligatoire.</p>}
+        {dialog?.decision === 'CLASSER' && <p className="fiche-tab__muted">La fiche est close sans suite (doublon, hors sujet, déjà traité). Le motif est obligatoire et le pilote est prévenu.</p>}
+        <TextArea label={refus ? 'Motif' : 'Commentaire'} required={refus} value={commentaire} onChange={setCommentaire} />
+        {refus && dialog.decision !== 'CLASSER' && (
           <Select
             hint="Le pilote est envoyé directement sur cette section."
             label="Section à corriger"
-            options={SECTIONS.slice(0, 11).map((titre, index) => [String(index + 1), `${index + 1}. ${titre}`])}
+            options={SECTIONS.slice(0, dialog.validation.porte === 0 ? 4 : 11).map((titre, index) => [String(index + 1), `${index + 1}. ${titre}`])}
             placeholder="Plusieurs ou aucune en particulier"
             value={section}
             onChange={setSection}
           />
         )}
-        {dialog?.decision === 'REFUSE' && dialog.validation.porte === 2 && (
+        {dialog?.decision === 'RENVOYER' && (
           <Select
             label="Qu’est-ce qui est en cause ?"
             options={RETOURS}

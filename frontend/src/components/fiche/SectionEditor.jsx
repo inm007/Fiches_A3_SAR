@@ -39,7 +39,7 @@ const components = {
  * Le succès n'est affiché qu'après la réponse positive du serveur (UX §10.1).
  */
 function SectionEditor({ fiche, section, refs, options, onSaved, onError, onNavigate, onDirtyChange, onPrintCopy }) {
-  const [draft, setDraft] = useState(() => sectionModel[section].toDraft(fiche))
+  const [draft, setDraft] = useState(() => sectionModel[section].toDraft(fiche, options))
   const [state, setState] = useState('idle')
   const [failure, setFailure] = useState('')
   const editable = fiche.droits.sections_editables.includes(section)
@@ -69,7 +69,7 @@ function SectionEditor({ fiche, section, refs, options, onSaved, onError, onNavi
     setFailure('')
     try {
       const saved = await ficheService.saveSection(fiche.id, section, sectionModel[section].toPayload(draft))
-      setDraft(sectionModel[section].toDraft(saved))
+      setDraft(sectionModel[section].toDraft(saved, options))
       setState('saved')
       onSaved(saved)
       toast(`Section ${section} enregistrée`)

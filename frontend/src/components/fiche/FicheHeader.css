@@ -104,7 +104,9 @@
 /* Progression : pastilles numérotées reliées par un trait */
 .fiche-header__progress {
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  /* Une colonne par étape du parcours, quel que soit leur nombre. */
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
   margin: 6px 0 0;
   padding: 0;
   list-style: none;

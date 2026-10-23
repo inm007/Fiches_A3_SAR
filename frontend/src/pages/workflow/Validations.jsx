@@ -45,7 +45,7 @@ function Validations() {
     setError(null)
     try {
       await ficheService.decision(demande.id, { decision, commentaire: commentaire || null, retour: demande.porte === 2 ? 'VERIFICATION_MAINTIEN' : null })
-      toast(decision === 'VALIDE' ? `${demande.fiche.numero_a3} — demande approuvée` : `${demande.fiche.numero_a3} — refus enregistré, ${demande.porte === 0 ? 'l’initiateur' : 'le pilote'} est notifié`)
+      toast(decision === 'VALIDE' ? `${demande.fiche.numero_a3} — demande approuvée` : `${demande.fiche.numero_a3} — renvoyée au pilote, qui est notifié`)
       setRefus(null)
       setCommentaire('')
       refreshCounters()

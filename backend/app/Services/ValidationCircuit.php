@@ -275,6 +275,10 @@ class ValidationCircuit
         foreach (array_keys($roles) as $code) {
             if ($this->titulaire($code, $fiche, $porte) === null) {
                 if ($code === Organigramme::ROLE_CHEF) {
+                    // Sans chef choisi, la section 4 le signale déjà : un seul message suffit.
+                    if ($fiche->chef_pertinence_id === null) {
+                        continue;
+                    }
                     $manques[] = Manque::section(4, 'Section 4 : le chef de département choisi n’est plus disponible (profil retiré, compte désactivé ou membre de la fiche) : choisissez-en un autre.');
 
                     continue;

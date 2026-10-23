@@ -56,7 +56,7 @@ function HeroButton({ to, icon, children, variant = 'primary' }) {
 
 const DECLARE_STEPS = [
   { title: 'Décrire le problème', text: 'Titre, unité, origine et énoncé des faits.' },
-  { title: 'Un pilote est désigné', text: 'Il complète l’analyse et le plan d’actions.' },
+  { title: 'Un pilote est désigné', text: 'Il fait valider la pertinence par un chef de département, puis mène l’analyse et le plan avec son équipe.' },
   { title: 'Suivre l’avancement', text: 'Vous êtes notifié à chaque étape franchie.' },
 ]
 

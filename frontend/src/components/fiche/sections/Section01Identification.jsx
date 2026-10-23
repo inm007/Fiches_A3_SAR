@@ -1,7 +1,7 @@
 import { Select, TextInput } from '../../ui/FormControls.jsx'
 import { ConfidentialiteBadge } from '../EtapeBadge.jsx'
 import EquipeFiche from '../EquipeFiche.jsx'
-import Astuce, { ListeNoms } from './Astuce.jsx'
+import Astuce from './Astuce.jsx'
 import { listOptions, peopleOptions } from './options.js'
 import './FicheSection.css'
 
@@ -15,10 +15,10 @@ export default function Section01Identification({ draft, set, fiche, refs, optio
     <div className="fiche-section">
       <Astuce ouvert={!readOnly && !draft.sponsor_id} titre="Astuce : qui porte la fiche ?">
         <ul>
-          <li><strong>Initiateur</strong> : il remplit les sections 1 à 4 et les soumet à son chef de département, qui juge la pertinence de l’idée.</li>
-          <li><strong>Pilote</strong> : la personne qui mène la fiche de bout en bout. Après la validation de la pertinence, la fiche part au pilote (ou au premier pilote qui la prend en charge s’ils sont plusieurs).</li>
-          <li><strong>Sponsor</strong> : le responsable de la Direction qui soutient le sujet, débloque les moyens et donne l’accord final à la clôture.</li>
-          <li><strong>Équipe</strong> : le pilote ajoute des membres, même d’une autre direction. Ils renseignent l’analyse et le suivi. Les participants sans compte s’ajoutent par leur nom.</li>
+          <li><strong>Déclarant</strong> : un agent ou un pilote. Quand un agent déclare, l’administrateur fonctionnel désigne un pilote de l’unité.</li>
+          <li><strong>Pilote</strong> : il remplit les sections 1 à 4, choisit en section 4 le chef de département qui valide la pertinence, puis mène la fiche jusqu’à la clôture.</li>
+          <li><strong>Sponsor</strong> : un directeur, choisi ici. Il soutient le sujet et donne l’accord final à la clôture (valider ou renvoyer).</li>
+          <li><strong>Équipe</strong> : après la validation de la pertinence, le pilote ajoute des agents et des pilotes. Ils voient la fiche et renseignent l’analyse et le suivi.</li>
         </ul>
       </Astuce>
 
@@ -37,28 +37,21 @@ export default function Section01Identification({ draft, set, fiche, refs, optio
 
       <h3>Les personnes</h3>
       <div className="fiche-section__grid">
-        <TextInput label="Pilote" readOnly value={fiche.pilote?.nom ?? 'Non désigné'} />
         <Select
-          hint="Responsable Direction qui soutient le sujet et valide la clôture."
+          hint="Un directeur : il soutient le sujet et donne l’accord final à la clôture."
           label="Sponsor"
           options={peopleOptions(options?.sponsors)}
           readOnly={readOnly}
+          required
           value={draft.sponsor_id}
           onChange={(value) => set('sponsor_id', value)}
         />
-        <ListeNoms
-          hint="Ajoutez chaque personne puis appuyez sur Entrée."
-          label="Participants sans compte"
-          readOnly={readOnly}
-          value={draft.equipe}
-          onChange={(value) => set('equipe', value)}
-        />
       </div>
-      {fiche.pilote && <EquipeFiche fiche={fiche} options={options} onChange={onFicheChange} />}
+      {fiche.pertinence_validee_le && <EquipeFiche fiche={fiche} options={options} onChange={onFicheChange} />}
 
       <h3>Dates et références</h3>
       <div className="fiche-section__grid">
-        <TextInput hint="Remplie automatiquement au démarrage de l’analyse." label="Date de lancement" readOnly={readOnly} type="date" value={draft.date_lancement} onChange={(value) => set('date_lancement', value)} />
+        <TextInput hint="Remplie automatiquement à la validation de la pertinence." label="Date de lancement" readOnly={readOnly} type="date" value={draft.date_lancement} onChange={(value) => set('date_lancement', value)} />
         <TextInput hint="Date à laquelle l’objectif doit être atteint." label="Date cible" readOnly={readOnly} required type="date" value={draft.date_cible} onChange={(value) => set('date_cible', value)} />
         <TextInput hint="Saisie manuelle" label="N° d’avis SAP" readOnly={readOnly} value={draft.numero_avis_sap} onChange={(value) => set('numero_avis_sap', value)} />
         <TextInput hint="Saisie manuelle" label="N° d’ordre SAP" readOnly={readOnly} value={draft.numero_ordre_sap} onChange={(value) => set('numero_ordre_sap', value)} />

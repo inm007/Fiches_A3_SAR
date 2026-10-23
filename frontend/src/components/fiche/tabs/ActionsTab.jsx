@@ -2,7 +2,9 @@ import { useState } from 'react'
 import Button from '../../ui/Button.jsx'
 import ConfirmDialog from '../../ui/ConfirmDialog.jsx'
 import Badge from '../../ui/Badge.jsx'
+import FileInput from '../../ui/FileInput.jsx'
 import Modal from '../../ui/Modal.jsx'
+import { FICHIERS_ACCEPTES } from '../JoindrePreuve.jsx'
 import { Select, TextArea, TextInput } from '../../ui/FormControls.jsx'
 import { listOptions, peopleOptions } from '../sections/options.js'
 import { describeError, ficheService } from '../../../services/ficheService.js'
@@ -115,6 +117,7 @@ export default function ActionsTab({ fiche, options, refs, onChange, onError }) 
   const [motif, setMotif] = useState('')
   const [date, setDate] = useState('')
   const [preuve, setPreuve] = useState('')
+  const [fichier, setFichier] = useState(null)
   const [busy, setBusy] = useState(false)
   const [replanifiee, setReplanifiee] = useState(null)
   const [ajout, setAjout] = useState(false)
@@ -143,15 +146,18 @@ export default function ActionsTab({ fiche, options, refs, onChange, onError }) 
     }
   }
 
-  async function apply(action, statut, extra = {}) {
+  async function apply(action, statut, extra = {}, piece = null) {
     setBusy(true)
     try {
+      // Le fichier part d'abord : s'il est refusé (format, taille), l'action ne change pas de statut.
+      if (piece) await ficheService.ajouterPieceJointe(fiche.id, piece, { actionId: action.id })
       onChange(await ficheService.actionStatut(action.id, { statut, ...extra }))
       toast(`Action : ${stepLabels[statut].toLowerCase()} — enregistré`)
       setDialog(null)
       setMotif('')
       setDate('')
       setPreuve('')
+      setFichier(null)
     } catch (error) {
       setDialog(null)
       onError(describeError(error))
@@ -181,7 +187,7 @@ export default function ActionsTab({ fiche, options, refs, onChange, onError }) 
         {fiche.droits.peut_ajouter_action && <Button icon="plus" size="small" type="button" variant="secondary" onClick={() => setAjout(true)}>Ajouter une action</Button>}
       </div>
       <p className="fiche-tab__help">
-        Ici, vous suivez le plan validé : démarrez chaque action, puis passez-la à « Réalisée » avec sa preuve (bon de travaux, photo, compte rendu).
+        Ici, vous suivez le plan validé : démarrez chaque action, puis passez-la à « Réalisée », avec si vous le souhaitez une preuve (bon de travaux, compte rendu) et un document ou une photo.
         La réalisation crée ses contrôles J+30, J+60 et J+90. Une action sous MOC ne démarre qu’avec le MOC clôturé. Vous pouvez reporter une échéance ou changer un responsable avec un motif.
       </p>
       <table>
@@ -246,18 +252,19 @@ export default function ActionsTab({ fiche, options, refs, onChange, onError }) 
       <ConfirmDialog
         busy={busy}
         confirmLabel={dialog ? `${stepLabels[dialog.statut]} l’action` : ''}
-        disabled={dialog?.statut === 'REALISE' ? !preuve.trim() : !motif.trim()}
+        disabled={dialog?.statut !== 'REALISE' && !motif.trim()}
         open={Boolean(dialog)}
         title={dialog ? `${stepLabels[dialog.statut]} l’action` : ''}
         variant={dialog?.statut === 'REALISE' ? 'primary' : 'danger-solid'}
         onCancel={() => setDialog(null)}
-        onConfirm={() => apply(dialog.action, dialog.statut, dialog.statut === 'REALISE' ? { date_realisation: date || null, preuve } : { motif })}
+        onConfirm={() => apply(dialog.action, dialog.statut, dialog.statut === 'REALISE' ? { date_realisation: date || null, preuve: preuve.trim() || null } : { motif }, dialog.statut === 'REALISE' ? fichier : null)}
       >
         <p>{dialog?.action.description}</p>
         {dialog?.statut === 'REALISE' ? (
           <>
             {dialog.action.critere_efficacite && <p className="fiche-tab__muted">Critère d’efficacité : {dialog.action.critere_efficacite}</p>}
-            <TextArea hint="Ce qui prouve que l’action est faite : n° de bon de travaux, photo jointe, compte rendu…" label="Preuve de réalisation" required value={preuve} onChange={setPreuve} />
+            <TextArea hint="Facultatif : n° de bon de travaux, compte rendu…" label="Preuve de réalisation" value={preuve} onChange={setPreuve} />
+            {fiche.droits.peut_ajouter_piece_jointe && <FileInput accept={FICHIERS_ACCEPTES} file={fichier} label="Document ou photo (facultatif)" onChange={setFichier} />}
             <TextInput hint="Aujourd’hui par défaut ; jamais dans le futur." label="Date de réalisation" type="date" value={date} onChange={setDate} />
           </>
         ) : <TextArea label="Motif (obligatoire)" required value={motif} onChange={setMotif} />}

@@ -210,3 +210,11 @@
   color: var(--gray-700);
   font-style: italic;
 }
+
+/* Pièce jointe facultative d'une ligne de pérennisation */
+.joindre-preuve {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}

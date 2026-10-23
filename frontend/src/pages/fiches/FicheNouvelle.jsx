@@ -12,8 +12,9 @@ import { ficheService } from '../../services/ficheService.js'
 import './FicheNouvelle.css'
 
 const NEXT_STEPS = [
-  { title: 'Désignation du pilote', text: 'Le pilote de l’unité se désigne lui-même, sinon l’administrateur désigne un pilote.' },
-  { title: 'Analyse et plan d’actions', text: 'Le pilote complète les sections puis soumet le plan.' },
+  { title: 'Désignation du pilote', text: 'Le pilote de l’unité se désigne lui-même, sinon l’administrateur, prévenu, désigne un pilote de l’unité.' },
+  { title: 'Pertinence (porte 0)', text: 'Le pilote remplit les sections 1 à 4 et les soumet au chef de département qu’il a choisi.' },
+  { title: 'Analyse et plan d’actions', text: 'Le pilote et son équipe complètent l’analyse, puis les directeurs concernés valident le plan.' },
   { title: 'Validation et suivi', text: 'Vous êtes notifié à chaque étape franchie.' },
 ]
 
