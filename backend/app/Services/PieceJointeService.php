@@ -6,6 +6,7 @@ use App\Exceptions\RegleMetierException;
 use App\Models\ActionA3;
 use App\Models\FicheA3;
 use App\Models\Parametre;
+use App\Models\Perennisation;
 use App\Models\PieceJointe;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -48,24 +49,23 @@ class PieceJointeService
             ->all();
     }
 
-    public function ajouter(FicheA3 $fiche, UploadedFile $file, ?ActionA3 $action, ActiveProfile $profile): PieceJointe
+    /**
+     * Joint un fichier à la fiche, éventuellement comme preuve d'une action ou d'une
+     * action de pérennisation (la preuve écrite reste facultative).
+     */
+    public function ajouter(FicheA3 $fiche, UploadedFile $file, ActionA3|Perennisation|null $objet, ActiveProfile $profile): PieceJointe
     {
-        if ($action !== null && $action->fiche_id !== $fiche->id) {
-            abort(404, 'Action introuvable.');
+        if ($objet !== null && $objet->fiche_id !== $fiche->id) {
+            abort(404, 'Élément introuvable.');
         }
 
-        $estPilote = $profile->estPiloteDe($fiche);
+        $redige = $profile->estPiloteDe($fiche) || $fiche->estMembre($profile->userId());
         $estResponsable = $profile->is('AGENT', 'PILOTE')
-            && $action !== null
-            && $action->fiche_id === $fiche->id
-            && $action->responsable_id === $profile->userId();
+            && $objet instanceof ActionA3
+            && $objet->responsable_id === $profile->userId();
 
-        if (! $estPilote && ! $estResponsable) {
-            throw RegleMetierException::interdit('Seul le pilote de la fiche ou le responsable de l’action peut joindre un fichier.');
-        }
-
-        if (! $estPilote && $action === null) {
-            throw RegleMetierException::interdit('Un responsable d’action doit joindre le fichier à l’une de ses propres actions.');
+        if (! $redige && ! $estResponsable) {
+            throw RegleMetierException::interdit('Seuls le pilote, l’équipe de la fiche ou le responsable de l’action peuvent joindre un fichier.');
         }
 
         $mime = $file->getMimeType();
@@ -81,7 +81,7 @@ class PieceJointeService
 
         $path = null;
         try {
-            return DB::transaction(function () use ($fiche, $file, $action, $profile, $mime, $extension, $hash, &$path): PieceJointe {
+            return DB::transaction(function () use ($fiche, $file, $objet, $profile, $mime, $extension, $hash, &$path): PieceJointe {
                 $fiche = FicheA3::query()->whereKey($fiche->id)->lockForUpdate()->firstOrFail();
                 $limits = $this->limites();
                 if ($fiche->piecesJointes()->count() >= $limits['attachment_max_files']) {
@@ -95,8 +95,8 @@ class PieceJointeService
                 }
 
                 $pieceJointe = $fiche->piecesJointes()->create([
-                    'objet_type' => $action === null ? null : ActionA3::class,
-                    'objet_id' => $action?->id,
+                    'objet_type' => $objet === null ? null : $objet::class,
+                    'objet_id' => $objet?->id,
                     'nom_origine' => $this->nomOriginal($file->getClientOriginalName()),
                     'nom_stockage' => $path,
                     'type_mime' => $mime,
@@ -135,6 +135,8 @@ class PieceJointeService
             'type_mime' => $pieceJointe->type_mime,
             'taille' => (int) $pieceJointe->taille,
             'action' => $pieceJointe->objet instanceof ActionA3 ? $pieceJointe->objet->description : null,
+            'action_id' => $pieceJointe->objet instanceof ActionA3 ? $pieceJointe->objet->id : null,
+            'perennisation_id' => $pieceJointe->objet instanceof Perennisation ? $pieceJointe->objet->id : null,
             'auteur' => $pieceJointe->auteur?->nom_complet ?? 'Système',
             'created_at' => $pieceJointe->created_at?->toIso8601String(),
             'download_url' => '/api/pieces-jointes/'.$pieceJointe->id.'/telechargement',

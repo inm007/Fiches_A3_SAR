@@ -27,7 +27,6 @@ use Illuminate\Support\Facades\DB;
 class FicheSectionService
 {
     public function __construct(
-        private readonly Calculs $calculs,
         private readonly HistoryLogger $history,
     ) {}
 
@@ -42,10 +41,12 @@ class FicheSectionService
         $resultats = [StatutEtape::MesureResultats, StatutEtape::VerificationMaintien];
 
         return [
+            // Les sections 2 à 4 ont été validées par le chef de département : elles se figent
+            // à la soumission de la pertinence ; un renvoi par le chef les rouvre.
             1 => [StatutEtape::Ouvert, StatutEtape::EnCours],
-            2 => [StatutEtape::Ouvert, StatutEtape::EnCours],
-            3 => [StatutEtape::Ouvert, StatutEtape::EnCours],
-            4 => [StatutEtape::Ouvert, StatutEtape::EnCours],
+            2 => [StatutEtape::Ouvert],
+            3 => [StatutEtape::Ouvert],
+            4 => [StatutEtape::Ouvert],
             5 => [StatutEtape::EnCours],
             6 => [StatutEtape::EnCours],
             7 => [StatutEtape::EnCours, StatutEtape::RealisationActions],
@@ -58,14 +59,13 @@ class FicheSectionService
 
     /**
      * Sections que les membres de l'équipe renseignent : analyse et suivi. L'identification
-     * et l'objectif (1 à 4) restent au pilote : ils ont été validés par le chef de département.
+     * et l'objectif (1 à 4) restent au pilote, qui les soumet au chef de département.
      */
     public const array SECTIONS_EQUIPE = [5, 6, 7, 8, 9, 10, 11];
 
     /**
-     * Ouvert, avant la validation de la pertinence : l'initiateur renseigne les sections 1 à 4.
-     * Ensuite : le pilote, toutes les sections ouvertes à l'étape ; un membre de l'équipe,
-     * celles d'analyse et de suivi.
+     * Le pilote : toutes les sections ouvertes à l'étape (1 à 4 à l'étape Ouvert, avant la
+     * validation de la pertinence) ; un membre de l'équipe : celles d'analyse et de suivi.
      *
      * @return array<int, int>
      */
@@ -75,12 +75,6 @@ class FicheSectionService
         $ouvertes = collect(self::etapesEditables())
             ->filter(fn (array $etapes) => in_array($etape, $etapes, true))
             ->keys();
-
-        if ($etape === StatutEtape::Ouvert) {
-            $initiateur = $fiche->declarant_id === $profile->userId() || $profile->estPiloteDe($fiche);
-
-            return $initiateur && $fiche->pertinence_validee_le === null ? $ouvertes->all() : [];
-        }
 
         if ($profile->estPiloteDe($fiche)) {
             return $ouvertes->all();
@@ -118,10 +112,11 @@ class FicheSectionService
             $etats[] = ['numero' => $section, ...match (true) {
                 $section === 12 => ['etat' => 'auto', 'raison' => 'Remplie par les décisions des valideurs.'],
                 in_array($section, $editables, true) => ['etat' => 'editable', 'raison' => null],
-                $etape === StatutEtape::Ouvert && $fiche->pertinence_validee_le === null && $section <= 4 => ['etat' => 'lecture', 'raison' => 'Seul l’initiateur renseigne cette section avant la validation de la pertinence.'],
-                $etape === StatutEtape::Ouvert && $section <= 4 => ['etat' => 'fige', 'raison' => 'Pertinence validée : la section rouvre quand le pilote commence l’analyse.'],
+                $etape === StatutEtape::Ouvert && $fiche->pilote_id === null && $section <= 4 => ['etat' => 'lecture', 'raison' => 'L’administrateur fonctionnel désigne d’abord le pilote, qui renseignera cette section.'],
+                $etape === StatutEtape::Ouvert && $section <= 4 => ['etat' => 'lecture', 'raison' => 'Seul le pilote renseigne cette section avant la validation de la pertinence.'],
                 $etape === StatutEtape::EnValidationPertinence => ['etat' => 'fige', 'raison' => 'En validation de la pertinence : la saisie reprend après la décision du chef de département.'],
                 $estMembre && ! $estPilote && ! in_array($section, self::SECTIONS_EQUIPE, true) => ['etat' => 'lecture', 'raison' => 'Seul le pilote modifie l’identification et l’objectif.'],
+                in_array($section, [2, 3, 4], true) && $fiche->pertinence_validee_le !== null => ['etat' => 'fige', 'raison' => 'Validée par le chef de département avec la pertinence : elle ne change plus.'],
                 ! $estPilote && ! $estMembre => ['etat' => 'lecture', 'raison' => 'Seuls le pilote et son équipe modifient cette section.'],
                 $etape === StatutEtape::Cloture => ['etat' => 'fige', 'raison' => 'Fiche clôturée : plus aucune modification.'],
                 $etape === StatutEtape::ClasseSansSuite => ['etat' => 'fige', 'raison' => 'Fiche classée sans suite : plus aucune modification.'],
@@ -223,9 +218,12 @@ class FicheSectionService
             throw RegleMetierException::conditionsManquantes('Identification invalide.', array_values($erreurs));
         }
         $this->exigerPilotesDeLUnite($fiche, (int) $data['unite_id']);
+        if (($data['sponsor_id'] ?? null) !== null && (int) $data['sponsor_id'] !== $fiche->sponsor_id) {
+            $this->exigerDirecteurDisponible($fiche, (int) $data['sponsor_id']);
+        }
 
         $fiche->fill(collect($data)->only([
-            'titre', 'unite_id', 'equipement_id', 'sponsor_id', 'equipe', 'date_lancement', 'date_cible',
+            'titre', 'unite_id', 'equipement_id', 'sponsor_id', 'date_lancement', 'date_cible',
             'type_amelioration', 'origine_id', 'origine_precision',
         ])->all());
 
@@ -238,6 +236,35 @@ class FicheSectionService
                 'numero_avis' => $avis,
                 'numero_ordre' => $ordre,
             ])->save();
+        }
+    }
+
+    /**
+     * Le sponsor approuve la clôture : un directeur actif qui ne rédige pas la fiche.
+     */
+    private function exigerDirecteurDisponible(FicheA3 $fiche, int $userId): void
+    {
+        $estDirecteur = Affectation::query()->enCours()->where('user_id', $userId)
+            ->whereHas('user', fn ($query) => $query->where('actif', true))
+            ->whereHas('role', fn ($query) => $query->whereIn('code', ValidationCircuit::rolesDirecteurs()))
+            ->exists();
+        if (! $estDirecteur || $fiche->estRedacteur($userId)) {
+            throw RegleMetierException::conditionsManquantes('Sponsor invalide.', ['Le sponsor est un directeur actif, qui ne pilote pas la fiche et ne fait pas partie de son équipe.']);
+        }
+    }
+
+    /**
+     * Le chef qui valide la pertinence : titulaire actif du profil Chef de département, qui
+     * ne rédige pas la fiche.
+     */
+    private function exigerChefDisponible(FicheA3 $fiche, int $userId): void
+    {
+        $estChef = Affectation::query()->enCours()->where('user_id', $userId)
+            ->whereHas('user', fn ($query) => $query->where('actif', true))
+            ->whereHas('role', fn ($query) => $query->where('code', Organigramme::ROLE_CHEF))
+            ->exists();
+        if (! $estChef || $fiche->estRedacteur($userId)) {
+            throw RegleMetierException::conditionsManquantes('Chef de département invalide.', ['Choisissez un chef de département actif, qui ne pilote pas la fiche et ne fait pas partie de son équipe.']);
         }
     }
 
@@ -337,6 +364,13 @@ class FicheSectionService
                     'a_ne_pas_degrader' => ! $estPrincipal && in_array($indicateur->id, $aNePasDegrader, true),
                 ]);
             }
+        }
+
+        if (array_key_exists('chef_pertinence_id', $data)) {
+            if ($data['chef_pertinence_id'] !== null && (int) $data['chef_pertinence_id'] !== $fiche->chef_pertinence_id) {
+                $this->exigerChefDisponible($fiche, (int) $data['chef_pertinence_id']);
+            }
+            $fiche->chef_pertinence_id = $data['chef_pertinence_id'];
         }
 
         $fiche->fill(collect($data)->only(['objectif_smart', 'perimetre', 'resultats_attendus'])->all());
@@ -535,9 +569,9 @@ class FicheSectionService
             }
             $this->exigerValeurListe('categorie_gain', $item['categorie']);
 
+            // Montant annuel saisi par le pilote : aucun calcul automatique.
             return $this->saveRow($fiche->gains(), $existing, [
-                ...collect($item)->only(['categorie', 'hypothese_calcul', 'quantite', 'unite', 'cout_unitaire'])->all(),
-                'montant_annuel' => $this->calculs->gainAnnuel((float) $item['quantite'], (int) $item['cout_unitaire']),
+                ...collect($item)->only(['categorie', 'hypothese_calcul', 'montant_annuel'])->all(),
                 'statut' => 'PROPOSE',
                 'valide_par_id' => null,
                 'date_validation' => null,
@@ -549,7 +583,7 @@ class FicheSectionService
         });
 
         $fiche->sans_gain_chiffre = $sansGain;
-        $fiche->cout_mise_en_oeuvre_b = (int) ($data['cout_mise_en_oeuvre_b'] ?? $fiche->actions()->sum('cout_estime'));
+        $fiche->cout_mise_en_oeuvre_b = (int) ($data['cout_mise_en_oeuvre_b'] ?? 0);
     }
 
     /**

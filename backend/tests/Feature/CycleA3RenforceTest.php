@@ -9,7 +9,7 @@ use App\Models\FicheA3;
 use App\Models\FicheVersion;
 use App\Models\Unite;
 use App\Models\Validation;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Concerns\SimuleFiches;
 use Tests\TestCase;
@@ -20,7 +20,7 @@ use Tests\TestCase;
  */
 class CycleA3RenforceTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
     use SimuleFiches;
 
     protected function setUp(): void
@@ -41,9 +41,9 @@ class CycleA3RenforceTest extends TestCase
 
         $this->assertSame($pilote->id, FicheA3::findOrFail($id)->pilote_id);
         $this->assertTrue(EvenementHistorique::where('fiche_id', $id)->where('type', 'DESIGNATION_PILOTE')->exists());
-        $this->transition(FicheA3::findOrFail($id), 'PILOTE', 'T2')->assertUnprocessable();
-        $this->pertinenceValidee(FicheA3::findOrFail($id));
-        $this->transition(FicheA3::findOrFail($id), 'PILOTE', 'T2')->assertOk();
+        // Il remplit lui-même les sections 1 à 4 avant de soumettre la pertinence au chef choisi.
+        $this->transition(FicheA3::findOrFail($id), 'PILOTE', 'T0')->assertUnprocessable();
+        $this->lancer(FicheA3::findOrFail($id));
     }
 
     public function test_agent_or_pilot_of_another_unit_leaves_the_pilot_choice_to_the_admin(): void
@@ -62,17 +62,15 @@ class CycleA3RenforceTest extends TestCase
     public function test_next_step_lists_what_is_missing_with_where_to_fix_it(): void
     {
         $fiche = $this->declarer();
-        $this->designerPilote($fiche);
-        $this->transition($fiche, 'PILOTE', 'T2')->assertOk();
+        $this->lancer($fiche);
 
         $conditions = collect($this->agir('PILOTE')->getJson("/api/fiches/{$fiche->id}")
             ->assertOk()
             ->assertJsonPath('data.prochaine_etape.code', 'T3')
             ->json('data.prochaine_etape.conditions'));
 
-        $this->assertContains('Section 4 : résultats attendus (conditions de clôture).', $conditions->pluck('message'));
         $this->assertContains('Section 5 : au moins une cause.', $conditions->pluck('message'));
-        $this->assertSame(4, $conditions->firstWhere('message', 'Section 4 : résultats attendus (conditions de clôture).')['emplacement']['section']);
+        $this->assertSame(5, $conditions->firstWhere('message', 'Section 5 : au moins une cause.')['emplacement']['section']);
 
         $this->completerPlan($fiche);
         $this->agir('PILOTE')->getJson("/api/fiches/{$fiche->id}")->assertJsonPath('data.prochaine_etape.conditions', []);
@@ -104,14 +102,24 @@ class CycleA3RenforceTest extends TestCase
 
     // ---- Actions et contrôles --------------------------------------------------------
 
-    public function test_done_action_needs_a_proof_and_a_conform_control_needs_a_comment(): void
+    public function test_proof_of_a_done_action_is_optional(): void
+    {
+        $fiche = $this->declarer();
+        $ids = $this->amenerEnRealisation($fiche);
+        $this->fermerMoc($fiche, $ids['risque']);
+
+        $this->agir('PILOTE')->postJson("/api/actions/{$ids['action']}/statut", ['statut' => 'REALISE', 'preuve' => '  '])->assertOk()
+            ->assertJsonPath('data.actions.0.statut', 'REALISE')
+            ->assertJsonPath('data.actions.0.preuve_realisation', null);
+    }
+
+    public function test_done_action_keeps_its_proof_and_a_conform_control_needs_a_comment(): void
     {
         $fiche = $this->declarer();
         $ids = $this->amenerEnRealisation($fiche);
         $action = ActionA3::findOrFail($ids['action']);
         $this->fermerMoc($fiche, $ids['risque']);
 
-        $this->statutAction($action, 'REALISE', ['preuve' => '  '])->assertUnprocessable();
         $this->statutAction($action, 'REALISE', ['preuve' => 'OT 4471 soldé', 'date_realisation' => today()->subDays(100)->toDateString()])->assertOk()
             ->assertJsonPath('data.actions.0.preuve_realisation', 'OT 4471 soldé')
             ->assertJsonPath('data.actions.0.critere_efficacite', 'Aucun purgeur fuyard à la ronde mensuelle');
@@ -218,7 +226,7 @@ class CycleA3RenforceTest extends TestCase
             ->assertJsonPath('data.statut_general', 'CLASSE')
             ->assertJsonPath('data.motif_classement', 'Doublon de la fiche sur la pompe P-201');
 
-        $this->transition($fiche, 'PILOTE', 'T2')->assertConflict();
+        $this->transition($fiche, 'PILOTE', 'T0')->assertConflict();
         [$autrePilote] = $this->acteur('PILOTE', $this->unite->id);
         $this->agir('ADMIN_FONCTIONNEL')->patchJson("/api/admin/fiches/{$fiche->id}", ['pilote_id' => $autrePilote->id, 'motif' => 'Mutation'])
             ->assertUnprocessable()

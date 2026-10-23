@@ -36,15 +36,19 @@ trait SimuleFiches
         foreach (['AGENT', 'PILOTE', 'VALIDEUR_PRODUCTION', 'VALIDEUR_HSE', 'VALIDEUR_PROCEDE', 'VALIDEUR_DSI', 'VALIDEUR_MAINTENANCE', 'VALIDEUR_INSPECTION', 'CONTROLE_GESTION', 'DIRECTION'] as $role) {
             $this->acteurs[$role] = $this->acteur($role, $this->unite->id);
         }
+        $this->acteurs['CHEF_DEPARTEMENT'] = $this->acteur('CHEF_DEPARTEMENT', null);
         $this->acteurs['ADMIN_FONCTIONNEL'] = $this->acteur('ADMIN_FONCTIONNEL', null);
         $this->acteurs['ADMIN_TECHNIQUE'] = $this->acteur('ADMIN_TECHNIQUE', null);
     }
 
     /**
-     * @return array{indicateur: int, cause: int, risque: int, action: int}
+     * Sections 1 à 4 remplies par le pilote : sponsor (directeur) et chef qui validera la pertinence.
+     *
+     * @return int l'indicateur principal
      */
-    protected function completerPlan(FicheA3 $fiche): array
+    protected function completerDebut(FicheA3 $fiche, ?int $chefId = null): int
     {
+        $fiche->refresh();
         $this->section($fiche, 1, [
             'titre' => 'Réduire la consommation de vapeur',
             'unite_id' => $this->unite->id,
@@ -53,12 +57,47 @@ trait SimuleFiches
             'date_lancement' => today()->toDateString(),
             'date_cible' => today()->addMonths(3)->toDateString(),
             'numero_avis_sap' => '1004587',
+            'sponsor_id' => $fiche->sponsor_id ?? $this->acteurs['DIRECTION'][0]->id,
         ])->assertOk()->assertJsonPath('data.identification.numero_avis_sap', '1004587');
         $this->section($fiche, 2, ['contexte' => 'Purgeurs fuyards', 'enonce_probleme' => 'Consommation de vapeur élevée', 'impacts' => ['ENERGIE' => 'Surconsommation']])->assertOk();
         $indicateur = $this->section($fiche, 3, ['indicateurs' => [
             ['libelle' => 'Consommation vapeur', 'unite_mesure' => 't/h', 'sens' => 'baisse', 'reference' => 100, 'cible' => 80, 'actuelle' => 100],
         ]])->assertOk()->assertJsonPath('data.indicateurs.0.ecart', 20)->json('data.indicateurs.0.id');
-        $this->section($fiche, 4, ['objectif_smart' => 'Réduire de 20 %', 'resultats_attendus' => 'Consommation sous 80 t/h pendant trois mois', 'indicateur_principal_id' => $indicateur])->assertOk();
+        $this->section($fiche, 4, [
+            'objectif_smart' => 'Réduire de 20 %',
+            'resultats_attendus' => 'Consommation sous 80 t/h pendant trois mois',
+            'indicateur_principal_id' => $indicateur,
+            'chef_pertinence_id' => $chefId ?? $this->acteurs['CHEF_DEPARTEMENT'][0]->id,
+        ])->assertOk();
+
+        return $indicateur;
+    }
+
+    /**
+     * Pilote désigné, sections 1 à 4, soumission (T0) et validation de la pertinence par le chef choisi.
+     */
+    protected function lancer(FicheA3 $fiche): void
+    {
+        if ($fiche->refresh()->pilote_id === null) {
+            $this->designerPilote($fiche);
+        }
+        $this->completerDebut($fiche);
+        $this->transition($fiche, 'PILOTE', 'T0')->assertOk()->assertJsonPath('data.statut_etape', 'EN_VALIDATION_PERTINENCE');
+        $this->decider($this->demande($fiche, 'CHEF_DEPARTEMENT'), 'CHEF_DEPARTEMENT', 'VALIDE')->assertOk();
+        $this->assertSame('EN_COURS', $fiche->refresh()->statut_etape);
+    }
+
+    /**
+     * Sections 5 à 7 (la fiche est lancée au besoin).
+     *
+     * @return array{indicateur: int, cause: int, risque: int, action: int}
+     */
+    protected function completerPlan(FicheA3 $fiche): array
+    {
+        if ($fiche->refresh()->pertinence_validee_le === null) {
+            $this->lancer($fiche);
+        }
+        $indicateur = (int) $fiche->indicateurs()->where('principal', true)->value('id');
         $cause = $this->section($fiche, 5, ['methode_analyse' => '5_POURQUOI', 'causes' => [
             ['categorie' => 'METHODE', 'libelle' => 'Aucun plan d’inspection des purgeurs', 'niveau' => 1, 'racine' => true],
         ]])->assertOk()->json('data.analyse.causes.0.id');
@@ -84,7 +123,7 @@ trait SimuleFiches
     protected function completerCloture(FicheA3 $fiche): void
     {
         $this->section($fiche, 9, [
-            'gains' => [['categorie' => 'ENERGIE_ECONOMISEE', 'hypothese_calcul' => '−18 % de vapeur', 'quantite' => 4200, 'unite' => 't', 'cout_unitaire' => 2500]],
+            'gains' => [['categorie' => 'ENERGIE_ECONOMISEE', 'hypothese_calcul' => '−18 % de vapeur (4 200 t × 2 500 FCFA)', 'montant_annuel' => 10_500_000]],
             'cout_mise_en_oeuvre_b' => 3_200_000,
         ])->assertOk()->assertJsonPath('data.gains.total_a', 10_500_000);
         $this->section($fiche, 10, ['perennisation' => [['type' => 'SOP', 'statut' => 'REALISE', 'preuve' => 'SOP-12']]])->assertOk();
@@ -117,17 +156,10 @@ trait SimuleFiches
     }
 
     /**
-     * Porte 0 franchie sans passer par le chef de département : la plupart des tests
-     * portent sur la suite du cycle (le circuit de pertinence a ses propres tests).
+     * L'administrateur fonctionnel désigne le pilote de l'unité.
      */
-    protected function pertinenceValidee(FicheA3 $fiche): void
-    {
-        $fiche->refresh()->forceFill(['pertinence_validee_le' => now()])->save();
-    }
-
     protected function designerPilote(FicheA3 $fiche): void
     {
-        $this->pertinenceValidee($fiche);
         [$pilote] = $this->acteurs['PILOTE'];
         $this->agir('ADMIN_FONCTIONNEL')->patchJson("/api/admin/fiches/{$fiche->id}", ['pilote_id' => $pilote->id])->assertOk();
     }
@@ -215,15 +247,13 @@ trait SimuleFiches
     }
 
     /**
-     * Déclaration, pilote, T2, plan complet, T3 et approbation de la porte 1.
+     * Déclaration, pilote, pertinence validée, plan complet, T3 et approbation de la porte 1.
      *
      * @return array{indicateur: int, cause: int, risque: int, action: int}
      */
     protected function amenerEnRealisation(?FicheA3 $fiche = null): array
     {
         $fiche ??= $this->declarer();
-        $this->designerPilote($fiche);
-        $this->transition($fiche, 'PILOTE', 'T2')->assertOk();
         $ids = $this->completerPlan($fiche);
         $this->transition($fiche, 'PILOTE', 'T3')->assertOk();
         $this->approuverPorte($fiche, 1);

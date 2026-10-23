@@ -32,17 +32,9 @@ class CalculsTest extends TestCase
         $this->assertNull($this->calculs->ameliorationPourcent(0.0, 10.0, 'hausse'));
     }
 
-    public function test_gains_are_integer_fcfa(): void
+    public function test_total_of_manual_gains_is_integer_fcfa(): void
     {
-        $this->assertSame(10_500_000, $this->calculs->gainAnnuel(4200, 2500));
-        $this->assertSame(3, $this->calculs->gainAnnuel(1.4, 2));
         $this->assertSame(12_400_000, $this->calculs->totalA([10_500_000, 1_900_000]));
-        $this->assertSame(9_200_000, $this->calculs->gainNet(12_400_000, 3_200_000));
-    }
-
-    public function test_payback_requires_positive_total(): void
-    {
-        $this->assertSame(0.26, $this->calculs->paybackAnnees(12_400_000, 3_200_000));
-        $this->assertNull($this->calculs->paybackAnnees(0, 3_200_000));
+        $this->assertSame(0, $this->calculs->totalA([]));
     }
 }

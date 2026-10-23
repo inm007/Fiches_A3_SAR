@@ -13,7 +13,6 @@ use App\Models\Unite;
 use App\Models\ValeurListe;
 use App\Models\Validation;
 use App\Services\ActiveProfile;
-use App\Services\Calculs;
 use App\Services\FicheVisibility;
 use App\Services\ValidationCircuit;
 use Illuminate\Database\Eloquent\Builder;
@@ -29,7 +28,7 @@ use Illuminate\Support\Collection;
  */
 class TableauDeBordController extends Controller
 {
-    public function index(Request $request, ActiveProfile $profile, FicheVisibility $visibility, ValidationCircuit $circuit, Calculs $calculs): JsonResponse
+    public function index(Request $request, ActiveProfile $profile, FicheVisibility $visibility, ValidationCircuit $circuit): JsonResponse
     {
         $annee = (int) ($request->validate([
             'annee' => ['nullable', 'integer', 'min:2000', 'max:'.now()->year],
@@ -90,7 +89,6 @@ class TableauDeBordController extends Controller
             'gains_a_valider' => $visibles()->where('statut_etape', StatutEtape::EnValidationCloture->value)->whereHas('gains', fn (Builder $q) => $q->where('statut', 'PROPOSE'))->count(),
             'gains_valides_annee' => (int) Gain::query()->whereIn('fiche_id', $visibleIds)->where('statut', 'VALIDE')
                 ->whereYear('date_validation', $annee)->sum('montant_annuel'),
-            'gain_net_annuel_valide' => $this->gainNetValide($visibles(), $annee, $calculs),
             'taux_cloture' => ($total = (clone $creesCetteAnnee)->count()) > 0
                 ? round((clone $creesCetteAnnee)->where('statut_etape', StatutEtape::Cloture->value)->count() / $total * 100, 1)
                 : null,
@@ -168,22 +166,6 @@ class TableauDeBordController extends Controller
     }
 
     /**
-     * Gain net (A − B) des fiches dont tous les gains sont validés, par année de validation (PRD §6.3).
-     *
-     * @param  Builder<FicheA3>  $visibles
-     */
-    private function gainNetValide(Builder $visibles, int $annee, Calculs $calculs): int
-    {
-        return (int) $visibles
-            ->whereHas('gains')
-            ->whereDoesntHave('gains', fn (Builder $q) => $q->where('statut', '!=', 'VALIDE'))
-            ->with('gains:id,fiche_id,montant_annuel,date_validation')
-            ->get(['id', 'cout_mise_en_oeuvre_b'])
-            ->filter(fn (FicheA3 $fiche) => (int) $fiche->gains->max('date_validation')?->year === $annee)
-            ->sum(fn (FicheA3 $fiche) => $calculs->gainNet($calculs->totalA($fiche->gains->pluck('montant_annuel')), (int) $fiche->cout_mise_en_oeuvre_b));
-    }
-
-    /**
      * Ce que le profil actif doit traiter : chaque ligne mène à la fiche.
      *
      * @param  Collection<int, Validation>  $validations
@@ -238,13 +220,13 @@ class TableauDeBordController extends Controller
                 'type' => 'controle',
             ]);
 
-        // Pertinence validée, sans pilote : un pilote la prend en charge, ou l'administrateur la confie.
-        $sansPilote = $profile->is('ADMIN_FONCTIONNEL', 'PILOTE')
-            ? $visibles()->whereNull('pilote_id')->whereNotNull('pertinence_validee_le')->where('statut_etape', StatutEtape::Ouvert->value)->orderBy('created_at')->limit(5)->get(['id', 'numero_a3', 'created_at'])
+        // Fiche déclarée sans pilote : l'administrateur désigne un pilote de l'unité.
+        $sansPilote = $profile->is('ADMIN_FONCTIONNEL')
+            ? $visibles()->whereNull('pilote_id')->where('statut_etape', StatutEtape::Ouvert->value)->orderBy('created_at')->limit(5)->get(['id', 'numero_a3', 'created_at'])
                 ->map(fn (FicheA3 $fiche) => [
                     'fiche_id' => $fiche->id,
                     'numero_a3' => $fiche->numero_a3,
-                    'libelle' => $profile->is('PILOTE') ? 'Prendre la fiche en charge' : 'Désigner le pilote',
+                    'libelle' => 'Désigner le pilote',
                     'delai' => (int) $fiche->created_at->startOfDay()->diffInDays(today()).' j',
                     'type' => 'pilote',
                 ])

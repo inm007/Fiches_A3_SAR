@@ -7,7 +7,7 @@ use App\Models\EvenementHistorique;
 use App\Models\FicheA3;
 use App\Models\NotificationInterne;
 use App\Models\Unite;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Concerns\SimuleFiches;
 use Tests\TestCase;
@@ -18,7 +18,7 @@ use Tests\TestCase;
  */
 class DroitsFichesTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
     use SimuleFiches;
 
     protected function setUp(): void
@@ -66,7 +66,7 @@ class DroitsFichesTest extends TestCase
         $this->assertTrue(EvenementHistorique::where('fiche_id', $fiche->id)->where('type', 'DESIGNATION_PILOTE')->exists());
         $this->assertTrue(NotificationInterne::where('fiche_id', $fiche->id)->where('user_id', $pilote->id)->where('type', 'DESIGNATION_PILOTE')->exists());
 
-        $this->transition($fiche, 'PILOTE', 'T2')->assertOk();
+        $this->lancer($fiche);
         $autrePilote = $this->acteur('PILOTE', $this->unite->id);
         $this->agir('ADMIN_FONCTIONNEL')->patchJson("/api/admin/fiches/{$fiche->id}", ['pilote_id' => $autrePilote[0]->id])
             ->assertUnprocessable()->assertJsonValidationErrors('motif');
@@ -116,15 +116,17 @@ class DroitsFichesTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_only_the_designated_pilot_edits_sections_and_starts_the_analysis(): void
+    public function test_only_the_designated_pilot_edits_sections_and_submits_the_relevance(): void
     {
         $fiche = $this->declarer();
         $this->designerPilote($fiche);
         $autrePilote = $this->acteur('PILOTE', $this->unite->id);
 
-        $this->agirComme($autrePilote)->postJson("/api/fiches/{$fiche->id}/transitions", ['code' => 'T2'])->assertNotFound();
-        $this->transition($fiche, 'AGENT', 'T2')->assertForbidden();
-        $this->transition($fiche, 'PILOTE', 'T2')->assertOk();
+        // Le déclarant (agent) ne remplit plus la fiche : le pilote désigné s'en charge.
+        $this->agir('AGENT')->putJson("/api/fiches/{$fiche->id}/sections/2", ['contexte' => 'x', 'enonce_probleme' => 'x'])->assertForbidden();
+        $this->completerDebut($fiche);
+        $this->agirComme($autrePilote)->postJson("/api/fiches/{$fiche->id}/transitions", ['code' => 'T0'])->assertNotFound();
+        $this->transition($fiche, 'AGENT', 'T0')->assertForbidden();
 
         foreach (['AGENT', 'DIRECTION', 'ADMIN_FONCTIONNEL', 'VALIDEUR_PRODUCTION'] as $role) {
             $this->agir($role)->putJson("/api/fiches/{$fiche->id}/sections/4", ['objectif_smart' => 'Intrusion'])->assertForbidden();
@@ -154,7 +156,7 @@ class DroitsFichesTest extends TestCase
     {
         $ids = $this->amenerEnRealisation();
         $fiche = FicheA3::query()->latest('id')->firstOrFail();
-        $validation = $fiche->validations()->orderBy('id')->firstOrFail();
+        $validation = $fiche->validations()->where('porte', 1)->orderBy('id')->firstOrFail();
         $url = "/api/fiches/{$fiche->id}/commentaires";
 
         $this->agir('PILOTE')->postJson($url, ['texte' => 'Purgeurs commandés', 'contexte' => 'ACTION', 'objet_id' => $ids['action']])
@@ -200,8 +202,7 @@ class DroitsFichesTest extends TestCase
     public function test_hold_is_reserved_to_pilot_and_direction(): void
     {
         $fiche = $this->declarer();
-        $this->designerPilote($fiche);
-        $this->transition($fiche, 'PILOTE', 'T2')->assertOk();
+        $this->lancer($fiche);
 
         foreach (['AGENT', 'VALIDEUR_PRODUCTION', 'ADMIN_FONCTIONNEL'] as $role) {
             $this->transition($fiche, $role, 'T12', 'Blocage')->assertForbidden();

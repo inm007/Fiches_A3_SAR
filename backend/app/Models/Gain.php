@@ -13,9 +13,6 @@ class Gain extends Model
         'fiche_id',
         'categorie',
         'hypothese_calcul',
-        'quantite',
-        'unite',
-        'cout_unitaire',
         'montant_annuel',
         'statut',
         'valide_par_id',
@@ -25,9 +22,7 @@ class Gain extends Model
     protected function casts(): array
     {
         return [
-            'quantite' => 'decimal:4',
             'date_validation' => 'datetime',
-            'cout_unitaire' => 'integer',
             'montant_annuel' => 'integer',
         ];
     }

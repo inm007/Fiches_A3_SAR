@@ -4,36 +4,35 @@ namespace App\Services;
 
 use App\Models\Affectation;
 use App\Models\Entite;
-use App\Models\FicheA3;
 use App\Models\Role;
 use App\Models\User;
 
 /**
- * Lecture de l'organigramme pour la porte 0 : département de l'initiateur et chef qui
- * valide la pertinence. Le profil « Chef de département » suit l'organigramme : il est
- * attribué au responsable de chaque département actif et retiré quand il ne l'est plus.
+ * Organigramme : il donne le profil « Chef de département » au responsable de chaque
+ * département actif (et le retire quand il ne l'est plus), et propose au pilote le chef
+ * de son propre département pour la validation de la pertinence (porte 0).
  */
 class Organigramme
 {
     public const string ROLE_CHEF = 'CHEF_DEPARTEMENT';
 
     /**
-     * Département de rattachement de l'utilisateur : son entité si c'est un département,
+     * Département actif de rattachement de l'utilisateur : son entité si c'est un département,
      * sinon le département au-dessus de son service. Null s'il est rattaché à une direction ou à rien.
      */
     public function departementDe(?User $user): ?Entite
     {
-        $entite = $user?->entite;
+        $departement = $user?->entite?->ancetre('DEPARTEMENT');
 
-        return $entite?->ancetre('DEPARTEMENT');
+        return $departement?->actif ? $departement : null;
     }
 
     /**
-     * Chef du département de la fiche, s'il est actif.
+     * Chef proposé par défaut au pilote : le responsable actif de son département.
      */
-    public function chefDe(FicheA3 $fiche): ?int
+    public function chefPropose(?User $user): ?int
     {
-        $chef = $fiche->departement?->responsable;
+        $chef = $this->departementDe($user)?->responsable;
 
         return $chef !== null && $chef->actif ? $chef->id : null;
     }

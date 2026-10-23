@@ -6,6 +6,7 @@ use App\Enums\Permission;
 use App\Enums\StatutAction;
 use App\Enums\StatutEtape;
 use App\Exceptions\RegleMetierException;
+use App\Models\Affectation;
 use App\Models\CompteurFiche;
 use App\Models\FicheA3;
 use App\Models\FicheA3Mesure;
@@ -28,7 +29,6 @@ class FicheWorkflow
         private readonly NotificationService $notifications,
         private readonly ActionService $actions,
         private readonly FicheVersions $versions,
-        private readonly Organigramme $organigramme,
     ) {}
 
     /**
@@ -69,6 +69,8 @@ class FicheWorkflow
             $this->history->log($fiche, $profile->userId(), 'CHANGEMENT_STATUT', 'statut_etape', null, StatutEtape::Ouvert->value, 'T1 — Déclaration de la fiche');
             if ($piloter) {
                 $this->history->log($fiche, $profile->userId(), 'DESIGNATION_PILOTE', 'pilote_id', null, $profile->userId(), 'Auto-désignation à la déclaration');
+            } else {
+                $this->notifications->notify($this->administrateurs(), $fiche, 'PILOTE_A_DESIGNER', 'Nouvelle fiche déclarée : désignez un pilote de l’unité.', auteurId: $profile->userId());
             }
 
             return $fiche;
@@ -92,7 +94,6 @@ class FicheWorkflow
 
             match ($payload['code']) {
                 'T0' => $this->t0($fiche, $profile),
-                'T2' => $this->t2($fiche, $profile),
                 'T3' => $this->t3($fiche, $profile),
                 'T6' => $this->t6($fiche, $profile),
                 'T7' => $this->t7($fiche, $profile),
@@ -109,11 +110,29 @@ class FicheWorkflow
     }
 
     /**
-     * Décision d'un valideur (porte 0, 1 ou 2) ; enchaîne la suite de la pertinence, T4, T5, T9 ou T10.
+     * Administrateurs fonctionnels actifs : ils désignent le pilote des fiches déclarées par un agent.
+     *
+     * @return array<int, int>
      */
-    public function decider(Validation $validation, string $decision, ?string $commentaire, ?string $retour, ActiveProfile $profile, ?int $section = null): Validation
+    private function administrateurs(): array
     {
-        return DB::transaction(function () use ($validation, $decision, $commentaire, $retour, $profile, $section): Validation {
+        return Affectation::query()
+            ->enCours()
+            ->whereHas('role', fn ($query) => $query->where('code', 'ADMIN_FONCTIONNEL'))
+            ->whereHas('user', fn ($query) => $query->where('actif', true))
+            ->pluck('user_id')
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Décision d'un valideur (porte 0, 1 ou 2) ; enchaîne la suite de la pertinence, T4, T5, T9 ou T10.
+     * À la porte 0, le chef peut aussi refuser en classant la fiche sans suite.
+     */
+    public function decider(Validation $validation, string $decision, ?string $commentaire, ?string $retour, ActiveProfile $profile, ?int $section = null, bool $classer = false): Validation
+    {
+        return DB::transaction(function () use ($validation, $decision, $commentaire, $retour, $profile, $section, $classer): Validation {
             /** @var FicheA3 $fiche */
             $fiche = FicheA3::query()->whereKey($validation->fiche_id)->lockForUpdate()->firstOrFail();
             /** @var Validation $validation */
@@ -124,8 +143,8 @@ class FicheWorkflow
                 throw RegleMetierException::interdit('Cette demande de validation ne vous est pas adressée sur le profil actif.');
             }
 
-            if ($fiche->estPilote($userId)) {
-                throw RegleMetierException::conditionsManquantes('Décision refusée.', [Manque::validations('B8 : le pilote ne valide pas sa propre fiche.')]);
+            if ($fiche->estRedacteur($userId)) {
+                throw RegleMetierException::conditionsManquantes('Décision refusée.', [Manque::validations('B8 : le pilote et les membres de l’équipe ne valident pas leur propre fiche.')]);
             }
 
             if (! $this->circuit->estActionnable($validation, $fiche)) {
@@ -165,15 +184,15 @@ class FicheWorkflow
 
             $decision === 'VALIDE'
                 ? $this->apresApprobation($fiche, $validation)
-                : $this->apresRefus($fiche, $validation, $commentaire, $retour, $userId);
+                : $this->apresRefus($fiche, $validation, $commentaire, $retour, $userId, $classer && $validation->porte === 0);
 
             return $validation->refresh();
         });
     }
 
     /**
-     * T0 : l'initiateur soumet l'identification, le contexte, la situation actuelle et
-     * l'objectif (sections 1 à 4) au chef de son département, qui juge la pertinence.
+     * T0 : le pilote soumet l'identification, le contexte, la situation actuelle et
+     * l'objectif (sections 1 à 4) au chef de département qu'il a choisi en section 4.
      */
     private function t0(FicheA3 $fiche, ActiveProfile $profile): void
     {
@@ -181,33 +200,10 @@ class FicheWorkflow
         if ($fiche->pertinence_validee_le !== null) {
             throw RegleMetierException::conflit('La pertinence de cette fiche est déjà validée.');
         }
-        if (! $this->peutSoumettrePertinence($fiche, $profile)) {
-            throw RegleMetierException::interdit('Seul l’initiateur de la fiche la soumet à son chef de département.');
-        }
-
-        $manques = $this->manquesPertinence($fiche);
-        $departement = $this->organigramme->departementDe($fiche->declarant);
-        if ($departement === null) {
-            $manques[] = 'Votre rattachement à un département n’est pas renseigné dans l’organigramme : demandez à l’administrateur fonctionnel.';
-        }
-        if ($manques !== []) {
-            throw RegleMetierException::conditionsManquantes('La fiche ne peut pas être soumise au chef de département.', $manques);
-        }
-
-        $fiche->departement_id = $departement->id;
-        $fiche->save();
-        $fiche->load('departement.responsable');
-
-        // L'initiateur qui dirige lui-même le département n'a personne à qui soumettre.
-        if ($this->organigramme->chefDe($fiche) === $fiche->declarant_id) {
-            $this->history->log($fiche, $profile->userId(), 'PERTINENCE_VALIDEE', 'porte_0', null, 'Chef de département', 'Initiateur chef de son département : pertinence validée d’office');
-            $this->apresPertinence($fiche);
-
-            return;
-        }
+        $this->exigerPilote($fiche, $profile);
 
         $roles = $this->circuit->rolesPorte0();
-        $manques = $this->circuit->rolesSansTitulaire($roles, $fiche);
+        $manques = [...$this->manquesPertinence($fiche), ...$this->circuit->rolesSansTitulaire($roles, $fiche, 0)];
         if ($manques !== []) {
             throw RegleMetierException::conditionsManquantes('La fiche ne peut pas être soumise au chef de département.', $manques);
         }
@@ -218,75 +214,13 @@ class FicheWorkflow
     }
 
     /**
-     * L'initiateur, ou le pilote qui s'est désigné à la déclaration, soumet la pertinence.
-     */
-    public function peutSoumettrePertinence(FicheA3 $fiche, ActiveProfile $profile): bool
-    {
-        return $fiche->declarant_id === $profile->userId() || $profile->estPiloteDe($fiche);
-    }
-
-    /**
-     * Pertinence validée : la fiche part chez le pilote. S'il n'y en a qu'un (ou s'il est
-     * déjà désigné), il la reçoit et l'analyse commence ; s'il y en a plusieurs, tous sont
-     * prévenus et le premier qui la prend en charge (T2) devient pilote.
+     * Pertinence validée : l'analyse commence avec le pilote et son équipe.
      */
     private function apresPertinence(FicheA3 $fiche): void
     {
         $fiche->pertinence_validee_le = now();
-        $fiche->save();
-
-        $pilotes = $this->circuit->titulaires('PILOTE', $fiche);
-        if ($fiche->pilote_id === null && $pilotes->count() === 1) {
-            $fiche->pilote_id = $pilotes->first();
-            $fiche->save();
-            $this->history->log($fiche, null, 'DESIGNATION_PILOTE', 'pilote_id', null, $fiche->pilote_id, 'Désignation automatique : seul titulaire du rôle Pilote');
-        }
-
-        if ($fiche->pilote_id !== null) {
-            $fiche->date_lancement ??= today();
-            $this->changerEtape($fiche, StatutEtape::EnCours, null, 'T2 — Pertinence validée, début de l’analyse');
-            $this->notifications->notify($fiche->pilotesIds(), $fiche, 'FICHE_A_PILOTER', 'Pertinence validée : la fiche vous est confiée pour l’analyse.');
-
-            return;
-        }
-
-        if ($fiche->etape() !== StatutEtape::Ouvert) {
-            $this->changerEtape($fiche, StatutEtape::Ouvert, null, 'Pertinence validée, en attente d’un pilote');
-        }
-        $this->notifications->notify($pilotes, $fiche, 'FICHE_A_PILOTER', 'Pertinence validée : fiche à prendre en charge par un pilote.');
-    }
-
-    /**
-     * T2 : début de l'analyse, après la validation de la pertinence. Un pilote titulaire
-     * du rôle pour l'unité de la fiche peut la prendre en charge si personne ne la pilote.
-     */
-    private function t2(FicheA3 $fiche, ActiveProfile $profile): void
-    {
-        $this->exigerEtape($fiche, StatutEtape::Ouvert);
-        if ($fiche->pertinence_validee_le === null) {
-            throw RegleMetierException::conditionsManquantes('L’analyse ne peut pas commencer.', ['La pertinence doit d’abord être validée par le chef de département.']);
-        }
-
-        if ($fiche->pilote_id === null && $this->peutPrendreEnCharge($fiche, $profile)) {
-            $fiche->pilote_id = $profile->userId();
-            $this->history->log($fiche, $profile->userId(), 'DESIGNATION_PILOTE', 'pilote_id', null, $profile->userId(), 'Prise en charge par le pilote');
-        }
-
-        $this->exigerPilote($fiche, $profile);
         $fiche->date_lancement ??= today();
-        $this->changerEtape($fiche, StatutEtape::EnCours, $profile->userId(), 'T2 — Début de l’analyse');
-    }
-
-    /**
-     * Fiche à la pertinence validée, sans pilote, que le pilote actif peut prendre en charge.
-     */
-    public function peutPrendreEnCharge(FicheA3 $fiche, ActiveProfile $profile): bool
-    {
-        return $fiche->etape() === StatutEtape::Ouvert
-            && $fiche->pertinence_validee_le !== null
-            && $fiche->pilote_id === null
-            && $profile->is('PILOTE')
-            && $this->circuit->titulaires('PILOTE', $fiche)->contains($profile->userId());
+        $this->changerEtape($fiche, StatutEtape::EnCours, null, 'T2 — Pertinence validée, début de l’analyse');
     }
 
     private function t3(FicheA3 $fiche, ActiveProfile $profile): void
@@ -448,9 +382,11 @@ class FicheWorkflow
     public function prochaineEtape(FicheA3 $fiche): ?array
     {
         return match ($fiche->etape()) {
-            StatutEtape::Ouvert => $fiche->pertinence_validee_le === null
-                ? ['code' => 'T0', 'manques' => $this->manquesPertinence($fiche)]
-                : ['code' => 'T2', 'manques' => $fiche->pilote_id === null ? ['Un pilote doit prendre la fiche en charge.'] : []],
+            StatutEtape::Ouvert => ['code' => 'T0', 'manques' => [
+                ...($fiche->pilote_id === null ? ['L’administrateur fonctionnel doit désigner le pilote de la fiche.'] : []),
+                ...$this->manquesPertinence($fiche),
+                ...$this->circuit->rolesSansTitulaire($this->circuit->rolesPorte0(), $fiche, 0),
+            ]],
             StatutEtape::EnCours => ['code' => 'T3', 'manques' => $this->manquesB2($fiche)],
             StatutEtape::RealisationActions => ['code' => 'T6', 'manques' => $this->manquesT6($fiche)],
             StatutEtape::MesureResultats => ['code' => 'T7', 'manques' => $this->manquesT7($fiche)],
@@ -515,7 +451,7 @@ class FicheWorkflow
 
     /**
      * T8 : résultats, contrôles d'action (B4), maintien du KPI principal, pérennisation
-     * réalisée et prouvée, leçons, gains, titulaires de la porte 2.
+     * réalisée, leçons, gains, titulaires de la porte 2.
      *
      * @return array<int, string|Manque>
      */
@@ -528,14 +464,14 @@ class FicheWorkflow
             ...$this->controles->manquesMaintien($fiche),
         ];
 
-        $perennisations = $fiche->perennisations()->get(['type', 'statut', 'preuve']);
+        $perennisations = $fiche->perennisations()->get(['type', 'statut']);
         $types = ValeurListe::query()->deLaListe('type_perennisation')->pluck('libelle', 'code');
         if ($perennisations->isEmpty()) {
             $manques[] = Manque::section(10, 'Section 10 : enregistrer au moins une action de pérennisation.');
         }
         foreach ($perennisations as $ligne) {
-            if ($ligne->statut !== 'REALISE' || blank($ligne->preuve)) {
-                $manques[] = Manque::section(10, 'Section 10 : l’action de pérennisation « '.($types[$ligne->type] ?? $ligne->type).' » doit être réalisée, avec sa preuve (procédure, compte rendu de formation…).');
+            if ($ligne->statut !== 'REALISE') {
+                $manques[] = Manque::section(10, 'Section 10 : l’action de pérennisation « '.($types[$ligne->type] ?? $ligne->type).' » doit être réalisée.');
             }
         }
         if (! $fiche->lecons()->exists()) {
@@ -545,7 +481,7 @@ class FicheWorkflow
             $manques[] = Manque::section(9, 'Section 9 : renseigner les gains ou cocher « sans gain chiffré ».');
         }
 
-        return [...$manques, ...$this->circuit->rolesSansTitulaire($this->circuit->rolesPorte2($fiche), $fiche)];
+        return [...$manques, ...$this->circuit->rolesSansTitulaire($this->circuit->rolesPorte2($fiche), $fiche, 2)];
     }
 
     private function apresApprobation(FicheA3 $fiche, Validation $validation): void
@@ -567,15 +503,15 @@ class FicheWorkflow
     /**
      * T5 (porte 1 → En cours) ou T10 (porte 2 → Mesure ou Vérification).
      */
-    private function apresRefus(FicheA3 $fiche, Validation $validation, string $commentaire, ?string $retour, ?int $userId): void
+    private function apresRefus(FicheA3 $fiche, Validation $validation, string $commentaire, ?string $retour, ?int $userId, bool $classer = false): void
     {
         $this->circuit->annulerEnAttente($fiche, $validation->porte, 'Demande close après un refus.');
 
-        if ($validation->porte === 0) {
-            $this->changerEtape($fiche, StatutEtape::Ouvert, $userId, 'Pertinence refusée', $commentaire);
-            $this->notifications->notify([$fiche->declarant_id], $fiche, 'REFUS', 'Pertinence refusée : '.$commentaire, 'validation', $validation->id, $userId);
-
-            return;
+        if ($classer) {
+            $fiche->motif_classement = $commentaire;
+            $this->changerEtape($fiche, StatutEtape::ClasseSansSuite, $userId, 'Pertinence refusée, fiche classée sans suite', $commentaire);
+        } elseif ($validation->porte === 0) {
+            $this->changerEtape($fiche, StatutEtape::Ouvert, $userId, 'Pertinence à revoir', $commentaire);
         } elseif ($validation->porte === 1) {
             $this->changerEtape($fiche, StatutEtape::EnCours, $userId, 'T5 — Plan refusé', $commentaire);
         } else {
@@ -678,11 +614,11 @@ class FicheWorkflow
             $manques[] = Manque::section(7, 'Section 7 : choisir le directeur qui valide le domaine « Autres ».');
         }
 
-        return [...$manques, ...$this->circuit->rolesSansTitulaire($this->circuit->rolesPorte1($fiche), $fiche)];
+        return [...$manques, ...$this->circuit->rolesSansTitulaire($this->circuit->rolesPorte1($fiche), $fiche, 1)];
     }
 
     /**
-     * Sections 1 à 4 que l'initiateur renseigne avant la validation de la pertinence.
+     * Sections 1 à 4 que le pilote renseigne avant la validation de la pertinence.
      *
      * @return array<int, string|Manque>
      */
@@ -695,6 +631,9 @@ class FicheWorkflow
         }
         if ($fiche->date_cible === null) {
             $manques[] = Manque::section(1, 'Section 1 : date cible.');
+        }
+        if ($fiche->sponsor_id === null) {
+            $manques[] = Manque::section(1, 'Section 1 : choisir le directeur sponsor, qui approuvera la clôture.');
         }
         if (blank($fiche->contexte)) {
             $manques[] = Manque::section(2, 'Section 2 : contexte.');
@@ -715,6 +654,9 @@ class FicheWorkflow
         }
         if (blank($fiche->resultats_attendus)) {
             $manques[] = Manque::section(4, 'Section 4 : résultats attendus (conditions de clôture).');
+        }
+        if ($fiche->chef_pertinence_id === null) {
+            $manques[] = Manque::section(4, 'Section 4 : choisir le chef de département qui valide la pertinence.');
         }
 
         return $manques;

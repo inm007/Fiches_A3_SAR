@@ -27,7 +27,13 @@ class AuthController extends Controller
         'password.confirmed' => 'La confirmation ne correspond pas au mot de passe.',
     ];
 
+    /**
+     * Cinq échecs par identifiant, et un seuil plus large par adresse IP : derrière le
+     * proxy ou le NAT du site, beaucoup d'utilisateurs partagent la même adresse.
+     */
     private const int MAX_ATTEMPTS = 5;
+
+    private const int MAX_ATTEMPTS_PER_ADDRESS = 50;
 
     private const int DECAY_SECONDS = 900;
 
@@ -43,13 +49,14 @@ class AuthController extends Controller
         ]);
 
         [$identifierKey, $addressKey] = $this->limiterKeys($credentials['identifiant'], $request);
-        $retryAfter = max(
-            RateLimiter::availableIn($identifierKey),
-            RateLimiter::availableIn($addressKey),
-        );
+        $bloques = array_filter([
+            $identifierKey => RateLimiter::tooManyAttempts($identifierKey, self::MAX_ATTEMPTS),
+            $addressKey => RateLimiter::tooManyAttempts($addressKey, self::MAX_ATTEMPTS_PER_ADDRESS),
+        ]);
 
-        if (RateLimiter::tooManyAttempts($identifierKey, self::MAX_ATTEMPTS)
-            || RateLimiter::tooManyAttempts($addressKey, self::MAX_ATTEMPTS)) {
+        if ($bloques !== []) {
+            $retryAfter = max(array_map(fn (string $key) => RateLimiter::availableIn($key), array_keys($bloques)));
+
             return response()->json([
                 'message' => 'Trop de tentatives. Réessayez dans '.max(1, (int) ceil($retryAfter / 60)).' minutes.',
                 'retry_after' => $retryAfter,
@@ -81,8 +88,9 @@ class AuthController extends Controller
             return $this->invalidCredentials();
         }
 
+        // Le compteur de l'adresse n'est pas remis à zéro : un compte valide ne doit pas
+        // permettre de relancer une série d'essais sur les autres identifiants.
         RateLimiter::clear($identifierKey);
-        RateLimiter::clear($addressKey);
         $request->session()->regenerate();
         $request->session()->put('auth.active_assignment_id', $activeAssignment->id);
         $user->forceFill(['derniere_connexion' => now()])->save();

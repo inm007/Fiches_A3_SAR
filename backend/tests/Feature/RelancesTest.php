@@ -9,7 +9,7 @@ use App\Models\NotificationInterne;
 use App\Models\Parametre;
 use App\Models\Relance;
 use App\Models\Validation;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use Tests\Concerns\SimuleFiches;
 use Tests\TestCase;
@@ -19,7 +19,7 @@ use Tests\TestCase;
  */
 class RelancesTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
     use SimuleFiches;
 
     protected function setUp(): void
@@ -165,8 +165,7 @@ class RelancesTest extends TestCase
     private function ficheEnValidation(): FicheA3
     {
         $fiche = $this->declarer();
-        $this->designerPilote($fiche);
-        $this->transition($fiche, 'PILOTE', 'T2')->assertOk();
+        $this->lancer($fiche);
         $this->completerPlan($fiche);
         $this->transition($fiche, 'PILOTE', 'T3')->assertOk();
 

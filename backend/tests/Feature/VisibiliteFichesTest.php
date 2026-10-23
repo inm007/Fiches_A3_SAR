@@ -10,7 +10,7 @@ use App\Models\FicheA3Domaine;
 use App\Models\Gain;
 use App\Models\Unite;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Concerns\SimuleFiches;
 use Tests\TestCase;
@@ -21,7 +21,7 @@ use Tests\TestCase;
  */
 class VisibiliteFichesTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
     use SimuleFiches;
 
     protected function setUp(): void
@@ -81,8 +81,7 @@ class VisibiliteFichesTest extends TestCase
     public function test_solicited_validator_sees_restricted_fiche(): void
     {
         $fiche = $this->declarer(['confidentialite' => 'RESTREINT']);
-        $this->designerPilote($fiche);
-        $this->transition($fiche, 'PILOTE', 'T2')->assertOk();
+        $this->lancer($fiche);
         $this->completerPlan($fiche);
         $this->nevoitPas($this->acteurs['VALIDEUR_HSE'], $fiche);
 
@@ -155,6 +154,6 @@ class VisibiliteFichesTest extends TestCase
 
     private function gain(FicheA3 $fiche, string $statut): void
     {
-        Gain::create(['fiche_id' => $fiche->id, 'categorie' => 'AUTRES', 'hypothese_calcul' => 'H', 'quantite' => 1, 'unite' => 'u', 'cout_unitaire' => 1000, 'montant_annuel' => 1000, 'statut' => $statut]);
+        Gain::create(['fiche_id' => $fiche->id, 'categorie' => 'AUTRES', 'hypothese_calcul' => 'H', 'montant_annuel' => 1000, 'statut' => $statut]);
     }
 }

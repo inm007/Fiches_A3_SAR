@@ -7,7 +7,7 @@ use App\Models\Role;
 use App\Models\Unite;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -16,7 +16,7 @@ use Tests\TestCase;
 
 class AuthSessionTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -128,6 +128,39 @@ class AuthSessionTest extends TestCase
         ])
             ->assertTooManyRequests()
             ->assertJsonPath('retry_after', 900);
+    }
+
+    public function test_other_identifiers_from_the_same_address_are_not_locked_by_one_account(): void
+    {
+        $this->freezeTime();
+        [$user] = $this->createAssignedUser('AGENT');
+
+        for ($attempt = 0; $attempt < 6; $attempt++) {
+            $this->postJson('/api/auth/connexion', ['identifiant' => 'locked.user', 'password' => 'wrong-password']);
+        }
+
+        // Derrière le même proxy, un collègue se connecte normalement.
+        $this->postJson('/api/auth/connexion', ['identifiant' => $user->identifiant, 'password' => 'password'])->assertOk();
+    }
+
+    public function test_the_address_is_limited_after_fifty_failures_across_identifiers(): void
+    {
+        $this->freezeTime();
+
+        for ($attempt = 0; $attempt < 50; $attempt++) {
+            $this->postJson('/api/auth/connexion', ['identifiant' => 'essai.'.$attempt, 'password' => 'wrong-password'])->assertUnauthorized();
+        }
+
+        $this->postJson('/api/auth/connexion', ['identifiant' => 'essai.suivant', 'password' => 'wrong-password'])->assertTooManyRequests();
+    }
+
+    public function test_api_answers_401_without_json_accept_header_and_sets_security_headers(): void
+    {
+        $this->get('/api/auth/moi')
+            ->assertUnauthorized()
+            ->assertHeader('X-Content-Type-Options', 'nosniff')
+            ->assertHeader('X-Frame-Options', 'DENY')
+            ->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     }
 
     public function test_authenticated_user_can_switch_only_to_their_own_active_profile(): void

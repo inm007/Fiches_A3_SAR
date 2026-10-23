@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\ResolvesVisibleFiche;
 use App\Models\ActionA3;
 use App\Models\FicheA3;
+use App\Models\Perennisation;
 use App\Models\PieceJointe;
 use App\Services\ActiveProfile;
 use App\Services\PieceJointeService;
@@ -40,10 +41,15 @@ class PieceJointeController extends Controller
                 'max:'.($limits['attachment_max_size_mb'] * 1024),
             ],
             'action_id' => ['nullable', 'integer', 'exists:actions,id'],
+            'perennisation_id' => ['nullable', 'integer', 'exists:perennisation,id', 'prohibits:action_id'],
         ]);
 
-        $action = isset($data['action_id']) ? ActionA3::findOrFail($data['action_id']) : null;
-        $pieceJointe = $attachments->ajouter($fiche, $data['fichier'], $action, $profile);
+        $objet = match (true) {
+            isset($data['action_id']) => ActionA3::findOrFail($data['action_id']),
+            isset($data['perennisation_id']) => Perennisation::findOrFail($data['perennisation_id']),
+            default => null,
+        };
+        $pieceJointe = $attachments->ajouter($fiche, $data['fichier'], $objet, $profile);
 
         return response()->json(['data' => $attachments->presenter($pieceJointe)], 201);
     }

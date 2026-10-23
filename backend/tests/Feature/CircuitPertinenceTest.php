@@ -8,18 +8,19 @@ use App\Models\FicheA3;
 use App\Models\NotificationInterne;
 use App\Models\User;
 use App\Models\Validation;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Concerns\SimuleFiches;
 use Tests\TestCase;
 
 /**
- * Retours de la réunion du 20 octobre 2026 : validation de la pertinence par le chef de
- * département de l'initiateur (porte 0), envoi au pilote, organigramme et équipe de la fiche.
+ * Circuit précisé le 23 octobre 2026 : l'administrateur désigne le pilote, le pilote remplit
+ * les sections 1 à 4 et choisit le chef qui valide la pertinence (porte 0), puis constitue
+ * une équipe d'agents et de pilotes. Organigramme : il propose le chef par défaut.
  */
 class CircuitPertinenceTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
     use SimuleFiches;
 
     private Entite $departement;
@@ -44,101 +45,97 @@ class CircuitPertinenceTest extends TestCase
         $this->chef = [$chef, $affectation];
     }
 
-    public function test_initiator_submits_to_department_head_and_the_only_pilot_receives_the_fiche(): void
+    public function test_admin_is_notified_and_the_pilot_fills_sections_one_to_four(): void
     {
-        [$pilote] = $this->acteurs['PILOTE'];
         $fiche = $this->declarer();
+        $admin = $this->acteurs['ADMIN_FONCTIONNEL'][0];
+        $this->assertTrue(NotificationInterne::where('user_id', $admin->id)->where('fiche_id', $fiche->id)->where('type', 'PILOTE_A_DESIGNER')->exists());
 
-        $this->transition($fiche, 'AGENT', 'T0')->assertUnprocessable()
-            ->assertJsonFragment(['Section 2 : contexte.'])
-            ->assertJsonFragment(['Section 4 : objectif SMART.']);
+        // Le déclarant ne remplit pas la fiche : il attend le pilote désigné par l'administrateur.
+        $this->agir('AGENT')->putJson("/api/fiches/{$fiche->id}/sections/2", ['contexte' => 'x', 'enonce_probleme' => 'x'])->assertForbidden();
+        $this->designerPilote($fiche);
 
-        $this->remplirPertinence($fiche);
-        $this->transition($fiche, 'AGENT', 'T0')->assertOk()->assertJsonPath('data.statut_etape', 'EN_VALIDATION_PERTINENCE');
-        $this->assertSame($this->departement->id, $fiche->refresh()->departement_id);
-        $this->agir('AGENT')->putJson("/api/fiches/{$fiche->id}/sections/2", ['contexte' => 'Modifié', 'enonce_probleme' => 'Consommation élevée'])->assertForbidden();
+        $this->transition($fiche, 'PILOTE', 'T0')->assertUnprocessable()
+            ->assertJsonFragment(['Section 1 : choisir le directeur sponsor, qui approuvera la clôture.'])
+            ->assertJsonFragment(['Section 4 : choisir le chef de département qui valide la pertinence.']);
+
+        // Le chef proposé est celui du département du pilote ; la liste des sponsors ne compte que des directeurs.
+        $this->acteurs['PILOTE'][0]->update(['entite_id' => $this->service->id]);
+        $options = $this->agir('PILOTE')->getJson("/api/fiches/{$fiche->id}/options")->assertOk();
+        $options->assertJsonPath('data.chef_propose', $this->chef[0]->id);
+        $this->assertContains($this->acteurs['DIRECTION'][0]->id, collect($options->json('data.sponsors'))->pluck('id'));
+        $this->assertNotContains($this->acteurs['AGENT'][0]->id, collect($options->json('data.sponsors'))->pluck('id'));
+
+        $this->section($fiche, 1, ['titre' => 'T', 'unite_id' => $this->unite->id, 'origine_id' => $this->valeur('origine', 'AUDIT'), 'sponsor_id' => $this->acteurs['AGENT'][0]->id])
+            ->assertUnprocessable()
+            ->assertJsonFragment(['Le sponsor est un directeur actif, qui ne pilote pas la fiche et ne fait pas partie de son équipe.']);
+        $this->section($fiche, 4, ['objectif_smart' => 'x', 'chef_pertinence_id' => $this->acteurs['PILOTE'][0]->id])
+            ->assertUnprocessable()
+            ->assertJsonFragment(['Choisissez un chef de département actif, qui ne pilote pas la fiche et ne fait pas partie de son équipe.']);
+    }
+
+    public function test_chosen_head_validates_sends_back_or_files_the_fiche(): void
+    {
+        $fiche = $this->ficheSoumise();
+        $this->assertSame($this->chef[0]->id, $fiche->refresh()->chef_pertinence_id);
+        $this->section($fiche, 2, ['contexte' => 'Modifié', 'enonce_probleme' => 'Consommation élevée'])->assertForbidden();
 
         $demande = Validation::where('fiche_id', $fiche->id)->where('porte', 0)->firstOrFail();
         $this->assertSame($this->chef[0]->id, $demande->valideur_id);
         $this->assertTrue(NotificationInterne::where('user_id', $this->chef[0]->id)->where('type', 'DEMANDE_VALIDATION')->exists());
         $this->agirComme($this->chef)->getJson('/api/validations')->assertOk()->assertJsonPath('data.0.id', $demande->id);
 
-        // Refus : retour à l'initiateur, qui corrige et resoumet.
+        // « À refaire » : retour au pilote, qui corrige et resoumet.
         $this->agirComme($this->chef)->postJson("/api/validations/{$demande->id}/decision", ['decision' => 'REFUSE'])->assertUnprocessable();
         $this->agirComme($this->chef)->postJson("/api/validations/{$demande->id}/decision", ['decision' => 'REFUSE', 'commentaire' => 'Chiffrer le gain attendu'])->assertOk();
         $this->assertSame('OUVERT', $fiche->refresh()->statut_etape);
-        $this->assertTrue(NotificationInterne::where('user_id', $this->acteurs['AGENT'][0]->id)->where('type', 'REFUS')->exists());
-        $this->agir('AGENT')->putJson("/api/fiches/{$fiche->id}/sections/2", ['contexte' => 'Gain attendu : 10 t/h', 'enonce_probleme' => 'Consommation élevée'])->assertOk();
-        $this->transition($fiche, 'AGENT', 'T0')->assertOk();
+        $this->assertTrue(NotificationInterne::where('user_id', $this->acteurs['PILOTE'][0]->id)->where('type', 'REFUS')->exists());
+        $this->section($fiche, 2, ['contexte' => 'Gain attendu : 10 t/h', 'enonce_probleme' => 'Consommation élevée'])->assertOk();
+        $this->transition($fiche, 'PILOTE', 'T0')->assertOk();
 
-        $demande = Validation::where('fiche_id', $fiche->id)->where('porte', 0)->where('decision', 'EN_ATTENTE')->firstOrFail();
-        $this->agirComme($this->chef)->postJson("/api/validations/{$demande->id}/decision", ['decision' => 'VALIDE'])->assertOk();
-
+        // Oui : la fiche passe en cours et les sections 2 à 4 sont figées.
+        $this->deciderPertinence($fiche);
         $fiche->refresh();
         $this->assertNotNull($fiche->pertinence_validee_le);
-        $this->assertSame($pilote->id, $fiche->pilote_id);
         $this->assertSame('EN_COURS', $fiche->statut_etape);
-        $this->assertTrue(NotificationInterne::where('user_id', $pilote->id)->where('type', 'FICHE_A_PILOTER')->exists());
+        $this->section($fiche, 4, ['objectif_smart' => 'Autre objectif'])->assertForbidden();
+
+        // Non : le chef classe la fiche sans suite.
+        $autre = $this->ficheSoumise();
+        $demande = Validation::where('fiche_id', $autre->id)->where('porte', 0)->where('decision', 'EN_ATTENTE')->firstOrFail();
+        $this->agirComme($this->chef)->postJson("/api/validations/{$demande->id}/decision", ['decision' => 'REFUSE', 'commentaire' => 'Déjà traité par le projet vapeur', 'classer' => true])->assertOk();
+        $autre->refresh();
+        $this->assertSame('CLASSE_SANS_SUITE', $autre->statut_etape);
+        $this->assertSame('Déjà traité par le projet vapeur', $autre->motif_classement);
     }
 
-    public function test_with_several_pilots_the_first_who_takes_the_fiche_pilots_it(): void
+    public function test_submission_explains_an_unavailable_head(): void
     {
-        $autrePilote = $this->acteur('PILOTE', $this->unite->id);
-        $fiche = $this->ficheSoumise();
-        $this->deciderPertinence($fiche);
-
-        $fiche->refresh();
-        $this->assertNull($fiche->pilote_id);
-        $this->assertSame('OUVERT', $fiche->statut_etape);
-        foreach ([$this->acteurs['PILOTE'][0], $autrePilote[0]] as $pilote) {
-            $this->assertTrue(NotificationInterne::where('user_id', $pilote->id)->where('fiche_id', $fiche->id)->where('type', 'FICHE_A_PILOTER')->exists());
-        }
-
-        $this->agirComme($autrePilote)->getJson("/api/fiches/{$fiche->id}")->assertOk()->assertJsonPath('data.droits.transitions', ['T2']);
-        $this->agirComme($autrePilote)->postJson("/api/fiches/{$fiche->id}/transitions", ['code' => 'T2'])->assertOk();
-        $this->assertSame($autrePilote[0]->id, $fiche->refresh()->pilote_id);
-        $this->transition($fiche, 'PILOTE', 'T2')->assertNotFound();
-    }
-
-    public function test_submission_explains_a_missing_department_or_head(): void
-    {
-        $this->acteurs['AGENT'][0]->update(['entite_id' => null]);
         $fiche = $this->declarer();
+        $this->designerPilote($fiche);
         $this->remplirPertinence($fiche);
-        $this->transition($fiche, 'AGENT', 'T0')->assertUnprocessable()
-            ->assertJsonFragment(['Votre rattachement à un département n’est pas renseigné dans l’organigramme : demandez à l’administrateur fonctionnel.']);
 
-        $this->acteurs['AGENT'][0]->update(['entite_id' => $this->service->id]);
         $this->agir('ADMIN_FONCTIONNEL')->patchJson("/api/admin/entities/{$this->departement->id}", ['responsable_id' => null])->assertOk();
         $this->assertFalse($this->chef[1]->refresh()->actif);
-        $this->transition($fiche, 'AGENT', 'T0')->assertUnprocessable()
-            ->assertJsonFragment(['Aucun chef actif n’est désigné pour le département « '.$this->departement->libelle.' » : demandez à l’administrateur fonctionnel de compléter l’organigramme.']);
+        $this->transition($fiche, 'PILOTE', 'T0')->assertUnprocessable()
+            ->assertJsonFragment(['Section 4 : le chef de département choisi n’est plus disponible (profil retiré, compte désactivé ou membre de la fiche) : choisissez-en un autre.']);
         $this->assertSame('OUVERT', $fiche->refresh()->statut_etape);
     }
 
-    public function test_head_of_department_who_declares_needs_no_validation(): void
+    public function test_pilot_builds_a_team_of_agents_and_pilots_after_the_relevance(): void
     {
-        [$pilote] = $this->acteurs['PILOTE'];
-        $this->chef[0]->update(['entite_id' => $this->departement->id]);
-        $agentChef = Affectation::create(['user_id' => $this->chef[0]->id, 'role_id' => $this->roleId('AGENT'), 'unite_id' => $this->unite->id, 'actif' => true]);
-        $this->acteurs['AGENT'] = [$this->chef[0], $agentChef];
-
-        $fiche = $this->declarer();
-        $this->remplirPertinence($fiche);
-        $this->transition($fiche, 'AGENT', 'T0')->assertOk()->assertJsonPath('data.statut_etape', 'EN_COURS');
-
-        $this->assertFalse(Validation::where('fiche_id', $fiche->id)->exists());
-        $this->assertSame($pilote->id, $fiche->refresh()->pilote_id);
-    }
-
-    public function test_pilot_builds_a_team_whose_members_fill_the_analysis(): void
-    {
-        $membre = $this->acteur('CONTROLE_GESTION', null);
+        $membre = $this->acteur('AGENT', null);
+        $controle = $this->acteur('CONTROLE_GESTION', null);
         $fiche = $this->ficheSoumise();
+
+        $this->agir('PILOTE')->postJson("/api/fiches/{$fiche->id}/membres", ['user_id' => $membre[0]->id])->assertConflict();
         $this->deciderPertinence($fiche);
 
         $this->agirComme($membre)->getJson("/api/fiches/{$fiche->id}")->assertNotFound();
+        $this->assertNotContains($controle[0]->id, collect($this->agir('PILOTE')->getJson("/api/fiches/{$fiche->id}/options")->json('data.membres_possibles'))->pluck('id'));
         $this->agir('AGENT')->postJson("/api/fiches/{$fiche->id}/membres", ['user_id' => $membre[0]->id])->assertForbidden();
+        $this->agir('PILOTE')->postJson("/api/fiches/{$fiche->id}/membres", ['user_id' => $controle[0]->id])
+            ->assertUnprocessable()->assertJsonFragment(['L’équipe se compose d’agents et de pilotes actifs.']);
         $this->agir('PILOTE')->postJson("/api/fiches/{$fiche->id}/membres", ['user_id' => $this->acteurs['PILOTE'][0]->id])->assertUnprocessable();
         $this->agir('PILOTE')->postJson("/api/fiches/{$fiche->id}/membres", ['user_id' => $membre[0]->id])
             ->assertOk()
@@ -156,6 +153,21 @@ class CircuitPertinenceTest extends TestCase
 
         $this->agir('PILOTE')->deleteJson("/api/fiches/{$fiche->id}/membres/{$membre[0]->id}")->assertOk()->assertJsonPath('data.membres', []);
         $this->agirComme($membre)->getJson("/api/fiches/{$fiche->id}")->assertNotFound();
+    }
+
+    public function test_a_team_member_never_validates_the_fiche(): void
+    {
+        // Un membre qui détient aussi un rôle de directeur n'est pas sollicité aux portes 1 et 2.
+        $membre = $this->acteur('PILOTE', $this->unite->id);
+        Affectation::create(['user_id' => $membre[0]->id, 'role_id' => $this->roleId('VALIDEUR_HSE'), 'unite_id' => $this->unite->id, 'actif' => true]);
+        Affectation::where('user_id', $this->acteurs['VALIDEUR_HSE'][0]->id)->update(['actif' => false]);
+        $fiche = $this->ficheSoumise();
+        $this->deciderPertinence($fiche);
+        $this->agir('PILOTE')->postJson("/api/fiches/{$fiche->id}/membres", ['user_id' => $membre[0]->id])->assertOk();
+        $this->completerPlan($fiche);
+
+        $this->transition($fiche, 'PILOTE', 'T3')->assertUnprocessable()
+            ->assertJsonFragment(['Aucun titulaire du rôle « Directeur QHSE (DHSE) » n’est affecté à l’unité de la fiche ni au périmètre global.']);
     }
 
     public function test_organisation_chart_rules(): void
@@ -193,28 +205,17 @@ class CircuitPertinenceTest extends TestCase
 
     private function remplirPertinence(FicheA3 $fiche): void
     {
-        $agent = $this->agir('AGENT');
-        $agent->putJson("/api/fiches/{$fiche->id}/sections/1", [
-            'titre' => 'Réduire la consommation de vapeur',
-            'unite_id' => $this->unite->id,
-            'origine_id' => $this->valeur('origine', 'AUDIT'),
-            'type_amelioration' => 'ENERGIE',
-            'date_cible' => today()->addMonths(3)->toDateString(),
-        ])->assertOk();
-        $agent->putJson("/api/fiches/{$fiche->id}/sections/2", ['contexte' => 'Purgeurs fuyards', 'enonce_probleme' => 'Consommation élevée'])->assertOk();
-        $agent->putJson("/api/fiches/{$fiche->id}/sections/3", ['indicateurs' => [
-            ['libelle' => 'Consommation vapeur', 'unite_mesure' => 't/h', 'sens' => 'baisse', 'reference' => 100, 'cible' => 80, 'actuelle' => 100, 'role' => 'PRINCIPAL'],
-        ]])->assertOk();
-        $agent->putJson("/api/fiches/{$fiche->id}/sections/4", ['objectif_smart' => 'Réduire de 20 %', 'resultats_attendus' => 'Sous 80 t/h pendant trois mois'])->assertOk();
+        $this->completerDebut($fiche, $this->chef[0]->id);
     }
 
     private function ficheSoumise(): FicheA3
     {
         $fiche = $this->declarer();
+        $this->designerPilote($fiche);
         $this->remplirPertinence($fiche);
-        $this->transition($fiche, 'AGENT', 'T0')->assertOk();
+        $this->transition($fiche, 'PILOTE', 'T0')->assertOk()->assertJsonPath('data.statut_etape', 'EN_VALIDATION_PERTINENCE');
 
-        return $fiche;
+        return $fiche->refresh();
     }
 
     private function deciderPertinence(FicheA3 $fiche): void

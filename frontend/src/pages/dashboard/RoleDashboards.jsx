@@ -149,7 +149,7 @@ export function PiloteDashboard({ data, hello }) {
   )
 }
 
-export function ValideurDashboard({ data, hello, roleLabel }) {
+export function ValideurDashboard({ data, hello, roleCode, roleLabel }) {
   const loading = !data
   const age = data?.plus_ancienne_demande_jours
   const tone = ageTone(age)
@@ -174,7 +174,7 @@ export function ValideurDashboard({ data, hello, roleLabel }) {
         <KpiCard icon="users" label="Fiches de mon périmètre" loading={loading} to="/fiches" tone="brand" value={data?.fiches_total} />
       </KpiRow>
       <div className="dash-grid">
-        <Panel className="dash-span-8" link={{ to: '/validations', label: 'Toute la file' }} subtitle="Plan d’actions (porte 1) et clôture (porte 2)." title="File de validation">
+        <Panel className="dash-span-8" link={{ to: '/validations', label: 'Toute la file' }} subtitle={roleCode === 'CHEF_DEPARTEMENT' ? 'Pertinence des fiches qui vous sont soumises (porte 0).' : 'Plan d’actions (porte 1) et clôture (porte 2).'} title="File de validation">
           <TodoList data={data} emptyText="Aucune fiche n’attend votre validation." exportName="validations-a-traiter.xlsx" types={['validation']} />
         </Panel>
         <Panel className="dash-span-4" subtitle="Vert jusqu’à 5 jours, orange jusqu’à 10, rouge au-delà." title="Délai de traitement">
@@ -207,11 +207,10 @@ export function ControleDashboard({ data, hello, onAnneeChange }) {
       />
       <div className="dash-money">
         <article className="dash-money__main">
-          <span className="dash-money__head">Gain net annuel validé<YearSelect data={data} onChange={onAnneeChange} /></span>
-          <strong>{data ? shortFcfa(data.gain_net_annuel_valide ?? 0) : '—'}</strong>
-          <small>Somme des gains nets des fiches dont tous les gains sont validés, par année de validation.</small>
+          <span className="dash-money__head">Gains annuels validés<YearSelect data={data} onChange={onAnneeChange} /></span>
+          <strong>{data ? shortFcfa(data.gains_valides_annee ?? 0) : '—'}</strong>
+          <small>Somme des montants annuels saisis par les pilotes et validés par le Contrôle de gestion, par année de validation.</small>
         </article>
-        <KpiCard format={shortFcfa} icon="ok" label={`Gains validés en ${data?.annee ?? 'cours d’année'}`} loading={loading} to="/fiches" tone="success" value={data?.gains_valides_annee} />
         <KpiCard icon="validation" label="Gains à valider" loading={loading} to="/validations" tone={alertTone(data?.gains_a_valider)} value={data?.gains_a_valider} />
         <KpiCard format={days} icon="clock" label="Plus ancienne demande" loading={loading} to="/validations" tone="neutral" value={data?.plus_ancienne_demande_jours} />
       </div>
@@ -261,9 +260,9 @@ export function DirectionDashboard({ data, hello, onAnneeChange }) {
           <Ring caption="des fiches mesurées ont leurs contrôles à jour" label={percent(data?.part_verification_efficacite)} tone="brand" value={data?.part_verification_efficacite} />
         </Panel>
         <article className="dash-span-3 dash-money__main dash-money__main--panel">
-          <span className="dash-money__head">Gain net annuel validé<YearSelect data={data} onChange={onAnneeChange} /></span>
-          <strong>{data ? shortFcfa(data.gain_net_annuel_valide ?? 0) : '—'}</strong>
-          <small>{data ? `${shortFcfa(data.gains_valides_annee ?? 0)} de gains validés en ${data.annee}` : ''}</small>
+          <span className="dash-money__head">Gains annuels validés<YearSelect data={data} onChange={onAnneeChange} /></span>
+          <strong>{data ? shortFcfa(data.gains_valides_annee ?? 0) : '—'}</strong>
+          <small>{data ? `Montants validés par le Contrôle de gestion en ${data.annee}` : ''}</small>
         </article>
         <Panel className="dash-span-4" title="Fiches par unité">
           <RepartitionBars axe="unite" data={data} />

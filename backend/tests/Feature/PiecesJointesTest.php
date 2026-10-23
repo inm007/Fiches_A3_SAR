@@ -6,7 +6,7 @@ use App\Models\ActionA3;
 use App\Models\Cause;
 use App\Models\Parametre;
 use App\Models\PieceJointe;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\SimuleFiches;
@@ -14,7 +14,7 @@ use Tests\TestCase;
 
 class PiecesJointesTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
     use SimuleFiches;
 
     protected function setUp(): void
@@ -125,6 +125,32 @@ class PiecesJointesTest extends TestCase
             'fichier' => UploadedFile::fake()->image('preuve.png'),
             'action_id' => $action->id,
         ], ['Accept' => 'application/json'])->assertCreated();
+    }
+
+    public function test_perennisation_proof_is_optional_and_can_be_a_document_or_an_image(): void
+    {
+        $fiche = $this->declarer();
+        $ids = $this->amenerEnRealisation($fiche);
+        $this->amenerEnVerification($fiche, $ids);
+
+        $ligne = $this->section($fiche, 10, ['perennisation' => [['type' => 'SOP', 'statut' => 'REALISE']]])
+            ->assertOk()
+            ->assertJsonPath('data.perennisation.0.preuve', null)
+            ->json('data.perennisation.0.id');
+
+        $this->agir('PILOTE')->post("/api/fiches/{$fiche->id}/pieces-jointes", [
+            'fichier' => UploadedFile::fake()->image('sop-signee.jpg'),
+            'perennisation_id' => $ligne,
+        ], ['Accept' => 'application/json'])
+            ->assertCreated()
+            ->assertJsonPath('data.perennisation_id', $ligne)
+            ->assertJsonPath('data.action_id', null);
+
+        $this->agir('PILOTE')->post("/api/fiches/{$fiche->id}/pieces-jointes", [
+            'fichier' => UploadedFile::fake()->image('x.png'),
+            'perennisation_id' => $ligne,
+            'action_id' => $ids['action'],
+        ], ['Accept' => 'application/json'])->assertUnprocessable();
     }
 
     public function test_upload_rejects_unapproved_file_types_and_enforces_configured_file_count(): void
