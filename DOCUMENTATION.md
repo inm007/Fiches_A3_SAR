@@ -368,12 +368,40 @@ En production, passer aussi `APP_ENV=production` et `APP_DEBUG=false`. Il faut e
 
 ## 20. Données de démonstration et tests
 
-La commande `php artisan migrate:fresh --seed` crée :
-- 3 unités et 10 équipements ;
-- 26 comptes : deux par rôle, plus deux chefs de département (`chef.demo` pour l'Exploitation, `chef2.demo` pour la Maintenance), tous avec le mot de passe `Azerty123` ;
-- 16 fiches, une par situation du parcours : une déclarée sans pilote, une soumise au chef, les autres plus avancées, dont une classée sans suite.
+La commande `php artisan migrate:fresh --seed` garde les référentiels nécessaires à l'application (rôles, droits, listes de valeurs) et recrée la démonstration, décrite compte par compte. Tous les comptes ont le mot de passe `Azerty123`.
 
-Les fiches sont simulées à travers les vrais services, sur le circuit complet : l'administrateur désigne le pilote, le pilote remplit les sections 1 à 4 avec le sponsor et le chef, le chef valide, puis le plan, les actions et la clôture suivent. L'historique, les validations, les contrôles et les notifications sont donc cohérents.
+**Référentiel** : 3 unités (DIST, REF, UTIL), 14 équipements, et un organigramme de 3 directions, 2 départements et 9 services. Chaque compte y est rattaché.
+
+**Comptes** (`DemoAccountsSeeder`) : deux par rôle, 26 comptes actifs, plus un ancien agent désactivé.
+
+| Rôle | Compte 1 | Compte 2 |
+|---|---|---|
+| Agent | `agent.demo` (DIST) | `agent2.demo` (REF, UTIL) |
+| Pilote | `pilote.demo` (DIST, REF) | `pilote2.demo` (REF, UTIL) |
+| Chef de département | `chef.demo` (Exploitation) | `chef2.demo` (Maintenance) |
+| Production / Exploitation | `valideur.demo` (DIST) | `valideur2.demo` (REF, UTIL) |
+| HSE, Procédé, Maintenance, Inspection, DSI | `valideur-hse.demo`, `valideur-procede.demo`… (DIST) | `valideur-hse2.demo`, `valideur-procede2.demo`… (REF, UTIL) |
+| Contrôle de gestion | `controle.demo` | `controle2.demo` |
+| Direction (sponsors) | `direction.demo` | `direction2.demo` |
+| Administrateur fonctionnel | `admin-fonctionnel.demo` | `admin-fonctionnel2.demo` |
+| Administrateur technique | `admin-technique.demo` | `admin-technique2.demo` |
+
+Le circuit de démonstration sollicite aussi la Maintenance pour la fiabilité et l'Inspection pour l'intégrité, pour que chaque directeur ait des demandes.
+
+**Fiches** (`DemoFichesSeeder`) : 30 fiches, rangées par compte déclarant. Le pilote de DIST est `pilote.demo`, celui de REF et UTIL `pilote2.demo` ; un pilote qui déclare pilote lui-même sa fiche.
+
+| Compte | Fiches et étapes |
+|---|---|
+| `agent.demo` (10) | 2 clôturées (dont une sans gain), en attente du sponsor (un gain refusé par le Contrôle de gestion), vérification J+90, nouvelle boucle (version 2), réalisation avec une action en retard relancée, en attente de la Production, renvoyée par le chef, sans pilote, classée comme doublon |
+| `agent2.demo` (12) | clôturée, clôture refusée par le sponsor, gains à valider (demande partagée avec `controle2.demo`), contrôle J+60 non conforme, mesure des résultats, MOC bloquant, en attente, plan refusé, en attente du directeur de domaine, soumise au chef, classée par le chef, sans pilote |
+| `pilote.demo` (5) | clôturée, réalisation (copilotée avec `pilote2.demo`), plan prêt, analyse en cours avec l'équipe, soumise au chef |
+| `pilote2.demo` (3) | clôturée (copilotée avec `pilote.demo`), vérification J+90, en rédaction |
+
+Les fiches sont simulées à travers les vrais services, en remontant jusqu'à 175 jours dans le temps : l'administrateur désigne le pilote, le pilote remplit les sections 1 à 4 avec le sponsor et le chef, le chef valide, puis le plan, les actions, les contrôles et la clôture suivent. L'historique, les validations, les versions figées, les relances et les notifications sont donc cohérents.
+
+**Activité** (`DemoActiviteSeeder`) : commentaires sur les fiches, les actions et les refus ; pièces jointes réelles (comptes rendus PDF sur les actions et la pérennisation, photos du constat) dans le stockage privé ; références SAP complétées ; paramètres ; journal d'administration (création des comptes, affectations, désignations, partages, réglages) ; rappels automatiques ; notifications de plus de trois jours marquées comme lues.
+
+Les comptes sont aussi créés en environnement `testing` ; les fiches et l'activité ne le sont qu'en `local`.
 
 Les tests du serveur (PHPUnit sur PostgreSQL) tournent sur une base dédiée, `fiche_a3_test`, recréée à chaque lancement (`RefreshDatabase`) : ils ne touchent jamais la base de démonstration. Créer cette base une fois (`createdb fiche_a3_test`) ; son nom se change dans `backend/phpunit.xml`. Ils couvrent :
 - le parcours complet ;

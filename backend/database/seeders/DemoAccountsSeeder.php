@@ -14,8 +14,9 @@ use Illuminate\Support\Facades\Hash;
 use RuntimeException;
 
 /**
- * Comptes de démonstration : deux utilisateurs par rôle, trois unités (PRD §1.1).
- * Le premier compte d'un rôle d'unité est affecté à l'unité DIST, le second à REF et UTIL.
+ * Comptes de démonstration, décrits compte par compte : deux utilisateurs par rôle, chacun
+ * rattaché à l'organigramme et affecté à ses unités (PRD §1.1). Les deux chefs de département
+ * reçoivent leur profil de l'organigramme.
  */
 class DemoAccountsSeeder extends Seeder
 {
@@ -31,67 +32,74 @@ class DemoAccountsSeeder extends Seeder
     ];
 
     /**
-     * Rôle => [identifiant, prénom, nom, portée] × 2. Portée : 'unit' ou 'global'.
+     * Compte => [prénom, nom, rôle, unités (vide : périmètre global), entité de rattachement].
+     * Rôle null : chef de département, profil donné par l'organigramme.
      *
-     * @var array<string, array<int, array{0: string, 1: string, 2: string}>>
+     * @var array<string, array{0: string, 1: string, 2: string|null, 3: array<int, string>, 4: string}>
      */
-    private const array ACCOUNTS = [
-        'AGENT' => [['agent.demo', 'Amadou', 'Ndiaye'], ['agent2.demo', 'Seynabou', 'Diallo']],
-        'PILOTE' => [['pilote.demo', 'Fatou', 'Sarr'], ['pilote2.demo', 'Ibrahima', 'Fall']],
-        'VALIDEUR_PRODUCTION' => [['valideur.demo', 'Moussa', 'Gaye'], ['valideur2.demo', 'Aïssatou', 'Ba']],
-        'VALIDEUR_HSE' => [['valideur-hse.demo', 'Khady', 'Mbaye'], ['valideur-hse2.demo', 'Ousmane', 'Sow']],
-        'VALIDEUR_PROCEDE' => [['valideur-procede.demo', 'Cheikh', 'Diop'], ['valideur-procede2.demo', 'Mariama', 'Kane']],
-        'VALIDEUR_MAINTENANCE' => [['valideur-maintenance.demo', 'Aliou', 'Cissé'], ['valideur-maintenance2.demo', 'Rokhaya', 'Faye']],
-        'VALIDEUR_INSPECTION' => [['valideur-inspection.demo', 'Ndeye', 'Thiam'], ['valideur-inspection2.demo', 'Pape', 'Seck']],
-        'VALIDEUR_DSI' => [['valideur-dsi.demo', 'Adama', 'Faye'], ['valideur-dsi2.demo', 'Bineta', 'Sall']],
-        'CONTROLE_GESTION' => [['controle.demo', 'Awa', 'Ndour'], ['controle2.demo', 'Babacar', 'Mbengue']],
-        'DIRECTION' => [['direction.demo', 'Ibrahima', 'Sy'], ['direction2.demo', 'Coumba', 'Gueye']],
-        'ADMIN_FONCTIONNEL' => [['admin-fonctionnel.demo', 'Mariama', 'Diouf'], ['admin-fonctionnel2.demo', 'Lamine', 'Camara']],
-        'ADMIN_TECHNIQUE' => [['admin-technique.demo', 'Ousmane', 'Badji'], ['admin-technique2.demo', 'Astou', 'Niang']],
+    public const array COMPTES = [
+        'agent.demo' => ['Amadou', 'Ndiaye', 'AGENT', ['DIST'], 'SRV-DIST'],
+        'agent2.demo' => ['Seynabou', 'Diallo', 'AGENT', ['REF', 'UTIL'], 'SRV-REF'],
+        'pilote.demo' => ['Fatou', 'Sarr', 'PILOTE', ['DIST', 'REF'], 'SRV-DIST'],
+        'pilote2.demo' => ['Ibrahima', 'Fall', 'PILOTE', ['REF', 'UTIL'], 'SRV-MECA'],
+        'chef.demo' => ['Mamadou', 'Diagne', null, [], 'DEP-EXP'],
+        'chef2.demo' => ['Aminata', 'Touré', null, [], 'DEP-MAINT'],
+        'valideur.demo' => ['Moussa', 'Gaye', 'VALIDEUR_PRODUCTION', ['DIST'], 'DIR-PROD'],
+        'valideur2.demo' => ['Aïssatou', 'Ba', 'VALIDEUR_PRODUCTION', ['REF', 'UTIL'], 'DIR-PROD'],
+        'valideur-hse.demo' => ['Khady', 'Mbaye', 'VALIDEUR_HSE', ['DIST'], 'SRV-HSE'],
+        'valideur-hse2.demo' => ['Ousmane', 'Sow', 'VALIDEUR_HSE', ['REF', 'UTIL'], 'SRV-HSE'],
+        'valideur-procede.demo' => ['Cheikh', 'Diop', 'VALIDEUR_PROCEDE', ['DIST'], 'SRV-PROCEDE'],
+        'valideur-procede2.demo' => ['Mariama', 'Kane', 'VALIDEUR_PROCEDE', ['REF', 'UTIL'], 'SRV-PROCEDE'],
+        'valideur-maintenance.demo' => ['Aliou', 'Cissé', 'VALIDEUR_MAINTENANCE', ['DIST'], 'DIR-TECH'],
+        'valideur-maintenance2.demo' => ['Rokhaya', 'Faye', 'VALIDEUR_MAINTENANCE', ['REF', 'UTIL'], 'DIR-TECH'],
+        'valideur-inspection.demo' => ['Ndeye', 'Thiam', 'VALIDEUR_INSPECTION', ['DIST'], 'SRV-INSP'],
+        'valideur-inspection2.demo' => ['Pape', 'Seck', 'VALIDEUR_INSPECTION', ['REF', 'UTIL'], 'SRV-INSP'],
+        'valideur-dsi.demo' => ['Adama', 'Faye', 'VALIDEUR_DSI', ['DIST'], 'SRV-SI'],
+        'valideur-dsi2.demo' => ['Bineta', 'Sall', 'VALIDEUR_DSI', ['REF', 'UTIL'], 'SRV-SI'],
+        'controle.demo' => ['Awa', 'Ndour', 'CONTROLE_GESTION', [], 'SRV-CG'],
+        'controle2.demo' => ['Babacar', 'Mbengue', 'CONTROLE_GESTION', [], 'SRV-CG'],
+        'direction.demo' => ['Ibrahima', 'Sy', 'DIRECTION', [], 'DIR-PROD'],
+        'direction2.demo' => ['Coumba', 'Gueye', 'DIRECTION', [], 'DIR-TECH'],
+        'admin-fonctionnel.demo' => ['Mariama', 'Diouf', 'ADMIN_FONCTIONNEL', [], 'DIR-GEN'],
+        'admin-fonctionnel2.demo' => ['Lamine', 'Camara', 'ADMIN_FONCTIONNEL', [], 'DIR-GEN'],
+        'admin-technique.demo' => ['Ousmane', 'Badji', 'ADMIN_TECHNIQUE', [], 'SRV-SI'],
+        'admin-technique2.demo' => ['Astou', 'Niang', 'ADMIN_TECHNIQUE', [], 'SRV-SI'],
     ];
 
-    private const array GLOBAL_ROLES = ['CONTROLE_GESTION', 'DIRECTION', 'ADMIN_FONCTIONNEL', 'ADMIN_TECHNIQUE'];
+    /**
+     * Ancien compte désactivé, avec une affectation terminée : il reste visible dans l'administration.
+     */
+    private const array ANCIEN = ['ancien-agent.demo', 'Modou', 'Lo', 'AGENT', 'UTIL', 'SRV-UTIL'];
 
     /**
      * @var array<string, array<int, array{0: string, 1: string}>>
      */
     private const array EQUIPEMENTS = [
-        'DIST' => [['P-201', 'Pompe de charge brut'], ['F-101', 'Four de distillation'], ['E-104', 'Rebouilleur colonne C-101'], ['V-310', 'Ballon de reflux']],
-        'REF' => [['K-301', 'Compresseur de recyclage H2'], ['R-401', 'Réacteur de reformage'], ['E-420', 'Échangeur du train de préchauffe']],
-        'UTIL' => [['T-02', 'Turbine à vapeur'], ['P-650', 'Pompe d’eau de refroidissement'], ['L-12', 'Ligne vapeur moyenne pression']],
+        'DIST' => [['P-201', 'Pompe de charge brut'], ['F-101', 'Four de distillation'], ['E-104', 'Rebouilleur colonne C-101'], ['V-310', 'Ballon de reflux'], ['C-101', 'Colonne de distillation'], ['D-120', 'Dessaleur']],
+        'REF' => [['K-301', 'Compresseur de recyclage H2'], ['R-401', 'Réacteur de reformage'], ['E-420', 'Échangeur du train de préchauffe'], ['A-430', 'Aéroréfrigérant de tête']],
+        'UTIL' => [['T-02', 'Turbine à vapeur'], ['P-650', 'Pompe d’eau de refroidissement'], ['L-12', 'Ligne vapeur moyenne pression'], ['B-07', 'Ballon d’air comprimé']],
     ];
 
     /**
-     * Organigramme de démonstration : code => [libellé, type, parent, responsable].
+     * Organigramme : code => [libellé, type, parent, responsable].
      *
      * @var array<string, array{0: string, 1: string, 2: string|null, 3: string|null}>
      */
     private const array ORGANIGRAMME = [
+        'DIR-GEN' => ['Direction générale', 'DIRECTION', null, null],
+        'SRV-CG' => ['Contrôle de gestion', 'SERVICE', 'DIR-GEN', null],
+        'SRV-SI' => ['Systèmes d’information', 'SERVICE', 'DIR-GEN', null],
         'DIR-PROD' => ['Direction de la Production', 'DIRECTION', null, null],
         'DEP-EXP' => ['Département Exploitation', 'DEPARTEMENT', 'DIR-PROD', 'chef.demo'],
         'SRV-DIST' => ['Service Distillation', 'SERVICE', 'DEP-EXP', null],
         'SRV-REF' => ['Service Reformage', 'SERVICE', 'DEP-EXP', null],
         'SRV-UTIL' => ['Service Utilités', 'SERVICE', 'DEP-EXP', null],
+        'SRV-PROCEDE' => ['Service Procédés', 'SERVICE', 'DIR-PROD', null],
         'DIR-TECH' => ['Direction Technique', 'DIRECTION', null, null],
         'DEP-MAINT' => ['Département Maintenance', 'DEPARTEMENT', 'DIR-TECH', 'chef2.demo'],
         'SRV-MECA' => ['Service Mécanique', 'SERVICE', 'DEP-MAINT', null],
-    ];
-
-    /**
-     * Chefs de département (le profil leur est donné par l'organigramme) et rattachements.
-     *
-     * @var array<string, array{0: string, 1: string, 2: string}>
-     */
-    private const array CHEFS = [
-        'chef.demo' => ['Mamadou', 'Diagne', 'DEP-EXP'],
-        'chef2.demo' => ['Aminata', 'Touré', 'DEP-MAINT'],
-    ];
-
-    private const array RATTACHEMENTS = [
-        'agent.demo' => 'SRV-DIST',
-        'agent2.demo' => 'SRV-REF',
-        'pilote.demo' => 'SRV-DIST',
-        'pilote2.demo' => 'SRV-MECA',
+        'SRV-INSP' => ['Service Inspection', 'SERVICE', 'DEP-MAINT', null],
+        'SRV-HSE' => ['Service HSE', 'SERVICE', 'DIR-TECH', null],
     ];
 
     public function run(): void
@@ -109,56 +117,50 @@ class DemoAccountsSeeder extends Seeder
             foreach ($equipements as [$equipementCode, $libelle]) {
                 Equipement::updateOrCreate(
                     ['unite_id' => $unites[$code]->id, 'code' => $equipementCode],
-                    ['libelle' => $libelle, 'reference_sap' => '10'.str_pad((string) crc32($equipementCode) % 100000, 5, '0', STR_PAD_LEFT), 'actif' => true],
+                    ['libelle' => $libelle, 'reference_sap' => '10'.str_pad((string) (crc32($equipementCode) % 100000), 5, '0', STR_PAD_LEFT), 'actif' => true],
                 );
             }
         }
 
-        foreach (self::ACCOUNTS as $roleCode => $accounts) {
-            $role = Role::where('code', $roleCode)->firstOrFail();
+        foreach (self::COMPTES as $identifiant => [$prenom, $nom, $roleCode, $perimetre]) {
+            $user = $this->compte($identifiant, $prenom, $nom, true);
+            if ($roleCode === null) {
+                continue;
+            }
 
-            foreach ($accounts as $index => [$identifiant, $prenom, $nom]) {
-                $user = User::updateOrCreate(
-                    ['identifiant' => $identifiant],
-                    [
-                        'prenom' => $prenom,
-                        'nom' => $nom,
-                        'email' => $identifiant.'@example.test',
-                        'password' => Hash::make(self::DEMO_PASSWORD),
-                        'auth_source' => 'local',
-                        'actif' => true,
-                    ],
+            $roleId = Role::where('code', $roleCode)->firstOrFail()->id;
+            foreach ($perimetre === [] ? [null] : $perimetre as $uniteCode) {
+                Affectation::updateOrCreate(
+                    ['user_id' => $user->id, 'role_id' => $roleId, 'unite_id' => $uniteCode ? $unites[$uniteCode]->id : null],
+                    ['actif' => true],
                 );
-
-                $perimetres = in_array($roleCode, self::GLOBAL_ROLES, true)
-                    ? [null]
-                    : ($index === 0 ? [$unites['DIST']->id] : [$unites['REF']->id, $unites['UTIL']->id]);
-
-                foreach ($perimetres as $uniteId) {
-                    Affectation::updateOrCreate(
-                        ['user_id' => $user->id, 'role_id' => $role->id, 'unite_id' => $uniteId],
-                        ['actif' => true],
-                    );
-                }
             }
         }
+
+        [$identifiant, $prenom, $nom, $roleCode, $uniteCode] = self::ANCIEN;
+        $ancien = $this->compte($identifiant, $prenom, $nom, false);
+        Affectation::updateOrCreate(
+            ['user_id' => $ancien->id, 'role_id' => Role::where('code', $roleCode)->value('id'), 'unite_id' => $unites[$uniteCode]->id],
+            ['actif' => false, 'date_debut' => now()->subYears(3), 'date_fin' => now()->subMonths(4)],
+        );
 
         $this->organigramme();
     }
 
+    private function compte(string $identifiant, string $prenom, string $nom, bool $actif): User
+    {
+        return User::updateOrCreate(['identifiant' => $identifiant], [
+            'prenom' => $prenom,
+            'nom' => $nom,
+            'email' => $identifiant.'@example.test',
+            'password' => Hash::make(self::DEMO_PASSWORD),
+            'auth_source' => 'local',
+            'actif' => $actif,
+        ]);
+    }
+
     private function organigramme(): void
     {
-        foreach (self::CHEFS as $identifiant => [$prenom, $nom]) {
-            User::updateOrCreate(['identifiant' => $identifiant], [
-                'prenom' => $prenom,
-                'nom' => $nom,
-                'email' => $identifiant.'@example.test',
-                'password' => Hash::make(self::DEMO_PASSWORD),
-                'auth_source' => 'local',
-                'actif' => true,
-            ]);
-        }
-
         $entites = [];
         foreach (self::ORGANIGRAMME as $code => [$libelle, $type, $parent, $responsable]) {
             $entites[$code] = Entite::updateOrCreate(['code' => $code], [
@@ -170,7 +172,8 @@ class DemoAccountsSeeder extends Seeder
             ]);
         }
 
-        foreach ([...self::RATTACHEMENTS, ...array_map(fn (array $chef) => $chef[2], self::CHEFS)] as $identifiant => $code) {
+        $rattachements = array_map(fn (array $compte) => $compte[4], self::COMPTES) + [self::ANCIEN[0] => self::ANCIEN[5]];
+        foreach ($rattachements as $identifiant => $code) {
             User::where('identifiant', $identifiant)->update(['entite_id' => $entites[$code]->id]);
         }
 

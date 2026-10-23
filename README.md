@@ -33,7 +33,7 @@ Ouvrir http://127.0.0.1:5173 et se connecter avec un compte de démonstration, m
 | Comptes, affectations, organigramme, référentiels, désignation du pilote | `admin-fonctionnel.demo` |
 | État technique et journal d'administration | `admin-technique.demo` |
 
-La base de démonstration contient 16 fiches, une par situation du parcours : déclarée sans pilote, soumise au chef, en cours, en validation, en réalisation, en vérification, clôturée, classée sans suite…
+Chaque rôle a deux comptes (`agent.demo` et `agent2.demo`, `controle.demo` et `controle2.demo`…). La base de démonstration contient 30 fiches réparties par compte : les deux agents et les deux pilotes en ont chacun plusieurs, à toutes les étapes du parcours (sans pilote, renvoyée ou classée par le chef, en cours, plan refusé, MOC bloqué, en attente, nouvelle boucle, contrôle non conforme, clôture refusée par le sponsor, clôturée…). Commentaires, pièces jointes, relances, notifications, partages et journal d'administration sont aussi remplis. Le détail est dans la section 20 de [DOCUMENTATION.md](DOCUMENTATION.md).
 
 ## Mettre à jour une base existante
 
