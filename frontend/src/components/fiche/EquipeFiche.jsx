@@ -9,9 +9,9 @@ import './PartageValidations.css'
 const errorText = (error) => Object.values(error.data?.errors ?? {}).flat().join(' ') || error.data?.manques?.join(' ') || error.message
 
 /**
- * Équipe de la fiche : le pilote ajoute n'importe quel utilisateur actif, même hors de sa
- * direction (finances, maintenance…). Les membres voient la fiche et renseignent l'analyse
- * et le suivi (sections 5 à 11) ; seul le pilote soumet et change d'étape.
+ * Équipe de la fiche, constituée après la validation de la pertinence : des agents et des
+ * pilotes actifs, même d'une autre unité. Les membres voient la fiche et renseignent l'analyse
+ * et le suivi (sections 5 à 11) ; ils ne valident jamais la fiche et seul le pilote change d'étape.
  */
 function EquipeFiche({ fiche, options, onChange }) {
   const [userId, setUserId] = useState('')
@@ -19,7 +19,13 @@ function EquipeFiche({ fiche, options, onChange }) {
   const [error, setError] = useState('')
   const membres = fiche.membres ?? []
   const gerer = fiche.droits?.peut_gerer_equipe
-  const exclus = new Set([fiche.pilote?.id, ...(fiche.copilotes ?? []).map((person) => person.id), ...membres.map((person) => person.id)].filter(Boolean).map(String))
+  const exclus = new Set([
+    fiche.pilote?.id,
+    fiche.identification?.sponsor_id,
+    fiche.objectif?.chef_pertinence_id,
+    ...(fiche.copilotes ?? []).map((person) => person.id),
+    ...membres.map((person) => person.id),
+  ].filter(Boolean).map(String))
   const candidats = (options?.membres_possibles ?? []).filter((person) => !exclus.has(String(person.id))).map((person) => [String(person.id), person.nom])
 
   async function run(task, message) {
@@ -44,7 +50,7 @@ function EquipeFiche({ fiche, options, onChange }) {
   return (
     <section className="partage">
       <h3>Équipe de la fiche</h3>
-      <p className="partage__meta">Les membres voient la fiche et renseignent l’analyse et le suivi (sections 5 à 11). Seul le pilote soumet la fiche et change d’étape.</p>
+      <p className="partage__meta">Agents et pilotes, même d’une autre unité. Les membres voient la fiche et renseignent l’analyse et le suivi (sections 5 à 11). Ils ne la valident pas ; seul le pilote la soumet et change d’étape.</p>
       {membres.length === 0
         ? <p className="partage__meta">Aucun membre pour l’instant.</p>
         : (

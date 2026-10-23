@@ -25,7 +25,6 @@ class FicheA3 extends Model
         'declarant_id',
         'pilote_id',
         'sponsor_id',
-        'equipe',
         'type_amelioration',
         'frequence_id',
         'origine_precision',
@@ -52,14 +51,13 @@ class FicheA3 extends Model
         'motif_attente',
         'date_resultats',
         'motif_classement',
-        'departement_id',
+        'chef_pertinence_id',
         'pertinence_validee_le',
     ];
 
     protected function casts(): array
     {
         return [
-            'equipe' => 'array',
             'date_lancement' => 'date',
             'date_cible' => 'date',
             'date_cloture' => 'date',
@@ -134,6 +132,21 @@ class FicheA3 extends Model
     }
 
     /**
+     * Pilotes et membres de l'équipe : ceux qui rédigent la fiche ne la valident pas (B8).
+     *
+     * @return array<int, int>
+     */
+    public function redacteursIds(): array
+    {
+        return array_values(array_unique([...$this->pilotesIds(), ...$this->membresIds()]));
+    }
+
+    public function estRedacteur(?int $userId): bool
+    {
+        return $userId !== null && in_array($userId, $this->redacteursIds(), true);
+    }
+
+    /**
      * Fiches pilotées par l'utilisateur, seul ou en partage.
      *
      * @param  Builder<FicheA3>  $query
@@ -161,11 +174,19 @@ class FicheA3 extends Model
     }
 
     /**
-     * Département de l'initiateur, figé à la soumission de la pertinence (porte 0).
+     * Chef de département choisi par le pilote pour valider la pertinence (porte 0).
      */
-    public function departement(): BelongsTo
+    public function chefPertinence(): BelongsTo
     {
-        return $this->belongsTo(Entite::class, 'departement_id');
+        return $this->belongsTo(User::class, 'chef_pertinence_id');
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public function membresIds(): array
+    {
+        return $this->membres->pluck('id')->all();
     }
 
     public function sponsor(): BelongsTo

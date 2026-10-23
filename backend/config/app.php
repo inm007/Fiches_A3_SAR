@@ -70,6 +70,12 @@ return [
     'timezone' => 'UTC',
 
     /*
+    | Adresses des reverse proxies de confiance, séparées par des virgules, ou « * ».
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------

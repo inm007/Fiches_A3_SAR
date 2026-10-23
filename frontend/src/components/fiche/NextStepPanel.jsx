@@ -9,9 +9,9 @@ import { refreshCounters } from '../../hooks/useCounters.js'
 import './NextStepPanel.css'
 
 const ATTENTES = {
-  EN_VALIDATION_PERTINENCE: 'La fiche est chez le chef de département, qui juge la pertinence de l’idée. Une fois validée, elle part au pilote ; en cas de refus, son commentaire vous revient.',
+  EN_VALIDATION_PERTINENCE: 'La fiche est chez le chef de département choisi en section 4. Il peut la valider, la renvoyer à refaire (son commentaire vous revient) ou la classer sans suite.',
   EN_VALIDATION_PLAN: 'Le plan est chez les directeurs des domaines cochés, tous en même temps. Vous serez prévenu de chaque décision ; en cas de refus, la section en cause est indiquée.',
-  EN_VALIDATION_CLOTURE: 'La clôture est chez le Contrôle de gestion (gains) puis la Direction.',
+  EN_VALIDATION_CLOTURE: 'La clôture est chez le Contrôle de gestion (gains) puis le directeur sponsor, qui valide ou renvoie la fiche.',
 }
 
 /**

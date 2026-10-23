@@ -242,7 +242,7 @@ class FicheAdminController extends AdminController
         $demandes = $fiche->validations()->where('decision', 'EN_ATTENTE')->pourValideur($userId)->with(['role:id,code,libelle', 'partages:id'])->get();
         foreach ($demandes as $demande) {
             $autres = collect($demande->valideursIds())
-                ->merge($this->circuit->titulaires($demande->role->code, $fiche))
+                ->merge($this->circuit->titulairesDe($demande, $fiche))
                 ->reject(fn (int $id) => $id === $userId);
             if ($autres->isEmpty()) {
                 throw ValidationException::withMessages([$champ => 'Ce pilote est le seul valideur disponible pour le rôle « '.$demande->role->libelle.' » sur cette fiche.']);
@@ -266,7 +266,7 @@ class FicheAdminController extends AdminController
                 continue;
             }
             $suivant = collect($demande->valideursIds())->reject(fn (int $id) => $id === $userId)->first()
-                ?? $this->circuit->titulaire($demande->role->code, $fiche);
+                ?? $this->circuit->titulaire($demande->role->code, $fiche, $demande->porte);
             if ($suivant !== null) {
                 $this->circuit->reattribuer($demande, $suivant, $auteurId, 'Le valideur est devenu pilote de la fiche.');
                 if ($this->circuit->estActionnable($demande->refresh(), $fiche)) {
@@ -292,7 +292,7 @@ class FicheAdminController extends AdminController
     private function validationData(Validation $validation, FicheA3 $fiche): array
     {
         $candidats = User::query()
-            ->whereIn('id', $this->circuit->titulaires($validation->role->code, $fiche))
+            ->whereIn('id', $this->circuit->titulairesDe($validation, $fiche))
             ->whereNotIn('id', $validation->valideursIds())
             ->orderBy('nom')
             ->get(['id', 'identifiant', 'nom', 'prenom']);

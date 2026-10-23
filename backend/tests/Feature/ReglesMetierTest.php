@@ -10,7 +10,7 @@ use App\Models\FicheA3;
 use App\Models\NotificationInterne;
 use App\Models\Validation;
 use Illuminate\Database\QueryException;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Concerns\SimuleFiches;
 use Tests\TestCase;
@@ -21,7 +21,7 @@ use Tests\TestCase;
  */
 class ReglesMetierTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
     use SimuleFiches;
 
     protected function setUp(): void
@@ -38,8 +38,7 @@ class ReglesMetierTest extends TestCase
 
         $response = $this->transition($fiche, 'PILOTE', 'T3')->assertUnprocessable()->assertJsonPath('code', 'CONDITIONS_MANQUANTES');
         foreach ([
-            'Section 1 : type d’amélioration.', 'Section 1 : date cible.', 'Section 2 : contexte.',
-            'Section 3 et 4 : indicateur principal.', 'Section 4 : objectif SMART.', 'Section 5 : méthode d’analyse.',
+            'Section 5 : méthode d’analyse.',
             'Section 5 : au moins une cause.', 'Section 6 : au moins une action rattachée à une cause.',
             'Section 7 : cocher au moins un domaine concerné.',
         ] as $manque) {
@@ -74,7 +73,7 @@ class ReglesMetierTest extends TestCase
         ], 'risques' => $this->risquesActuels($fiche)])->assertOk();
 
         $this->transition($fiche, 'PILOTE', 'T3')->assertOk();
-        $demandes = Validation::where('fiche_id', $fiche->id)->with('role')->get()->mapWithKeys(fn ($v) => [$v->role->code => $v->ordre]);
+        $demandes = Validation::where('fiche_id', $fiche->id)->where('porte', 1)->with('role')->get()->mapWithKeys(fn ($v) => [$v->role->code => $v->ordre]);
 
         // DT pour procédé, fiabilité et intégrité (une seule demande), DT et DSI pour la cybersécurité, DHSE pour QHSE.
         $this->assertEquals(['VALIDEUR_PROCEDE' => 1, 'VALIDEUR_DSI' => 1, 'VALIDEUR_HSE' => 1], $demandes->all());
@@ -105,7 +104,7 @@ class ReglesMetierTest extends TestCase
         $this->transition($fiche, 'PILOTE', 'T3')->assertOk();
         $this->assertEqualsCanonicalizing(
             ['VALIDEUR_HSE', 'VALIDEUR_PRODUCTION'],
-            Validation::where('fiche_id', $fiche->id)->with('role')->get()->pluck('role.code')->all(),
+            Validation::where('fiche_id', $fiche->id)->where('porte', 1)->with('role')->get()->pluck('role.code')->all(),
         );
     }
 
@@ -368,25 +367,27 @@ class ReglesMetierTest extends TestCase
 
     // ---- Gains, porte 2, B5, T9, T10 --------------------------------------------------
 
-    public function test_gains_are_computed_and_validated_gains_are_locked(): void
+    public function test_gains_are_entered_by_hand_and_validated_gains_are_locked(): void
     {
         $fiche = $this->declarer();
         $ids = $this->amenerEnRealisation($fiche);
         $this->amenerEnVerification($fiche, $ids);
 
-        $this->section($fiche, 9, ['gains' => [['categorie' => 'AUTRES', 'hypothese_calcul' => 'H', 'quantite' => 1.5, 'unite' => 'u', 'cout_unitaire' => 1001]], 'sans_gain_chiffre' => true])
+        $this->section($fiche, 9, ['gains' => [['categorie' => 'AUTRES', 'hypothese_calcul' => 'H', 'montant_annuel' => 1000]], 'sans_gain_chiffre' => true])
             ->assertUnprocessable();
+        $this->section($fiche, 9, ['gains' => [['categorie' => 'AUTRES', 'hypothese_calcul' => 'H']]])
+            ->assertUnprocessable()->assertJsonValidationErrors('gains.0.montant_annuel');
         $this->section($fiche, 9, ['gains' => [
-            ['categorie' => 'ENERGIE_ECONOMISEE', 'hypothese_calcul' => '−18 %', 'quantite' => 4200, 'unite' => 't', 'cout_unitaire' => 2500],
-            ['categorie' => 'AUTRES', 'hypothese_calcul' => 'Arrondi', 'quantite' => 1.5, 'unite' => 'u', 'cout_unitaire' => 1001],
-        ], 'cout_mise_en_oeuvre_b' => 0])
+            ['categorie' => 'ENERGIE_ECONOMISEE', 'hypothese_calcul' => '−18 % (4 200 t × 2 500 FCFA)', 'montant_annuel' => 10_500_000],
+            ['categorie' => 'AUTRES', 'hypothese_calcul' => 'Estimation de l’atelier', 'montant_annuel' => 1502],
+        ]])
             ->assertOk()
             ->assertJsonPath('data.gains.lignes.1.montant_annuel', 1502)
             ->assertJsonPath('data.gains.lignes.0.categorie_libelle', 'Énergie économisée')
             ->assertJsonPath('data.gains.total_a', 10_501_502)
-            ->assertJsonPath('data.gains.payback_annees', 0);
+            ->assertJsonPath('data.gains.cout_mise_en_oeuvre_b', 0);
 
-        $this->section($fiche, 9, ['gains' => [['categorie' => 'INCONNUE', 'hypothese_calcul' => 'H', 'quantite' => 1, 'unite' => 'u', 'cout_unitaire' => 1]]])
+        $this->section($fiche, 9, ['gains' => [['categorie' => 'INCONNUE', 'hypothese_calcul' => 'H', 'montant_annuel' => 1]]])
             ->assertUnprocessable()
             ->assertJsonFragment(['La valeur « INCONNUE » n’existe pas dans la liste « categorie_gain ».']);
 
@@ -456,12 +457,17 @@ class ReglesMetierTest extends TestCase
         $ids = $this->completerPlan($fiche);
         $this->section($fiche, 5, ['methode_analyse' => '5_POURQUOI', 'causes' => []])->assertUnprocessable()
             ->assertJsonFragment(['Ce(tte) cause est utilisé(e) ailleurs dans la fiche (action, contrôle ou mesure).']);
-        $this->section($fiche, 4, ['objectif_smart' => 'x', 'indicateur_principal_id' => $ids['indicateur'] + 100000])->assertUnprocessable();
+        // Les sections 2 à 4 sont figées depuis la validation de la pertinence.
+        $this->section($fiche, 4, ['objectif_smart' => 'x', 'indicateur_principal_id' => $ids['indicateur'] + 100000])->assertForbidden();
         $this->section($fiche, 6, ['actions' => [['cause_id' => $ids['cause'] + 100000, 'description' => 'x', 'type_action' => 'CORRECTIVE', 'responsable_id' => $this->acteurs['PILOTE'][0]->id, 'echeance' => today()->toDateString()]]])
             ->assertUnprocessable()->assertJsonFragment(['Chaque action est rattachée à une cause de la section 5.']);
         $this->section($fiche, 1, ['titre' => 'T', 'unite_id' => $this->unite->id, 'origine_id' => $this->valeur('origine', 'AUTRE')])->assertUnprocessable()
             ->assertJsonFragment(['Précisez l’origine « Autre ».']);
-        $this->section($fiche, 3, ['indicateurs' => [['id' => 999999, 'libelle' => 'x', 'unite_mesure' => 'u', 'sens' => 'hausse']]])->assertUnprocessable();
+        $this->section($fiche, 3, ['indicateurs' => [['id' => 999999, 'libelle' => 'x', 'unite_mesure' => 'u', 'sens' => 'hausse']]])->assertForbidden();
+
+        $ouverte = $this->declarer();
+        $this->designerPilote($ouverte);
+        $this->section($ouverte, 3, ['indicateurs' => [['id' => 999999, 'libelle' => 'x', 'unite_mesure' => 'u', 'sens' => 'hausse']]])->assertUnprocessable();
     }
 
     public function test_concurrent_transitions_second_one_conflicts(): void
@@ -500,16 +506,16 @@ class ReglesMetierTest extends TestCase
         $this->amenerEnRealisation($fiche);
 
         $etapes = EvenementHistorique::where('fiche_id', $fiche->id)->where('type', 'CHANGEMENT_STATUT')->orderBy('id')->get();
-        $this->assertSame(['OUVERT', 'EN_COURS', 'EN_VALIDATION_PLAN', 'REALISATION_ACTIONS'], $etapes->pluck('nouvel_etat.valeur')->all());
+        $this->assertSame(['OUVERT', 'EN_VALIDATION_PERTINENCE', 'EN_COURS', 'EN_VALIDATION_PLAN', 'REALISATION_ACTIONS'], $etapes->pluck('nouvel_etat.valeur')->all());
         $this->assertNull($etapes->last()->user_id, 'T4 est enregistré au nom du Système.');
-        $this->assertSame($this->acteurs['PILOTE'][0]->id, $etapes[2]->user_id);
+        $this->assertSame($this->acteurs['PILOTE'][0]->id, $etapes[1]->user_id);
+        $this->assertSame($this->acteurs['PILOTE'][0]->id, $etapes[3]->user_id);
     }
 
     private function ficheEnCours(): FicheA3
     {
         $fiche = $this->declarer();
-        $this->designerPilote($fiche);
-        $this->transition($fiche, 'PILOTE', 'T2')->assertOk();
+        $this->lancer($fiche);
 
         return $fiche;
     }

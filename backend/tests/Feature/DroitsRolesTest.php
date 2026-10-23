@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\JournalAdministration;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\SimuleFiches;
 use Tests\TestCase;
 
@@ -13,7 +13,7 @@ use Tests\TestCase;
  */
 class DroitsRolesTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
     use SimuleFiches;
 
     protected function setUp(): void
@@ -68,8 +68,7 @@ class DroitsRolesTest extends TestCase
     public function test_history_and_hold_follow_the_matrix_and_the_pilot_keeps_hold_on_their_fiche(): void
     {
         $fiche = $this->declarer();
-        $this->designerPilote($fiche);
-        $this->transition($fiche, 'PILOTE', 'T2')->assertOk();
+        $this->lancer($fiche);
 
         $this->agir('ADMIN_FONCTIONNEL')->putJson('/api/admin/permissions', $this->cellule('DIRECTION', 'VOIR_HISTORIQUE', false))->assertOk();
         $this->agir('DIRECTION')->getJson("/api/fiches/{$fiche->id}/historique")->assertForbidden();

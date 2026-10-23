@@ -11,6 +11,7 @@ use App\Models\FicheA3;
 use App\Models\Gain;
 use App\Models\Role;
 use App\Models\Validation;
+use App\Support\Manque;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -24,13 +25,23 @@ class ValidationCircuit
 
     public const string DIRECTION = 'DIRECTION';
 
+    /**
+     * Rôles de directeur : le sponsor de la fiche est choisi parmi leurs titulaires et
+     * approuve la clôture avec l'un d'eux.
+     *
+     * @return array<int, string>
+     */
+    public static function rolesDirecteurs(): array
+    {
+        return [self::DIRECTION, ...Domaine::rolesValideurs()];
+    }
+
     public function __construct(
         private readonly HistoryLogger $history,
-        private readonly Organigramme $organigramme,
     ) {}
 
     /**
-     * Porte 0 : le chef du département de l'initiateur valide la pertinence de l'idée.
+     * Porte 0 : le chef de département choisi par le pilote valide la pertinence de l'idée.
      *
      * @return array<string, int>
      */
@@ -64,15 +75,42 @@ class ValidationCircuit
     }
 
     /**
+     * Porte 2 : le Contrôle de gestion valide les gains s'il y en a, puis le directeur
+     * sponsor choisi en section 1 approuve la clôture.
+     *
      * @return array<string, int>
      */
     public function rolesPorte2(FicheA3 $fiche): array
     {
         $avecGains = ! $fiche->sans_gain_chiffre && $fiche->gains()->exists();
+        $sponsor = $this->roleSponsor($fiche) ?? self::DIRECTION;
 
         return $avecGains
-            ? [self::CONTROLE_GESTION => 1, self::DIRECTION => 2]
-            : [self::DIRECTION => 1];
+            ? [self::CONTROLE_GESTION => 1, $sponsor => 2]
+            : [$sponsor => 1];
+    }
+
+    /**
+     * Rôle de directeur sous lequel le sponsor approuve la clôture : Direction s'il l'a,
+     * sinon son premier rôle de directeur. Null sans sponsor ou si le sponsor n'est plus directeur.
+     */
+    public function roleSponsor(FicheA3 $fiche): ?string
+    {
+        if ($fiche->sponsor_id === null) {
+            return null;
+        }
+
+        $codes = Affectation::query()
+            ->enCours()
+            ->where('user_id', $fiche->sponsor_id)
+            ->whereHas('role', fn ($query) => $query->whereIn('code', self::rolesDirecteurs()))
+            ->whereHas('user', fn ($query) => $query->where('actif', true))
+            ->orderBy('id')
+            ->with('role:id,code')
+            ->get()
+            ->pluck('role.code');
+
+        return $codes->contains(self::DIRECTION) ? self::DIRECTION : $codes->first();
     }
 
     /**
@@ -89,55 +127,62 @@ class ValidationCircuit
 
     /**
      * Premier titulaire du rôle dans l'unité de la fiche, à défaut une affectation globale ;
-     * le pilote n'est jamais sollicité sur sa propre fiche (B8).
+     * le pilote et l'équipe ne sont jamais sollicités sur leur propre fiche (B8).
      */
-    public function titulaire(string $roleCode, FicheA3 $fiche): ?int
+    public function titulaire(string $roleCode, FicheA3 $fiche, ?int $porte = null): ?int
     {
-        return $this->titulaires($roleCode, $fiche)->first();
+        return $this->titulaires($roleCode, $fiche, $porte)->first();
     }
 
     /**
-     * Titulaires actifs du rôle, ceux de l'unité de la fiche d'abord, puis ceux du périmètre global.
+     * Titulaires actifs du rôle, ceux de l'unité de la fiche d'abord, puis ceux du périmètre
+     * global. Porte 0 : le chef choisi par le pilote ; porte 2 : le directeur sponsor.
      *
      * @return Collection<int, int> identifiants des utilisateurs
      */
-    public function titulaires(string $roleCode, FicheA3 $fiche): Collection
+    public function titulaires(string $roleCode, FicheA3 $fiche, ?int $porte = null): Collection
     {
-        // Le chef de département vient de l'organigramme, pas des affectations par unité.
-        if ($roleCode === Organigramme::ROLE_CHEF) {
-            return collect([$this->organigramme->chefDe($fiche)])
-                ->filter(fn (?int $id) => $id !== null && ! in_array($id, $fiche->pilotesIds(), true))
-                ->values();
-        }
-
+        $redacteurs = $fiche->redacteursIds();
         $base = Affectation::query()
             ->enCours()
             ->whereHas('role', fn ($query) => $query->where('code', $roleCode))
             ->whereHas('user', fn ($query) => $query->where('actif', true))
-            ->when($fiche->pilotesIds() !== [], fn ($query) => $query->whereNotIn('user_id', $fiche->pilotesIds()))
+            ->when($redacteurs !== [], fn ($query) => $query->whereNotIn('user_id', $redacteurs))
             ->orderBy('id');
 
-        $titulaires = (clone $base)->where('unite_id', $fiche->unite_id)->pluck('user_id')
+        $personneChoisie = match (true) {
+            $roleCode === Organigramme::ROLE_CHEF => $fiche->chef_pertinence_id ?? 0,
+            $porte === 2 && $roleCode === $this->roleSponsor($fiche) => $fiche->sponsor_id,
+            default => null,
+        };
+        if ($personneChoisie !== null) {
+            return (clone $base)->where('user_id', $personneChoisie)->pluck('user_id')->unique()->values();
+        }
+
+        return (clone $base)->where('unite_id', $fiche->unite_id)->pluck('user_id')
             ->concat((clone $base)->whereNull('unite_id')->pluck('user_id'))
             ->unique()
             ->values();
+    }
 
-        // Le sponsor de la fiche, quand il est titulaire du rôle Direction, approuve la clôture.
-        if ($roleCode === self::DIRECTION && $fiche->sponsor_id !== null && $titulaires->contains($fiche->sponsor_id)) {
-            return $titulaires->reject(fn (int $id) => $id === $fiche->sponsor_id)->prepend($fiche->sponsor_id)->values();
-        }
-
-        return $titulaires;
+    /**
+     * Titulaires qui peuvent porter une demande : ceux de son rôle, à sa porte.
+     *
+     * @return Collection<int, int>
+     */
+    public function titulairesDe(Validation $validation, FicheA3 $fiche): Collection
+    {
+        return $this->titulaires($validation->role()->value('code'), $fiche, $validation->porte);
     }
 
     /**
      * Une demande en attente dont le valideur n'est plus titulaire actif du rôle (compte
-     * désactivé, affectation terminée, devenu pilote) ne peut plus aboutir sans partage :
-     * aucun des valideurs de la demande n'est encore titulaire actif du rôle.
+     * désactivé, affectation terminée, devenu pilote ou membre) ne peut plus aboutir sans
+     * partage : aucun des valideurs de la demande n'est encore titulaire actif du rôle.
      */
     public function valideurIndisponible(Validation $validation, FicheA3 $fiche): bool
     {
-        $titulaires = $this->titulaires($validation->role()->value('code'), $fiche);
+        $titulaires = $this->titulairesDe($validation, $fiche);
 
         return collect($validation->valideursIds())->intersect($titulaires)->isEmpty();
     }
@@ -157,8 +202,8 @@ class ValidationCircuit
             if ($validation->decision !== 'EN_ATTENTE') {
                 throw RegleMetierException::conflit('Cette demande n’est plus en attente.');
             }
-            if (! $this->titulaires($validation->role()->value('code'), $fiche)->contains($valideurId)) {
-                throw RegleMetierException::conditionsManquantes('Partage impossible.', ['Le valideur associé doit être titulaire actif du rôle, dans l’unité de la fiche ou au périmètre global, et ne pas être pilote de la fiche.']);
+            if (! $this->titulairesDe($validation, $fiche)->contains($valideurId)) {
+                throw RegleMetierException::conditionsManquantes('Partage impossible.', ['Le valideur associé doit être titulaire actif du rôle, dans l’unité de la fiche ou au périmètre global, et ne faire partie ni des pilotes ni de l’équipe de la fiche.']);
             }
             if ($validation->estValideur($valideurId)) {
                 return $validation;
@@ -202,9 +247,8 @@ class ValidationCircuit
             if ($validation->decision !== 'EN_ATTENTE') {
                 throw RegleMetierException::conflit('Cette demande n’est plus en attente.');
             }
-            $code = $validation->role()->value('code');
-            if (! $this->titulaires($code, $fiche)->contains($valideurId)) {
-                throw RegleMetierException::conditionsManquantes('Réattribution impossible.', ['Le nouveau valideur doit être titulaire actif du rôle, dans l’unité de la fiche ou au périmètre global, et ne pas être le pilote.']);
+            if (! $this->titulairesDe($validation, $fiche)->contains($valideurId)) {
+                throw RegleMetierException::conditionsManquantes('Réattribution impossible.', ['Le nouveau valideur doit être titulaire actif du rôle, dans l’unité de la fiche ou au périmètre global, et ne faire partie ni des pilotes ni de l’équipe de la fiche.']);
             }
             if ($validation->valideur_id === $valideurId) {
                 return $validation;
@@ -223,15 +267,24 @@ class ValidationCircuit
      * Rôles sans titulaire disponible : la soumission est refusée (B2).
      *
      * @param  array<string, int>  $roles
-     * @return array<int, string>
+     * @return array<int, string|Manque>
      */
-    public function rolesSansTitulaire(array $roles, FicheA3 $fiche): array
+    public function rolesSansTitulaire(array $roles, FicheA3 $fiche, int $porte): array
     {
         $manques = [];
         foreach (array_keys($roles) as $code) {
-            if ($this->titulaire($code, $fiche) === null) {
+            if ($this->titulaire($code, $fiche, $porte) === null) {
                 if ($code === Organigramme::ROLE_CHEF) {
-                    $manques[] = 'Aucun chef actif n’est désigné pour le département « '.($fiche->departement?->libelle ?? '?').' » : demandez à l’administrateur fonctionnel de compléter l’organigramme.';
+                    // Sans chef choisi, la section 4 le signale déjà : un seul message suffit.
+                    if ($fiche->chef_pertinence_id === null) {
+                        continue;
+                    }
+                    $manques[] = Manque::section(4, 'Section 4 : le chef de département choisi n’est plus disponible (profil retiré, compte désactivé ou membre de la fiche) : choisissez-en un autre.');
+
+                    continue;
+                }
+                if ($porte === 2 && $code === $this->roleSponsor($fiche)) {
+                    $manques[] = 'Le directeur sponsor ne peut pas approuver la clôture (compte désactivé, profil retiré, pilote ou membre de la fiche) : demandez à l’administrateur fonctionnel.';
 
                     continue;
                 }
@@ -268,7 +321,7 @@ class ValidationCircuit
                 'fiche_id' => $fiche->id,
                 'porte' => $porte,
                 'role_id' => $role->id,
-                'valideur_id' => $this->titulaire($code, $fiche),
+                'valideur_id' => $this->titulaire($code, $fiche, $porte),
                 'decision' => 'EN_ATTENTE',
                 'version_fiche' => $fiche->version,
                 'empreinte_domaine' => $empreinte,
@@ -341,7 +394,7 @@ class ValidationCircuit
             ->where('decision', 'EN_ATTENTE')
             ->orderBy('demandee_le')
             ->get()
-            ->filter(fn (Validation $validation) => ! $validation->fiche->estPilote($profile->userId())
+            ->filter(fn (Validation $validation) => ! $validation->fiche->estRedacteur($profile->userId())
                 && $this->estActionnable($validation, $validation->fiche))
             ->values();
     }
@@ -393,7 +446,7 @@ class ValidationCircuit
             ],
             self::CONTROLE_GESTION => [
                 $fiche->cout_mise_en_oeuvre_b,
-                $fiche->gains()->orderBy('id')->get(['categorie', 'quantite', 'cout_unitaire', 'statut'])->toArray(),
+                $fiche->gains()->orderBy('id')->get(['categorie', 'hypothese_calcul', 'montant_annuel', 'statut'])->toArray(),
             ],
             self::DIRECTION => [now()->toIso8601String()],
             default => $fiche->risques()

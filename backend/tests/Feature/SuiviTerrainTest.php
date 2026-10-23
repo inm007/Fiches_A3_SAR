@@ -11,7 +11,7 @@ use App\Models\FicheA3;
 use App\Models\NotificationInterne;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\Concerns\SimuleFiches;
 use Tests\TestCase;
@@ -22,7 +22,7 @@ use Tests\TestCase;
  */
 class SuiviTerrainTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
     use SimuleFiches;
 
     protected function setUp(): void
@@ -107,8 +107,7 @@ class SuiviTerrainTest extends TestCase
     public function test_pilot_adds_a_forgotten_action_during_realisation_only(): void
     {
         $fiche = $this->declarer();
-        $this->designerPilote($fiche);
-        $this->transition($fiche, 'PILOTE', 'T2')->assertOk();
+        $this->lancer($fiche);
         $ids = $this->completerPlan($fiche);
         [$agent] = $this->acteurs['AGENT'];
         $nouvelle = [
@@ -186,8 +185,8 @@ class SuiviTerrainTest extends TestCase
 
         $this->agir('ADMIN_FONCTIONNEL')->postJson("/api/admin/validations/{$production->id}/partages", ['valideur_id' => $renfort[0]->id, 'motif' => 'Arrêt maladie'])->assertOk();
 
-        $this->agirComme($titulaire)->getJson("/api/fiches/{$fiche->id}")->assertOk()
-            ->assertJsonPath('data.validations.0.partages.0.id', $renfort[0]->id);
+        $validations = collect($this->agirComme($titulaire)->getJson("/api/fiches/{$fiche->id}")->assertOk()->json('data.validations'));
+        $this->assertSame($renfort[0]->id, $validations->firstWhere('id', $production->id)['partages'][0]['id']);
         $this->agirComme($renfort)->getJson("/api/fiches/{$fiche->id}")->assertOk();
         $this->agirComme($titulaire)->postJson("/api/validations/{$production->id}/decision", ['decision' => 'VALIDE'])->assertOk();
         $this->agirComme($renfort)->postJson("/api/validations/{$production->id}/decision", ['decision' => 'VALIDE'])->assertConflict();
@@ -340,8 +339,7 @@ class SuiviTerrainTest extends TestCase
     private function ficheEnValidationPlan(): FicheA3
     {
         $fiche = $this->declarer();
-        $this->designerPilote($fiche);
-        $this->transition($fiche, 'PILOTE', 'T2')->assertOk();
+        $this->lancer($fiche);
         $this->completerPlan($fiche);
         $this->transition($fiche, 'PILOTE', 'T3')->assertOk();
 

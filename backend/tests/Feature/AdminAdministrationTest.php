@@ -10,12 +10,12 @@ use App\Models\Unite;
 use App\Models\User;
 use App\Models\ValeurListe;
 use Database\Seeders\ReferenceListsSeeder;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class AdminAdministrationTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     protected function setUp(): void
     {

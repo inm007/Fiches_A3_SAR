@@ -45,14 +45,6 @@ class Calculs
     }
 
     /**
-     * Gain annuel d'une ligne en FCFA entiers : quantité × coût unitaire, arrondi à l'entier.
-     */
-    public function gainAnnuel(float $quantite, int $coutUnitaire): int
-    {
-        return (int) round($quantite * $coutUnitaire);
-    }
-
-    /**
      * @param  iterable<int>  $montants
      */
     public function totalA(iterable $montants): int
@@ -63,22 +55,5 @@ class Calculs
         }
 
         return $total;
-    }
-
-    public function gainNet(int $totalA, int $coutB): int
-    {
-        return $totalA - $coutB;
-    }
-
-    /**
-     * Délai de retour en années (B ÷ A), seulement si A est strictement positif.
-     */
-    public function paybackAnnees(int $totalA, int $coutB): ?float
-    {
-        if ($totalA <= 0) {
-            return null;
-        }
-
-        return round($coutB / $totalA, 2);
     }
 }

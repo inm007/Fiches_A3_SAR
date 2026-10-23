@@ -18,6 +18,7 @@ use App\Services\FicheSectionService;
 use App\Services\FicheWorkflow;
 use App\Services\HistoryLogger;
 use App\Services\NotificationService;
+use App\Services\Organigramme;
 use App\Services\ValidationCircuit;
 use Illuminate\Database\Seeder;
 use Illuminate\Http\Request;
@@ -27,7 +28,7 @@ use Illuminate\Support\Carbon;
 use RuntimeException;
 
 /**
- * Simulation de 15 fiches A3 à des étapes différentes (démonstration, jamais en production).
+ * Simulation de 16 fiches A3 à des étapes différentes (démonstration, jamais en production).
  * Chaque fiche passe par les vrais services (workflow, circuit, actions, contrôles) en
  * avançant dans le temps : les règles B1 à B8 sont respectées et l'historique est réel.
  */
@@ -50,6 +51,7 @@ class DemoFichesSeeder extends Seeder
         private readonly ValidationCircuit $circuit,
         private readonly HistoryLogger $history,
         private readonly NotificationService $notifications,
+        private readonly Organigramme $organigramme,
     ) {}
 
     public function run(): void
@@ -63,10 +65,10 @@ class DemoFichesSeeder extends Seeder
 
         // S = début (jours avant aujourd'hui), R = réalisation des actions (jours avant aujourd'hui).
         $scenarios = [
-            ['Fuite récurrente sur la pompe de charge P-201', 'DIST', 'P-201', 'INCIDENT_PRESQUE_ACCIDENT', 'FIABILITE', 'FIABILITE', 'CLOTURE', 175, 150, 'gains' => [[4200, 't', 2500, 'ENERGIE_ECONOMISEE', 'Vapeur économisée : −18 % sur un an'], [2, 'arrêts', 950000, 'MAINTENANCE_EVITEE', 'Deux arrêts non planifiés évités']]],
-            ['Réduire la consommation de vapeur au rebouilleur E-104', 'DIST', 'E-104', 'ECART_KPI', 'ENERGIE', 'PROCEDE', 'CLOTURE', 165, 140, 'gains' => [[3100, 't', 2500, 'ENERGIE_ECONOMISEE', 'Réduction de 12 % de la vapeur MP']]],
+            ['Fuite récurrente sur la pompe de charge P-201', 'DIST', 'P-201', 'INCIDENT_PRESQUE_ACCIDENT', 'FIABILITE', 'FIABILITE', 'CLOTURE', 175, 150, 'gains' => [[10_500_000, 'ENERGIE_ECONOMISEE', 'Vapeur économisée : −18 % sur un an (4 200 t × 2 500 FCFA)'], [1_900_000, 'MAINTENANCE_EVITEE', 'Deux arrêts non planifiés évités']]],
+            ['Réduire la consommation de vapeur au rebouilleur E-104', 'DIST', 'E-104', 'ECART_KPI', 'ENERGIE', 'PROCEDE', 'CLOTURE', 165, 140, 'gains' => [[7_750_000, 'ENERGIE_ECONOMISEE', 'Réduction de 12 % de la vapeur MP']]],
             ['Standardiser la consignation des vannes motorisées', 'UTIL', 'L-12', 'AUDIT', 'ORGANISATION', 'QHSE', 'CLOTURE', 160, 135, 'sans_gain' => true],
-            ['Pertes de rendement au four F-101', 'DIST', 'F-101', 'ECART_KPI', 'RENDEMENT', 'PROCEDE', 'VALIDATION_CLOTURE', 130, 100, 'gains' => [[850, 'm3', 18000, 'PRODUCTION_RECUPEREE', 'Production de gasoil récupérée']]],
+            ['Pertes de rendement au four F-101', 'DIST', 'F-101', 'ECART_KPI', 'RENDEMENT', 'PROCEDE', 'VALIDATION_CLOTURE', 130, 100, 'gains' => [[15_300_000, 'PRODUCTION_RECUPEREE', 'Production de gasoil récupérée (850 m³)']]],
             ['Encrassement des échangeurs du train de préchauffe', 'REF', 'E-420', 'INSPECTION', 'FIABILITE', 'INTEGRITE', 'VERIF_J90', 120, 95],
             ['Vibrations anormales du compresseur K-301', 'REF', 'K-301', 'INCIDENT_PRESQUE_ACCIDENT', 'FIABILITE', 'FIABILITE', 'VERIF_NON_CONFORME', 100, 70],
             ['Dépassements de soufre sur le gasoil', 'DIST', 'V-310', 'ECART_KPI', 'QUALITE', 'PROCEDE', 'MESURE', 60, 6],
@@ -118,22 +120,26 @@ class DemoFichesSeeder extends Seeder
             return;
         }
 
-        // L'initiateur renseigne les sections 1 à 4 puis soumet la pertinence (T0).
-        $this->remplirDebut($fiche, $agent, $type, $origine, $equipementCode);
+        // L'administrateur fonctionnel, notifié, n'a pas encore désigné de pilote.
         if ($cible === 'SANS_PILOTE') {
             return;
         }
 
+        // L'administrateur désigne le pilote de l'unité ; le pilote renseigne les sections 1 à 4,
+        // choisit le chef qui valide la pertinence et soumet la fiche (T0).
         $this->jour($debut - 1);
-        $this->workflow->transition($fiche, ['code' => 'T0'], $agent);
+        $this->designerPilote($fiche, $pilote);
+        $this->remplirDebut($fiche, $pilote, $type, $origine, $equipementCode);
+        $this->workflow->transition($fiche, ['code' => 'T0'], $pilote);
         if ($cible === 'OUVERT') {
             return;
         }
 
-        // Le chef de département valide : le seul pilote de l'unité reçoit la fiche (T2 automatique).
+        // Le chef choisi valide la pertinence : la fiche passe en cours, l'équipe est constituée.
         $this->jour($debut - 2);
         $this->deciderActives($fiche, 0, 'VALIDE', 'Idée pertinente : à approfondir avec l’équipe.');
         $fiche->refresh();
+        $fiche->membres()->syncWithoutDetaching([$agent->userId() => ['ajoute_par' => $pilote->userId()]]);
 
         if ($cible === 'BROUILLON') {
             return;
@@ -262,7 +268,6 @@ class DemoFichesSeeder extends Seeder
             'numero_avis_sap' => $equipementCode ? '10'.random_int(100000, 999999) : null,
             'numero_ordre_sap' => $equipementCode ? '40'.random_int(100000, 999999) : null,
             'sponsor_id' => User::where('identifiant', 'direction.demo')->value('id'),
-            'equipe' => ['Opérateur de quart', 'Technicien maintenance', 'Ingénieur procédé'],
             'date_lancement' => today()->toDateString(),
             'date_cible' => today()->addDays(120)->toDateString(),
             'type_amelioration' => $type,
@@ -287,6 +292,8 @@ class DemoFichesSeeder extends Seeder
             'objectif_smart' => 'Réduire l’indicateur de 20 % d’ici la date cible, sans dégrader la disponibilité.',
             'perimetre' => 'Équipements de l’unité concernés par le constat.',
             'resultats_attendus' => 'Indicateur principal ≤ 80 % pendant trois mois consécutifs.',
+            'chef_pertinence_id' => $this->organigramme->chefPropose(User::find($initiateur->userId()))
+                ?? User::where('identifiant', 'chef.demo')->value('id'),
         ], $initiateur);
     }
 
@@ -324,7 +331,7 @@ class DemoFichesSeeder extends Seeder
     {
         $this->jour($s[8] - 62);
         $gains = collect($s['gains'] ?? [])->map(fn (array $g) => [
-            'categorie' => $g[3], 'hypothese_calcul' => $g[4], 'quantite' => $g[0], 'unite' => $g[1], 'cout_unitaire' => $g[2],
+            'categorie' => $g[1], 'hypothese_calcul' => $g[2], 'montant_annuel' => $g[0],
         ])->all();
         $this->sections->enregistrer($fiche, 9, [
             'gains' => $gains,
@@ -340,6 +347,17 @@ class DemoFichesSeeder extends Seeder
             'N_A_PAS_FONCTIONNE' => 'Le délai d’obtention des pièces de rechange.',
             'STANDARD_A_REPLIQUER' => 'Le plan d’inspection préventive sur les équipements similaires.',
         ]], $pilote);
+    }
+
+    /**
+     * Désignation du pilote par l'administrateur fonctionnel, comme depuis l'écran d'administration.
+     */
+    private function designerPilote(FicheA3 $fiche, ActiveProfile $pilote): void
+    {
+        $admin = User::where('identifiant', 'admin-fonctionnel.demo')->value('id');
+        $fiche->update(['pilote_id' => $pilote->userId()]);
+        $this->history->log($fiche, $admin, 'DESIGNATION_PILOTE', 'pilote_id', null, $pilote->userId(), 'Pilote de l’unité désigné par l’administrateur fonctionnel');
+        $this->notifications->notify([$pilote->userId()], $fiche, 'DESIGNATION_PILOTE', 'Vous êtes désigné pilote de cette fiche.', auteurId: $admin);
     }
 
     /**

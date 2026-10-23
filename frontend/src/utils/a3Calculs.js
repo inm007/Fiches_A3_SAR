@@ -39,27 +39,6 @@ export function objectifSuggere({ actuelle, cible, apres, sens }) {
   return progression !== null && progression > 0 ? 'PARTIELLEMENT' : 'NON'
 }
 
-/** Montant annuel d'une ligne de gain, en FCFA entiers. */
-export function montantGain(quantite, coutUnitaire) {
-  const q = nombre(quantite)
-  const c = nombre(coutUnitaire)
-  return q === null || c === null ? null : Math.round(q * c)
-}
-
-/** Totaux de la section 9 : A (hors refusés), gain net A − B et délai de retour B ÷ A. */
-export function totauxGains(lignes, coutB) {
-  const totalA = lignes
-    .filter((ligne) => ligne.statut !== 'REFUSE')
-    .reduce((somme, ligne) => somme + (montantGain(ligne.quantite, ligne.cout_unitaire) ?? 0), 0)
-  const b = Math.round(nombre(coutB) ?? 0)
-  return {
-    totalA,
-    coutB: b,
-    gainNet: totalA - b,
-    paybackAnnees: totalA > 0 ? arrondi(b / totalA, 2) : null,
-  }
-}
-
 /** Phrase d'objectif SMART proposée à partir du KPI principal et de la date cible. */
 export function proposerObjectif(indicateur, dateCible) {
   if (!indicateur?.libelle || nombre(indicateur.cible) === null) return ''

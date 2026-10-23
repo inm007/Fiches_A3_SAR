@@ -35,7 +35,7 @@ function Dashboard() {
   return (
     <section className={`dashboard-page dashboard-page--${dashboardKind(roleCode).toLowerCase()}`}>
       {error && <Alert severity="error">{error}</Alert>}
-      <Layout data={data} hello={hello} roleLabel={activeProfile?.label?.split(' — ')[0]} onAnneeChange={setAnnee} />
+      <Layout data={data} hello={hello} roleCode={roleCode} roleLabel={activeProfile?.label?.split(' — ')[0]} onAnneeChange={setAnnee} />
     </section>
   )
 }

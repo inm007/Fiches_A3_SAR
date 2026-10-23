@@ -45,7 +45,7 @@ class FicheResource extends JsonResource
         /** @var FicheA3 $fiche */
         $fiche = $this->resource->loadMissing([
             'unite:id,code,libelle', 'equipement:id,code,libelle,reference_sap', 'origine:id,code,libelle', 'frequence:id,code,libelle',
-            'declarant:id,nom,prenom', 'pilote:id,nom,prenom', 'copilotes:id,nom,prenom', 'membres:id,nom,prenom', 'sponsor:id,nom,prenom', 'departement.responsable:id,nom,prenom', 'referenceSap',
+            'declarant:id,nom,prenom', 'pilote:id,nom,prenom', 'copilotes:id,nom,prenom', 'membres:id,nom,prenom', 'sponsor:id,nom,prenom', 'chefPertinence:id,nom,prenom', 'referenceSap',
             'impacts', 'indicateurs.mesures', 'causes', 'domaines.roleValideur:id,code,libelle', 'risques.responsable:id,nom,prenom',
             'actions.responsable:id,nom,prenom', 'actions.controles', 'actions.cause:id,numero', 'gains', 'perennisations.responsable:id,nom,prenom',
             'lecons', 'validations.role:id,code,libelle', 'validations.valideur:id,nom,prenom', 'validations.partages:id,nom,prenom',
@@ -53,10 +53,8 @@ class FicheResource extends JsonResource
 
         $calculs = app(Calculs::class);
         $profile = new ActiveProfile($request);
-        $sansGainRefuse = $fiche->gains->where('statut', '!=', 'REFUSE');
-        $totalA = $calculs->totalA($sansGainRefuse->pluck('montant_annuel'));
+        $totalA = $calculs->totalA($fiche->gains->where('statut', '!=', 'REFUSE')->pluck('montant_annuel'));
         $totalAValide = $calculs->totalA($fiche->gains->where('statut', 'VALIDE')->pluck('montant_annuel'));
-        $coutB = (int) $fiche->cout_mise_en_oeuvre_b;
         $categoriesGain = ValeurListe::query()->deLaListe('categorie_gain')->pluck('libelle', 'code');
         $typesPerennisation = ValeurListe::query()->deLaListe('type_perennisation')->pluck('libelle', 'code');
         $relances = $this->dernieresRelances($fiche, $profile);
@@ -86,11 +84,7 @@ class FicheResource extends JsonResource
                 'motif' => $user->pivot->motif,
             ]),
             'membres' => $fiche->membres->sortBy('pivot.created_at')->values()->map(fn (User $user) => $this->personne($user)),
-            'departement' => $fiche->departement === null ? null : [
-                'id' => $fiche->departement->id,
-                'libelle' => $fiche->departement->libelle,
-                'chef' => $this->personne($fiche->departement->responsable),
-            ],
+            'chef_pertinence' => $this->personne($fiche->chefPertinence),
             'pertinence_validee_le' => $fiche->pertinence_validee_le?->toIso8601String(),
             'derniers_enregistrements' => $this->derniersEnregistrements($fiche, $profile),
 
@@ -103,7 +97,6 @@ class FicheResource extends JsonResource
                 'numero_ordre_sap' => $fiche->referenceSap?->numero_ordre,
                 'sponsor' => $this->personne($fiche->sponsor),
                 'sponsor_id' => $fiche->sponsor_id,
-                'equipe' => $fiche->equipe ?? [],
                 'date_lancement' => $fiche->date_lancement?->toDateString(),
                 'date_cible' => $fiche->date_cible?->toDateString(),
                 'type_amelioration' => $fiche->type_amelioration,
@@ -119,7 +112,7 @@ class FicheResource extends JsonResource
                 'impact_financier_estime' => $fiche->impact_financier_estime,
             ],
             'indicateurs' => $fiche->indicateurs->sortBy('id')->values()->map(fn (FicheA3Indicateur $indicateur) => $this->indicateur($indicateur, $calculs)),
-            'objectif' => $fiche->only(['objectif_smart', 'perimetre', 'resultats_attendus']),
+            'objectif' => $fiche->only(['objectif_smart', 'perimetre', 'resultats_attendus', 'chef_pertinence_id']),
             'analyse' => [
                 'methode_analyse' => $fiche->methode_analyse,
                 'methode_precision' => $fiche->methode_precision,
@@ -148,16 +141,13 @@ class FicheResource extends JsonResource
             'prochaine_etape' => $this->prochaineEtape($fiche),
             'gains' => [
                 'lignes' => $fiche->gains->sortBy('id')->values()->map(fn ($gain) => [
-                    ...$gain->only(['id', 'categorie', 'hypothese_calcul', 'quantite', 'unite', 'cout_unitaire', 'montant_annuel', 'statut']),
+                    ...$gain->only(['id', 'categorie', 'hypothese_calcul', 'montant_annuel', 'statut']),
                     'categorie_libelle' => $categoriesGain[$gain->categorie] ?? $gain->categorie,
                 ]),
                 'sans_gain_chiffre' => $fiche->sans_gain_chiffre,
-                'cout_mise_en_oeuvre_b' => $coutB,
-                'somme_couts_actions' => (int) $fiche->actions->sum('cout_estime'),
+                'cout_mise_en_oeuvre_b' => (int) $fiche->cout_mise_en_oeuvre_b,
                 'total_a' => $totalA,
                 'total_a_valide' => $totalAValide,
-                'gain_net' => $calculs->gainNet($totalA, $coutB),
-                'payback_annees' => $calculs->paybackAnnees($totalA, $coutB),
             ],
             'perennisation' => $fiche->perennisations->sortBy('id')->values()->map(fn ($ligne) => [
                 ...$ligne->only(['id', 'type', 'responsable_id', 'statut', 'preuve']),
@@ -238,7 +228,7 @@ class FicheResource extends JsonResource
         $actionnable = $validation->decision === 'EN_ATTENTE'
             && $validation->estValideur($profile->userId())
             && $validation->role_id === $profile->roleId()
-            && ! $fiche->estPilote($profile->userId())
+            && ! $fiche->estRedacteur($profile->userId())
             && app(ValidationCircuit::class)->estActionnable($validation, $fiche);
 
         return [
@@ -330,16 +320,9 @@ class FicheResource extends JsonResource
         $peutBloquer = $estPilote || $profile->peut(Permission::MettreEnAttente);
 
         $transitions = [];
-        $workflow = app(FicheWorkflow::class);
-        if ($etape === StatutEtape::Ouvert && $fiche->pertinence_validee_le === null && $workflow->peutSoumettrePertinence($fiche, $profile)) {
-            $transitions[] = 'T0';
-        }
-        if ($workflow->peutPrendreEnCharge($fiche, $profile)) {
-            $transitions[] = 'T2';
-        }
         if ($estPilote) {
             $transitions = [...$transitions, ...match ($etape) {
-                StatutEtape::Ouvert => $fiche->pertinence_validee_le === null ? [] : ['T2'],
+                StatutEtape::Ouvert => ['T0'],
                 StatutEtape::EnCours => ['T3'],
                 StatutEtape::RealisationActions => ['T6'],
                 StatutEtape::MesureResultats => ['T7', 'T11'],
@@ -365,12 +348,12 @@ class FicheResource extends JsonResource
             'transitions' => array_values(array_unique($transitions)),
             'est_pilote' => $estPilote,
             'est_membre' => $fiche->estMembre($userId),
-            'peut_gerer_equipe' => $estPilote && $etape->estActive(),
+            'peut_gerer_equipe' => $estPilote && $etape->estActive() && $fiche->pertinence_validee_le !== null,
             'peut_designer_pilote' => $profile->is('ADMIN_FONCTIONNEL') && ! $etape->estFinale(),
             'peut_se_designer_pilote' => $profile->peutSeDesignerPilote($fiche),
             'peut_changer_confidentialite' => $estPilote || $profile->is('ADMIN_FONCTIONNEL'),
             'peut_commenter' => $profile->peutCommenter(),
-            'peut_ajouter_piece_jointe' => $estPilote || ($profile->is('AGENT', 'PILOTE') && $fiche->actions->contains('responsable_id', $userId)),
+            'peut_ajouter_piece_jointe' => $estPilote || $fiche->estMembre($userId) || ($profile->is('AGENT', 'PILOTE') && $fiche->actions->contains('responsable_id', $userId)),
             'peut_voir_historique' => $profile->peutVoirHistorique(),
             'peut_enregistrer_controles' => $estPilote && in_array($etape, StatutEtape::etapesDeSuivi(), true),
             'peut_decider_gains' => $profile->is(ValidationCircuit::CONTROLE_GESTION) && $fiche->validations->contains(

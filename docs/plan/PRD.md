@@ -1669,3 +1669,64 @@ Annexe B. Écarts entre documents et résolution
 
   Numérotation du                       PRD v1.1 §11 et §12 (routes,          v2 : §2.3, 2.4, 5, 6.2, 7, 8.3, 11.3,
   PRD                                   modèle)                               12, 16, D2, D8 cités par le TRD v2
+
+---
+
+## Avenant du 23 octobre 2026 — circuit pilote, chef choisi et sponsor
+
+Cet avenant fixe les décisions prises après la livraison. Il l'emporte sur les paragraphes ci-dessus qui le contredisent, et décrit l'application telle qu'elle fonctionne.
+
+**Déclaration et pilote.**
+- Seuls un agent ou un pilote déclarent une fiche.
+- Un pilote qui déclare une fiche de son unité peut la piloter lui-même.
+- Sinon, les administrateurs fonctionnels sont notifiés, et l'un d'eux désigne un pilote de l'unité de la fiche.
+- Le déclarant ne remplit pas la fiche : c'est le pilote qui la rédige.
+
+**Sections 1 à 4 et porte 0 (pertinence).**
+- Le pilote remplit les sections 1 à 4.
+- En section 1, il choisit le sponsor parmi tous les utilisateurs qui ont un rôle de directeur (Direction et directeurs des domaines). Le champ « Pilote » et les « participants sans compte » sont retirés de cette section.
+- En fin de section 4, il choisit le chef de département qui valide la pertinence. L'organigramme propose par défaut le chef du département du pilote.
+- Le chef choisi décide de trois façons :
+  - **valider** : la fiche passe en cours ;
+  - **à refaire** : la fiche revient au pilote avec un commentaire obligatoire ;
+  - **classer sans suite** : avec un motif obligatoire.
+- Après la validation, les sections 2 à 4 sont figées ; la section 1 reste modifiable.
+
+**Équipe.**
+- Après la pertinence, le pilote constitue l'équipe, uniquement avec des agents et des pilotes actifs, même d'une autre unité.
+- Les membres voient la fiche et renseignent les sections 5 à 11.
+- Ils ne valident jamais la fiche, à aucune porte (B8 étendue).
+- Le sponsor et le chef choisis ne peuvent pas être membres.
+
+**Section 7 et porte 1.**
+- La section 7 (domaines, risques et MOC) reste dans la fiche.
+- Les directeurs des domaines cochés sont notifiés en même temps et doivent tous approuver.
+
+**Gains (section 9).**
+- Le montant annuel de chaque ligne est saisi à la main, en FCFA, avec sa nature et son hypothèse.
+- L'application ne calcule plus aucun gain : ni quantité × coût unitaire, ni gain net, ni délai de retour.
+- Le coût de mise en œuvre devient facultatif.
+
+**Porte 2.**
+- Le Contrôle de gestion intervient si des gains sont chiffrés.
+- Ensuite, le directeur choisi comme sponsor en section 1 valide la clôture ou renvoie la fiche.
+
+**Preuves.**
+- La preuve d'une action réalisée ou d'une action de pérennisation est facultative.
+- Le pilote ou un membre peut y joindre, s'il le souhaite, un document ou une photo.
+
+**Connexion.**
+- La limite reste à 5 échecs par identifiant.
+- Le seuil par adresse IP passe à 50 échecs en 15 minutes, pour ne pas bloquer tout un site derrière un même proxy.
+
+**Écarts avec le texte initial, désormais acceptés.**
+
+| Sujet | Texte initial | Application |
+|---|---|---|
+| Portes de validation | Deux portes (plan, clôture) | Trois portes : pertinence (0), plan (1), clôture (2) |
+| Ordre de la porte 1 | Production d'abord, puis les domaines | Tous les directeurs concernés en même temps |
+| Valideur final | Rôle Direction | Directeur sponsor choisi en section 1 |
+| Gains | Formules A, B, gain net, payback | Saisie manuelle, aucun calcul |
+| Preuve de réalisation | Obligatoire | Facultative, avec pièce jointe possible |
+| Mot de passe | 8 caractères | 8 caractères, dont une majuscule et un chiffre |
+| Routes de l'API | Sans préfixe | Préfixe `/api` |

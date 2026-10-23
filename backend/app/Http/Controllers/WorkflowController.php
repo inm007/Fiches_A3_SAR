@@ -29,7 +29,7 @@ class WorkflowController extends Controller
     {
         $this->visible($fiche, $profile);
         $data = $request->validate([
-            'code' => ['required', Rule::in(['T0', 'T2', 'T3', 'T6', 'T7', 'T8', 'T11', 'T12', 'T13', 'T14'])],
+            'code' => ['required', Rule::in(['T0', 'T3', 'T6', 'T7', 'T8', 'T11', 'T12', 'T13', 'T14'])],
             'etape' => ['nullable', 'string', 'max:50'],
             'motif' => ['nullable', 'string', 'max:2000'],
         ]);
@@ -45,9 +45,10 @@ class WorkflowController extends Controller
             'commentaire' => ['nullable', 'string', 'max:2000'],
             'retour' => ['nullable', Rule::in(['MESURE_RESULTATS', 'VERIFICATION_MAINTIEN'])],
             'section' => ['nullable', 'integer', 'between:1,11'],
+            'classer' => ['nullable', 'boolean'],
         ]);
 
-        $validation = $workflow->decider($validation, $data['decision'], $data['commentaire'] ?? null, $data['retour'] ?? null, $profile, $data['section'] ?? null);
+        $validation = $workflow->decider($validation, $data['decision'], $data['commentaire'] ?? null, $data['retour'] ?? null, $profile, $data['section'] ?? null, (bool) ($data['classer'] ?? false));
 
         return new FicheResource($validation->fiche()->firstOrFail());
     }

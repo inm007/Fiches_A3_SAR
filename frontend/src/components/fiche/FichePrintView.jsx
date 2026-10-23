@@ -79,11 +79,11 @@ function FichePrintView({ fiche, refs, copie }) {
             ['Avis SAP', identification.numero_avis_sap],
             ['Ordre SAP', identification.numero_ordre_sap],
             ['Sponsor', identification.sponsor?.nom ?? null],
-            ['Équipe', identification.equipe],
             ['Date de lancement', identification.date_lancement],
             ['Date cible', identification.date_cible],
             ['Déclarant', fiche.declarant?.nom ?? null],
             ['Pilote', fiche.pilote?.nom ?? null],
+            ['Équipe', (fiche.membres ?? []).map((membre) => membre.nom)],
           ]} />
         </Section>
         <Section number={2} title="Contexte, enjeu et problème">
@@ -106,6 +106,7 @@ function FichePrintView({ fiche, refs, copie }) {
             ['Objectif SMART', fiche.objectif.objectif_smart],
             ['Périmètre', fiche.objectif.perimetre],
             ['Résultats attendus', fiche.objectif.resultats_attendus],
+            ['Chef qui valide la pertinence', fiche.chef_pertinence?.nom ?? null],
           ]} />
         </Section>
         <Section number={5} title="Analyse des causes racines">
@@ -150,16 +151,15 @@ function FichePrintView({ fiche, refs, copie }) {
           )}
         </Section>
         <Section number={9} title="Gains économiques">
-          <Table headers={['Catégorie', 'Hypothèse', 'Quantité', 'Unité', 'Coût unitaire', 'Montant annuel', 'Statut']} rows={gains.lignes.map((item) => ({
+          <Table headers={['Catégorie', 'Hypothèse', 'Montant annuel', 'Statut']} rows={gains.lignes.map((item) => ({
             id: item.id,
-            values: [item.categorie_libelle, item.hypothese_calcul, item.quantite, item.unite, item.cout_unitaire, item.montant_annuel, item.statut],
+            values: [item.categorie_libelle, item.hypothese_calcul, item.montant_annuel, item.statut],
           }))} />
           <Fields values={[
             ['Sans gain chiffré', gains.sans_gain_chiffre],
-            ['Coût de mise en œuvre (B)', gains.cout_mise_en_oeuvre_b],
-            ['Total annuel (A)', gains.total_a],
-            ['Gain net', gains.gain_net],
-            ['Payback (années)', gains.payback_annees],
+            ['Coût de mise en œuvre', gains.cout_mise_en_oeuvre_b],
+            ['Gains annuels enregistrés', gains.total_a],
+            ['Gains annuels validés', gains.total_a_valide],
           ]} />
         </Section>
         <Section number={10} title="Standardisation et pérennisation">

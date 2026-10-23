@@ -8,14 +8,14 @@ use App\Models\Cause;
 use App\Models\Controle;
 use App\Models\EvenementHistorique;
 use App\Models\Validation;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\Concerns\SimuleFiches;
 use Tests\TestCase;
 
 class FicheWorkflowTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
     use SimuleFiches;
 
     protected function setUp(): void
@@ -30,8 +30,7 @@ class FicheWorkflowTest extends TestCase
         $this->assertMatchesRegularExpression('/^A3-\d{4}-\d{3}$/', $fiche->numero_a3);
         $this->assertSame('OUVERT', $fiche->statut_etape);
 
-        $this->designerPilote($fiche);
-        $this->transition($fiche, 'PILOTE', 'T2')->assertOk()->assertJsonPath('data.statut_etape', 'EN_COURS');
+        $this->lancer($fiche);
 
         $this->transition($fiche, 'PILOTE', 'T3')
             ->assertUnprocessable()
@@ -127,7 +126,7 @@ class FicheWorkflowTest extends TestCase
             ->assertJsonPath('data.statut_etape', 'CLOTURE')
             ->assertJsonPath('data.statut_general', 'CLOTURE')
             ->assertJsonPath('data.date_cloture', today()->toDateString())
-            ->assertJsonPath('data.gains.gain_net', 7_300_000);
+            ->assertJsonPath('data.gains.total_a_valide', 10_500_000);
 
         $this->assertTrue(EvenementHistorique::where('fiche_id', $fiche->id)->where('commentaire', 'like', 'T9%')->whereNull('user_id')->exists());
     }
@@ -135,8 +134,7 @@ class FicheWorkflowTest extends TestCase
     public function test_closure_explains_that_future_effectiveness_checks_must_be_waited_for(): void
     {
         $fiche = $this->declarer();
-        $this->designerPilote($fiche);
-        $this->transition($fiche, 'PILOTE', 'T2')->assertOk();
+        $this->lancer($fiche);
         $ids = $this->completerPlan($fiche);
         $this->transition($fiche, 'PILOTE', 'T3')->assertOk();
         $this->decider($this->demande($fiche, 'VALIDEUR_PRODUCTION'), 'VALIDEUR_PRODUCTION', 'VALIDE')->assertOk();
@@ -204,8 +202,7 @@ class FicheWorkflowTest extends TestCase
         Affectation::create(['user_id' => $pilote->id, 'role_id' => $this->roleId('VALIDEUR_HSE'), 'unite_id' => $this->unite->id, 'actif' => true]);
 
         $fiche = $this->declarer();
-        $this->designerPilote($fiche);
-        $this->transition($fiche, 'PILOTE', 'T2')->assertOk();
+        $this->lancer($fiche);
         $this->completerPlan($fiche);
 
         $this->transition($fiche, 'PILOTE', 'T3')
@@ -217,17 +214,17 @@ class FicheWorkflowTest extends TestCase
     {
         $fiche = $this->declarer();
         $this->designerPilote($fiche);
+        $this->completerDebut($fiche);
 
-        $this->agir('PILOTE')->postJson("/api/fiches/{$fiche->id}/transitions", ['code' => 'T2', 'etape' => 'EN_COURS'])->assertConflict();
-        $this->transition($fiche, 'PILOTE', 'T2')->assertOk();
-        $this->transition($fiche, 'PILOTE', 'T2')->assertConflict();
+        $this->agir('PILOTE')->postJson("/api/fiches/{$fiche->id}/transitions", ['code' => 'T0', 'etape' => 'EN_COURS'])->assertConflict();
+        $this->transition($fiche, 'PILOTE', 'T0')->assertOk();
+        $this->transition($fiche, 'PILOTE', 'T0')->assertConflict();
     }
 
     public function test_hold_requires_reason_and_resumes_previous_step(): void
     {
         $fiche = $this->declarer();
-        $this->designerPilote($fiche);
-        $this->transition($fiche, 'PILOTE', 'T2')->assertOk();
+        $this->lancer($fiche);
 
         $this->transition($fiche, 'DIRECTION', 'T12')->assertUnprocessable();
         $this->transition($fiche, 'DIRECTION', 'T12', 'Arrêt programmé de l’unité')
@@ -300,11 +297,7 @@ class FicheWorkflowTest extends TestCase
             ->assertJsonPath('data.actions_par_statut.A_FAIRE', 0)
             ->assertJsonPath('data.fiches_creees_par_mois.5.total', 0);
 
-        // Une fiche attend un pilote une fois sa pertinence validée.
-        $this->agir('ADMIN_FONCTIONNEL')->getJson('/api/tableau-de-bord')
-            ->assertOk()
-            ->assertJsonPath('data.a_traiter', []);
-        $this->pertinenceValidee($fiche);
+        // Une fiche déclarée par un agent attend que l'administrateur désigne son pilote.
         $this->agir('ADMIN_FONCTIONNEL')->getJson('/api/tableau-de-bord')
             ->assertOk()
             ->assertJsonPath('data.a_traiter.0.libelle', 'Désigner le pilote');
@@ -314,7 +307,6 @@ class FicheWorkflowTest extends TestCase
     {
         $fiche = $this->declarer();
         $this->designerPilote($fiche);
-        $this->transition($fiche, 'PILOTE', 'T2')->assertOk();
 
         $this->agir('DIRECTION')->putJson("/api/fiches/{$fiche->id}/sections/4", ['objectif_smart' => 'x'])->assertForbidden();
         $this->section($fiche, 4, ['objectif_smart' => 'Réduire de 20 % avant fin novembre'])

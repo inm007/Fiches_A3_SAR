@@ -17,7 +17,6 @@ export const sectionModel = {
         equipement_id: toText(identification.equipement_id),
         sponsor_id: toText(identification.sponsor_id),
         origine_id: toText(identification.origine_id),
-        equipe: [...(identification.equipe ?? [])],
         titre: fiche.titre,
       }
     },
@@ -28,7 +27,6 @@ export const sectionModel = {
       numero_avis_sap: nullable(draft.numero_avis_sap),
       numero_ordre_sap: nullable(draft.numero_ordre_sap),
       sponsor_id: toInt(draft.sponsor_id),
-      equipe: draft.equipe.map((member) => member.trim()).filter(Boolean),
       date_lancement: nullable(draft.date_lancement),
       date_cible: nullable(draft.date_cible),
       type_amelioration: nullable(draft.type_amelioration),
@@ -78,11 +76,16 @@ export const sectionModel = {
   },
   4: {
     // Le rôle des indicateurs (KPI principal, à ne pas dégrader) se choisit en section 3.
-    toDraft: (fiche) => ({ ...fiche.objectif }),
+    // Le chef qui valide la pertinence est proposé d'après l'organigramme du pilote.
+    toDraft: (fiche, options) => ({
+      ...fiche.objectif,
+      chef_pertinence_id: toText(fiche.objectif.chef_pertinence_id ?? options?.chef_propose),
+    }),
     toPayload: (draft) => ({
       objectif_smart: nullable(draft.objectif_smart),
       perimetre: nullable(draft.perimetre),
       resultats_attendus: nullable(draft.resultats_attendus),
+      chef_pertinence_id: toInt(draft.chef_pertinence_id),
     }),
   },
   5: {
@@ -191,8 +194,8 @@ export const sectionModel = {
   },
   9: {
     toDraft: (fiche) => ({
-      gains: fiche.gains.lignes.map((gain) => ({ ...gain, quantite: toText(gain.quantite), cout_unitaire: toText(gain.cout_unitaire) })),
-      cout_mise_en_oeuvre_b: toText(fiche.gains.cout_mise_en_oeuvre_b || fiche.gains.somme_couts_actions),
+      gains: fiche.gains.lignes.map((gain) => ({ ...gain, montant_annuel: toText(gain.montant_annuel) })),
+      cout_mise_en_oeuvre_b: toText(fiche.gains.cout_mise_en_oeuvre_b || ''),
       sans_gain_chiffre: fiche.gains.sans_gain_chiffre,
     }),
     toPayload: (draft) => ({
@@ -200,9 +203,7 @@ export const sectionModel = {
         ...keepId(row),
         categorie: row.categorie,
         hypothese_calcul: row.hypothese_calcul,
-        quantite: toNumber(row.quantite),
-        unite: row.unite,
-        cout_unitaire: toInt(row.cout_unitaire),
+        montant_annuel: toInt(row.montant_annuel),
       })),
       cout_mise_en_oeuvre_b: toInt(draft.cout_mise_en_oeuvre_b) ?? 0,
       sans_gain_chiffre: Boolean(draft.sans_gain_chiffre),

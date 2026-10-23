@@ -53,12 +53,10 @@ class ActionService
                 $changes['statut_avant_blocage'] = null;
             }
             if ($cible === StatutAction::Realise) {
+                // Preuve facultative : une référence écrite et/ou un fichier joint à l'action.
                 $preuve = trim((string) ($data['preuve'] ?? ''));
-                if ($preuve === '') {
-                    throw RegleMetierException::conditionsManquantes('Preuve obligatoire.', [Manque::actions('Indiquez la preuve de réalisation : référence d’un ordre SAP soldé, d’un compte rendu, d’une photo jointe…', $action->id)]);
-                }
                 $changes['date_realisation'] = $this->dateRealisation($data['date_realisation'] ?? null);
-                $changes['preuve_realisation'] = $preuve;
+                $changes['preuve_realisation'] = $preuve === '' ? null : $preuve;
             }
 
             $action->update($changes);

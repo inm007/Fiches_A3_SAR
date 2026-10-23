@@ -80,7 +80,7 @@ function WorkflowActions({ fiche, options, onChange, onError }) {
 
   return (
     <div aria-label="Actions sur la fiche" className="workflow-actions">
-      {droits.peut_designer_pilote && !fiche.pilote && fiche.pertinence_validee_le && (
+      {droits.peut_designer_pilote && !fiche.pilote && (
         <Button type="button" variant="primary" onClick={() => setDialog({ type: 'pilote' })}>Désigner le pilote</Button>
       )}
       {droits.peut_se_designer_pilote && (
@@ -88,7 +88,7 @@ function WorkflowActions({ fiche, options, onChange, onError }) {
       )}
       {principale && (
         <Button disabled={busy} type="button" variant="primary" onClick={() => startTransition(principale)}>
-          {principale === 'T2' && !fiche.pilote ? 'Prendre la fiche en charge' : TRANSITIONS[principale].label}
+          {TRANSITIONS[principale].label}
         </Button>
       )}
       {menu.length > 0 && (

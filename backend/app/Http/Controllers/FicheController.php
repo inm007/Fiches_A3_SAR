@@ -21,9 +21,12 @@ use App\Services\FicheVisibility;
 use App\Services\FicheWorkflow;
 use App\Services\HistoryLogger;
 use App\Services\NotificationService;
+use App\Services\Organigramme;
+use App\Services\ValidationCircuit;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -157,8 +160,9 @@ class FicheController extends Controller
     }
 
     /**
-     * Le pilote ajoute un membre à l'équipe : n'importe quel utilisateur actif, même hors
-     * de sa direction ; le membre voit la fiche et renseigne l'analyse et le suivi.
+     * Le pilote ajoute un membre à l'équipe après la validation de la pertinence : un agent ou
+     * un pilote actif, même hors de son unité ; le membre voit la fiche et renseigne l'analyse
+     * et le suivi. Un membre ne valide pas la fiche (B8).
      */
     public function ajouterMembre(Request $request, FicheA3 $fiche, ActiveProfile $profile, HistoryLogger $history, NotificationService $notifications): FicheResource
     {
@@ -166,8 +170,16 @@ class FicheController extends Controller
         $data = $request->validate(['user_id' => ['required', 'integer', Rule::exists('users', 'id')->where('actif', true)]]);
         $this->exigerGestionEquipe($fiche, $profile);
 
-        if ($fiche->estPilote((int) $data['user_id'])) {
+        $userId = (int) $data['user_id'];
+        if ($fiche->estPilote($userId)) {
             throw RegleMetierException::conditionsManquantes('Membre non ajouté.', ['Cette personne pilote déjà la fiche.']);
+        }
+        if (! $this->membresPossibles()->contains('id', $userId)) {
+            throw RegleMetierException::conditionsManquantes('Membre non ajouté.', ['L’équipe se compose d’agents et de pilotes actifs.']);
+        }
+        if (in_array($userId, [$fiche->sponsor_id, $fiche->chef_pertinence_id], true)
+            || $fiche->validations()->where('decision', 'EN_ATTENTE')->pourValideur($userId)->exists()) {
+            throw RegleMetierException::conditionsManquantes('Membre non ajouté.', ['Cette personne valide la fiche (sponsor, chef de département ou valideur) : elle ne peut pas aussi la rédiger.']);
         }
 
         DB::transaction(function () use ($fiche, $data, $profile, $history, $notifications): void {
@@ -199,9 +211,22 @@ class FicheController extends Controller
         if (! $profile->estPiloteDe($fiche)) {
             throw RegleMetierException::interdit('Seul le pilote de la fiche gère son équipe.');
         }
+        if ($fiche->pertinence_validee_le === null) {
+            throw RegleMetierException::conflit('L’équipe se constitue après la validation de la pertinence par le chef de département.');
+        }
         if (! $fiche->etape()->estActive()) {
             throw RegleMetierException::conflit('L’équipe ne change plus à cette étape.');
         }
+    }
+
+    /**
+     * Agents et pilotes actifs : ceux qui peuvent rejoindre l'équipe d'une fiche.
+     *
+     * @return Collection<int, array{id: int, nom: string}>
+     */
+    private function membresPossibles(): Collection
+    {
+        return collect($this->titulaires(['AGENT', 'PILOTE'], null));
     }
 
     public function updateSection(Request $request, FicheA3 $fiche, int $section, ActiveProfile $profile, FicheSectionService $sections): FicheResource
@@ -288,18 +313,22 @@ class FicheController extends Controller
     /**
      * Personnes et rôles proposés dans les formulaires de la fiche.
      */
-    public function options(FicheA3 $fiche, ActiveProfile $profile): JsonResponse
+    public function options(FicheA3 $fiche, ActiveProfile $profile, Organigramme $organigramme): JsonResponse
     {
         $this->visible($fiche, $profile);
 
+        $estPilote = $profile->estPiloteDe($fiche);
+
         return response()->json(['data' => [
             'responsables' => $this->titulaires(['AGENT', 'PILOTE'], $fiche->unite_id),
-            'sponsors' => $this->titulaires(['DIRECTION'], null),
+            'sponsors' => $this->titulaires(ValidationCircuit::rolesDirecteurs(), null),
+            'chefs' => $this->titulaires([Organigramme::ROLE_CHEF], null),
+            'chef_propose' => $organigramme->chefPropose($fiche->pilote),
             'pilotes' => $this->titulaires(['PILOTE'], $fiche->unite_id, false),
             'roles_valideurs' => Role::whereIn('code', Domaine::rolesValideurs())->orderBy('id')->get(['code', 'libelle']),
             'directeurs_par_domaine' => collect(DomaineRole::correspondance())->map(fn (array $codes) => Role::whereIn('code', $codes)->orderBy('id')->pluck('libelle')->all()),
-            'membres_possibles' => User::query()->where('actif', true)->orderBy('nom')->orderBy('prenom')->get(['id', 'nom', 'prenom'])
-                ->map(fn (User $user) => ['id' => $user->id, 'nom' => $user->nom_complet])->values(),
+            // Seul le pilote compose l'équipe : la liste des personnes n'est envoyée qu'à lui.
+            'membres_possibles' => $estPilote ? $this->membresPossibles()->values() : [],
         ]]);
     }
 

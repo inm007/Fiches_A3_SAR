@@ -50,7 +50,7 @@ class FicheVisibility
 
         return match (true) {
             $role === 'AGENT' => $query->where(fn (Builder $q) => $this->agentScope($q, $userId)),
-            $role === 'PILOTE' => $query->where(function (Builder $q) use ($userId, $profile): void {
+            $role === 'PILOTE' => $query->where(function (Builder $q) use ($userId): void {
                 $q->pilotePar($userId)
                     ->orWhere(fn (Builder $normal) => $normal
                         ->where('confidentialite', 'NORMAL')
@@ -59,18 +59,10 @@ class FicheVisibility
                         ->where('confidentialite', 'RESTREINT')
                         ->where('declarant_id', $userId)
                         ->whereNull('pilote_id')
-                        ->where('statut_etape', StatutEtape::Ouvert->value))
-                    // Pertinence validée, sans pilote : à prendre en charge par un pilote du périmètre.
-                    ->orWhere(fn (Builder $aPrendre) => $aPrendre
-                        ->whereNull('pilote_id')
-                        ->whereNotNull('pertinence_validee_le')
-                        ->where('statut_etape', StatutEtape::Ouvert->value)
-                        ->when($profile->uniteId() !== null, fn (Builder $scoped) => $scoped->where('unite_id', $profile->uniteId())));
+                        ->where('statut_etape', StatutEtape::Ouvert->value));
             }),
-            // Chef de département : les fiches de son département et celles qu'on lui soumet.
-            $role === Organigramme::ROLE_CHEF => $query->where(fn (Builder $q) => $q
-                ->whereHas('departement', fn (Builder $departement) => $departement->where('responsable_id', $userId))
-                ->orWhereHas('validations', fn (Builder $validation) => $validation->pourValideur($userId))),
+            // Chef de département : les fiches que les pilotes lui soumettent.
+            $role === Organigramme::ROLE_CHEF => $query->whereHas('validations', fn (Builder $validation) => $validation->pourValideur($userId)),
             $role === 'CONTROLE_GESTION' => $query->where(function (Builder $q) use ($userId): void {
                 $q->where(fn (Builder $normal) => $normal
                     ->where('confidentialite', 'NORMAL')

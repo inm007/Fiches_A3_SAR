@@ -7,11 +7,10 @@ import { Select } from '../../ui/FormControls.jsx'
 import Skeleton from '../../ui/Skeleton.jsx'
 import { describeError, ficheService } from '../../../services/ficheService.js'
 import { formatDate } from '../../../utils/format.js'
+import { FICHIERS_ACCEPTES } from '../JoindrePreuve.jsx'
 import { toast } from '../../../utils/toast.js'
 import './FicheTab.css'
 import './PiecesJointesTab.css'
-
-const ACCEPTED_FILES = '.pdf,.png,.jpg,.jpeg,.docx,.xlsx,.pptx'
 
 function formatSize(bytes) {
   return bytes < 1024 * 1024
@@ -23,19 +22,21 @@ export default function PiecesJointesTab({ fiche, onError }) {
   const { user } = useAuth()
   const [attachments, setAttachments] = useState([])
   const [limits, setLimits] = useState({ attachment_max_size_mb: 10, attachment_max_files: 20 })
-  const [actionId, setActionId] = useState('')
+  const [cible, setCible] = useState('')
   const [file, setFile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const formRef = useRef(null)
 
-  // Hors pilote, on ne joint un fichier qu'à l'une de ses propres actions.
-  const responsableSeul = !fiche.droits.est_pilote
-  const uploadableActions = useMemo(
-    () => fiche.actions.filter((action) => !responsableSeul || action.responsable_id === user?.id),
-    [fiche.actions, responsableSeul, user?.id],
-  )
+  // Hors pilote et équipe, on ne joint un fichier qu'à l'une de ses propres actions.
+  const responsableSeul = !fiche.droits.est_pilote && !fiche.droits.est_membre
+  const cibles = useMemo(() => [
+    ...fiche.actions
+      .filter((action) => !responsableSeul || action.responsable_id === user?.id)
+      .map((action) => [`action:${action.id}`, `Action : ${action.description}`]),
+    ...(responsableSeul ? [] : (fiche.perennisation ?? []).map((ligne) => [`perennisation:${ligne.id}`, `Pérennisation : ${ligne.type_libelle}`])),
+  ], [fiche.actions, fiche.perennisation, responsableSeul, user?.id])
 
   async function reload() {
     const result = await ficheService.piecesJointes(fiche.id)
@@ -66,10 +67,11 @@ export default function PiecesJointesTab({ fiche, onError }) {
     setMessage('')
     setBusy(true)
     try {
-      await ficheService.ajouterPieceJointe(fiche.id, file, actionId)
+      const [type, id] = cible.split(':')
+      await ficheService.ajouterPieceJointe(fiche.id, file, type === 'action' ? { actionId: id } : { perennisationId: id })
       await reload()
       setFile(null)
-      setActionId('')
+      setCible('')
       formRef.current?.reset()
       toast('Pièce jointe ajoutée.')
     } catch (error) {
@@ -107,16 +109,16 @@ export default function PiecesJointesTab({ fiche, onError }) {
 
       {fiche.droits.peut_ajouter_piece_jointe && (
         <form className="pieces-jointes__upload" ref={formRef} onSubmit={upload}>
-          <FileInput accept={ACCEPTED_FILES} file={file} label="Fichier" required onChange={setFile} />
+          <FileInput accept={FICHIERS_ACCEPTES} file={file} label="Fichier" required onChange={setFile} />
           <Select
-            label={responsableSeul ? 'Action dont vous êtes responsable' : 'Associer à une action (facultatif)'}
-            options={uploadableActions.map((action) => [action.id, action.description])}
+            label={responsableSeul ? 'Action dont vous êtes responsable' : 'Associer à une action ou à la pérennisation (facultatif)'}
+            options={cibles}
             placeholder={responsableSeul ? 'Choisir une action' : 'Fichier associé à la fiche'}
             required={responsableSeul}
-            value={actionId}
-            onChange={setActionId}
+            value={cible}
+            onChange={setCible}
           />
-          <Button disabled={!file || (responsableSeul && !actionId)} icon="plus" loading={busy} loadingLabel="Envoi en cours…" type="submit">
+          <Button disabled={!file || (responsableSeul && !cible)} icon="plus" loading={busy} loadingLabel="Envoi en cours…" type="submit">
             Ajouter le fichier
           </Button>
         </form>
@@ -132,6 +134,7 @@ export default function PiecesJointesTab({ fiche, onError }) {
                 <p className="fiche-tab__muted">
                   {formatSize(attachment.taille)} · {attachment.auteur} · {formatDate(attachment.created_at)}
                   {attachment.action && <> · Action : {attachment.action}</>}
+                  {attachment.perennisation_id && <> · Pérennisation : {fiche.perennisation?.find((ligne) => ligne.id === attachment.perennisation_id)?.type_libelle ?? 'action supprimée'}</>}
                 </p>
               </div>
               <Button icon="download" type="button" variant="secondary" onClick={() => download(attachment)}>
