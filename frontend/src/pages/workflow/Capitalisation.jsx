@@ -16,7 +16,8 @@ import { ETAPES, RUBRIQUES_LECONS } from '../../utils/constants.js'
 import { formatDate } from '../../utils/format.js'
 import './Capitalisation.css'
 
-const PAGE_SIZES = [10, 25, 50]
+// Trois cartes par ligne : des pages de 9, 18 ou 36 tombent juste.
+const PAGE_SIZES = [9, 18, 36]
 const NO_FILTERS = { q: '', rubrique: '', unite_id: '' }
 const VUES = [
   { key: 'lecons', label: 'Leçons apprises' },
@@ -28,7 +29,7 @@ const TONS_RUBRIQUE = { A_FONCTIONNE: 'realisation', N_A_PAS_FONCTIONNE: 'attent
 // fiches confondues : on vérifie ici si un problème a déjà été traité avant de repartir de zéro.
 function Capitalisation() {
   const [vue, setVue] = useState('lecons')
-  const list = useListFilters(NO_FILTERS)
+  const list = useListFilters(NO_FILTERS, NO_FILTERS, PAGE_SIZES[0])
   const { filters, page, pageSize } = list
   const [refs, setRefs] = useState(null)
   const [result, setResult] = useState(null)
