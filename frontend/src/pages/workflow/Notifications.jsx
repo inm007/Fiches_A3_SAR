@@ -7,16 +7,15 @@ import EmptyState from '../../components/ui/EmptyState.jsx'
 import ListPagination from '../../components/ui/ListPagination.jsx'
 import Skeleton from '../../components/ui/Skeleton.jsx'
 import Icon from '../../components/ui/Icon.jsx'
-import { FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../../components/shared/ListToolbar.jsx'
+import { FilterSelect, ListToolbar, ResultCount, ToolbarActions } from '../../components/shared/ListToolbar.jsx'
 import { refreshCounters } from '../../hooks/useCounters.js'
 import { useListFilters } from '../../hooks/useListFilters.js'
 import { notificationService } from '../../services/notificationService.js'
 import { formatDate, formatDateTime } from '../../utils/format.js'
-import { downloadExcel } from '../../utils/listTools.js'
 import './Notifications.css'
 
 const PAGE_SIZES = [10, 25, 50, 100]
-const NO_FILTERS = { q: '', etat: '' }
+const NO_FILTERS = { etat: '' }
 
 // Icône selon la nature du message (affichage seulement).
 function iconFor(message) {
@@ -61,24 +60,20 @@ function Notifications() {
   const navigate = useNavigate()
   const list = useListFilters(NO_FILTERS)
   const { page, pageSize } = list
-  const { q: query, etat: readFilter } = list.filters
+  const { etat: readFilter } = list.filters
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
-  const [exporting, setExporting] = useState(false)
   const [markingAll, setMarkingAll] = useState(false)
 
-  const filters = useMemo(() => ({
-    ...(query.trim() ? { q: query.trim() } : {}),
-    ...(readFilter ? { etat: readFilter } : {}),
-  }), [query, readFilter])
+  const filters = useMemo(() => (readFilter ? { etat: readFilter } : {}), [readFilter])
   const load = useCallback(() => notificationService.list(page, pageSize, filters)
     .then((loaded) => { setResult(loaded); setError('') })
     .catch((loadError) => setError(loadError.message)), [filters, page, pageSize])
 
   useEffect(() => {
-    const timer = window.setTimeout(load, query ? 250 : 0)
+    const timer = window.setTimeout(load, 0)
     return () => window.clearTimeout(timer)
-  }, [load, query])
+  }, [load])
 
   async function open(notification) {
     if (!notification.lu) {
@@ -108,44 +103,19 @@ function Notifications() {
   }
 
   const hasUnread = result?.meta.unread_total > 0
-  async function exportAll() {
-    setExporting(true)
-    setError('')
-    try {
-      const firstPage = await notificationService.list(1, 100, filters)
-      const rows = [...firstPage.data]
-      for (let currentPage = 2; currentPage <= firstPage.meta.last_page; currentPage += 1) {
-        rows.push(...(await notificationService.list(currentPage, 100, filters)).data)
-      }
-      downloadExcel('notifications.xlsx', [
-        { label: 'Date', value: (notification) => formatDateTime(notification.created_at) },
-        { label: 'État', value: (notification) => notification.lu ? 'Lue' : 'Non lue' },
-        { label: 'N° A3', value: (notification) => notification.fiche?.numero_a3 ?? '' },
-        { label: 'Message', value: (notification) => notification.message },
-      ], rows)
-    } catch (exportError) {
-      setError(`L’export a échoué : ${exportError.message}`)
-    } finally {
-      setExporting(false)
-    }
-  }
-
   return (
     <section className="notifications-page">
       <PageBanner
-        actions={<Button disabled={!hasUnread} icon="ok" loading={markingAll} loadingLabel="Mise à jour…" type="button" variant="success" onClick={markAll}>Tout marquer comme lu</Button>}
+        actions={<Button disabled={!hasUnread} icon="ok" loading={markingAll} loadingLabel="Mise à jour…" type="button" variant="secondary" onClick={markAll}>Tout marquer comme lu</Button>}
         title="Notifications"
       />
       {error && <Alert severity="error">{error}</Alert>}
       {!result && !error && <Skeleton lines={5} height={22} />}
       {result && (
         <ListToolbar>
-          <SearchField label="Recherche" placeholder="Message ou numéro de fiche…" value={query} onChange={list.setFilter('q')} />
           <FilterSelect label="État" options={[['non_lu', 'Non lues'], ['lu', 'Lues']]} value={readFilter} onChange={list.setFilter('etat')} />
           <ToolbarActions>
             <ResultCount count={result.meta.total} singular="notification" />
-            {list.active && <Button onClick={list.reset} type="button" variant="secondary">Réinitialiser</Button>}
-            <Button disabled={!result.meta.total} icon="download" loading={exporting} loadingLabel="Préparation…" type="button" variant="export" onClick={exportAll}>Exporter Excel</Button>
           </ToolbarActions>
         </ListToolbar>
       )}
@@ -178,7 +148,7 @@ function Notifications() {
                             <span className="sar-num">{formatDateTime(notification.created_at)}</span>
                           </span>
                         </span>
-                        <span className={`notifications-page__state${notification.lu ? '' : ' is-unread'}`}>{notification.lu ? 'Lu' : 'Non lu'}</span>
+                        {!notification.lu && <span className="sar-sr-only">Non lue</span>}
                         <Icon className="notifications-page__chevron" name="page-next" size={16} />
                       </button>
                     </li>

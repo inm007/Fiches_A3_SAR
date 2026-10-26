@@ -123,17 +123,6 @@
   font-weight: 600;
 }
 
-.notifications-page__state {
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-  white-space: nowrap;
-}
-
-.notifications-page__state.is-unread {
-  color: var(--brand-600);
-  font-weight: 700;
-}
-
 .notifications-page__chevron {
   color: var(--gray-400);
 }
