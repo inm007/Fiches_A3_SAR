@@ -18,7 +18,6 @@ return new class extends Migration
             $table->string('nom');
             $table->string('prenom');
             $table->string('email')->unique();
-            $table->timestampTz('email_verified_at')->nullable();
             $table->string('password')->nullable();
             $table->string('auth_source', 20)->default('local');
             $table->string('ldap_dn')->nullable()->unique();

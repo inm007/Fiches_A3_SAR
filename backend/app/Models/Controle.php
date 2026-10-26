@@ -12,7 +12,6 @@ class Controle extends Model
     protected $fillable = [
         'action_id',
         'jalon',
-        'date_reference',
         'date_echeance',
         'date_effective',
         'resultat',
@@ -25,7 +24,6 @@ class Controle extends Model
     protected function casts(): array
     {
         return [
-            'date_reference' => 'date',
             'date_echeance' => 'date',
             'date_effective' => 'date',
         ];

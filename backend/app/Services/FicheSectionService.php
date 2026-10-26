@@ -385,13 +385,12 @@ class FicheSectionService
         $fiche->fill(collect($data)->only(['methode_analyse', 'methode_precision'])->all());
         $prochainNumero = (int) $fiche->causes()->max('numero') + 1;
 
-        $this->sync($fiche->causes(), $data['causes'], 'cause', function (array $item, ?Model $existing) use ($fiche, $data, &$prochainNumero): Model {
+        $this->sync($fiche->causes(), $data['causes'], 'cause', function (array $item, ?Model $existing) use ($fiche, &$prochainNumero): Model {
             $this->exigerValeurListe('categorie_cause', $item['categorie']);
 
             return $this->saveRow($fiche->causes(), $existing, [
                 ...collect($item)->only(['categorie', 'libelle', 'niveau', 'preuve'])->all(),
                 'racine' => (bool) ($item['racine'] ?? false),
-                'methode' => $data['methode_analyse'] ?? 'NON_PRECISEE',
                 'numero' => $existing?->numero ?? $prochainNumero++,
             ]);
         });

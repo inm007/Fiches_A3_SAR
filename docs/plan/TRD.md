@@ -412,9 +412,8 @@ Sont exclus : connexion LDAP réelle, appels SAP, SNCC et GMAO, notifications pa
 Les changements techniques qui accompagnent l'avenant du PRD (circuit pilote, chef choisi et sponsor) sont les suivants.
 
 **Données.**
-- La migration `2026_10_23_000001_circuit_pilote_chef_sponsor` ajoute `fiches_a3.chef_pertinence_id`, une clé étrangère vers `users`.
-- Elle reprend le chef du département figé des fiches déjà soumises, puis supprime `departement_id` et `equipe`.
-- Elle rend facultatives les colonnes `gains.quantite`, `unite` et `cout_unitaire`, qui sont conservées pour l'historique. Seul `montant_annuel` est saisi.
+- `fiches_a3.chef_pertinence_id`, une clé étrangère vers `users`, remplace `departement_id` et `equipe`.
+- Seul `montant_annuel` est saisi pour un gain (voir la section 21).
 
 **Workflow.**
 - La transition T2 disparaît.
@@ -447,3 +446,18 @@ Les changements techniques qui accompagnent l'avenant du PRD (circuit pilote, ch
   - les seuils de connexion, la réponse 401 et les en-têtes de sécurité ;
   - les gains saisis à la main ;
   - les preuves facultatives et leurs pièces jointes.
+
+## 21. Nettoyage du 26 octobre 2026
+
+**Une migration par table.** Les migrations d'ajout (`create_partages`, `renforcer_cycle_a3`, `circuit_pertinence_equipe`, `circuit_pilote_chef_sponsor`, `add_traite_le…`) sont reportées dans la migration qui crée chaque table, puis supprimées. Il n'y a plus d'allers-retours (`equipe`, `departement_id`) ni d'appel à un seeder dans une migration : les rôles, les droits, les listes et la correspondance domaine → directeurs (`CircuitSeeder`) sont posés par `DatabaseSeeder`. Seule exception : `users.entite_id` est ajoutée par la migration de `entites`, car les deux tables se référencent. Une base existante se recrée avec `php artisan migrate:fresh --seed`.
+
+**Colonnes retirées**, jamais écrites ou jamais relues :
+
+- `gains.quantite`, `unite` et `cout_unitaire` : les gains sont saisis à la main (catégorie, hypothèse en texte, montant annuel), sans calcul. L'impact financier estimé de la section 2 reste lui aussi une simple saisie (`fiches_a3.impact_financier_estime`).
+- `impacts.niveau`, et la valeur `FINANCIER` de la contrainte `impacts_type_check` : l'impact financier est le champ de la fiche.
+- `fiches_a3.actif`, `users.email_verified_at`.
+- `causes.methode` : copie de `fiches_a3.methode_analyse`.
+- `controles.date_reference` : copie de la date de réalisation de l'action, seule `date_echeance` est relue.
+- La liste `frequence_controle` (vide).
+
+Sont conservés pour les connexions prévues : `users.ldap_dn` et `auth_source` (LDAP), la table `parametres` (réglages SMTP), les tables de file d'attente, et la table `references_sap` complète (SAP).

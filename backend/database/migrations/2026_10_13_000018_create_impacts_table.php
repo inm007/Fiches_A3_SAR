@@ -14,13 +14,12 @@ return new class extends Migration
             $table->foreignId('fiche_id')->constrained('fiches_a3')->restrictOnDelete();
             $table->string('type_impact', 50);
             $table->text('description');
-            $table->string('niveau')->nullable();
             $table->timestampsTz();
 
             $table->index(['fiche_id', 'type_impact']);
         });
 
-        DB::statement("ALTER TABLE impacts ADD CONSTRAINT impacts_type_check CHECK (type_impact IN ('HSE', 'PRODUCTION', 'QUALITE', 'ENERGIE', 'SURETE', 'FINANCIER'))");
+        DB::statement("ALTER TABLE impacts ADD CONSTRAINT impacts_type_check CHECK (type_impact IN ('HSE', 'PRODUCTION', 'QUALITE', 'ENERGIE', 'SURETE'))");
     }
 
     public function down(): void

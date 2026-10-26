@@ -324,8 +324,8 @@ class SuiviTerrainTest extends TestCase
             'statut_etape' => 'CLOTURE', 'date_cloture' => today(), 'created_at' => now()->subDays(10), 'cout_mise_en_oeuvre_b' => 400_000,
         ])->save();
         Gain::forceCreate([
-            'fiche_id' => $fiche->id, 'categorie' => 'ENERGIE', 'hypothese_calcul' => 'Vapeur économisée', 'quantite' => 1, 'unite' => 'forfait',
-            'cout_unitaire' => 1_000_000, 'montant_annuel' => 1_000_000, 'statut' => 'VALIDE', 'date_validation' => now(),
+            'fiche_id' => $fiche->id, 'categorie' => 'ENERGIE', 'hypothese_calcul' => 'Vapeur économisée',
+            'montant_annuel' => 1_000_000, 'statut' => 'VALIDE', 'date_validation' => now(),
         ]);
 
         foreach (['DIRECTION', 'CONTROLE_GESTION'] as $role) {

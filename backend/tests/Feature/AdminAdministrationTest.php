@@ -151,18 +151,17 @@ class AdminAdministrationTest extends TestCase
             'type_action',
             'categorie_gain',
             'type_perennisation',
-            'frequence_controle',
         ];
 
         $this->seed(ReferenceListsSeeder::class);
         $this->seed(ReferenceListsSeeder::class);
 
         $listIds = Liste::query()->whereIn('code', $listCodes)->select('id');
-        $this->assertSame(9, Liste::query()->whereIn('code', $listCodes)->count());
+        $this->assertSame(8, Liste::query()->whereIn('code', $listCodes)->count());
         $this->assertSame(44, ValeurListe::query()->whereIn('liste_id', $listIds)->count());
         $this->assertDatabaseMissing('listes', ['code' => 'domaine']);
         $this->assertDatabaseHas('listes', ['code' => 'type_action']);
-        $this->assertDatabaseHas('listes', ['code' => 'frequence_controle']);
+        $this->assertDatabaseMissing('listes', ['code' => 'frequence_controle']);
         $this->assertDatabaseHas('valeurs_listes', [
             'code' => 'INCIDENT_PRESQUE_ACCIDENT',
             'libelle' => 'Incident/presque-accident',

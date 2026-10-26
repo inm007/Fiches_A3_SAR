@@ -13,7 +13,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('action_id')->constrained('actions')->restrictOnDelete();
             $table->string('jalon', 20);
-            $table->date('date_reference');
             $table->date('date_echeance');
             $table->date('date_effective')->nullable();
             $table->string('resultat', 20)->nullable();

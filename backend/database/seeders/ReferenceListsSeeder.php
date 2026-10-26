@@ -78,11 +78,6 @@ class ReferenceListsSeeder extends Seeder
                 'description' => 'Origine des valeurs des indicateurs (sections 3 et 8).',
                 'values' => ['SAP', 'SNCC', 'Relevé terrain', 'Laboratoire', 'Tableau de bord', 'Autre'],
             ],
-            'frequence_controle' => [
-                'libelle' => 'Fréquences de contrôle',
-                'description' => 'À compléter avec les valeurs validées par l’amélioration continue.',
-                'values' => [],
-            ],
         ];
 
         foreach ($lists as $code => $definition) {

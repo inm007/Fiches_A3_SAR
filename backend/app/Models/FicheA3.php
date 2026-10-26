@@ -38,7 +38,6 @@ class FicheA3 extends Model
         'sans_gain_chiffre',
         'objectif_atteint',
         'date_cloture',
-        'actif',
         'contexte',
         'impact_financier_estime',
         'objectif_smart',
@@ -67,7 +66,6 @@ class FicheA3 extends Model
             'version' => 'integer',
             'cout_mise_en_oeuvre_b' => 'integer',
             'impact_financier_estime' => 'integer',
-            'actif' => 'boolean',
         ];
     }
 

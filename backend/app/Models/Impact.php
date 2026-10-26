@@ -13,7 +13,6 @@ class Impact extends Model
         'fiche_id',
         'type_impact',
         'description',
-        'niveau',
     ];
 
     public function fiche(): BelongsTo

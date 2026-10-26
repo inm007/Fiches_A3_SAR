@@ -23,6 +23,8 @@ return new class extends Migration
             $table->text('motif_statut')->nullable();
             $table->date('date_realisation')->nullable();
             $table->string('statut_avant_blocage', 50)->nullable();
+            $table->text('critere_efficacite')->nullable();
+            $table->text('preuve_realisation')->nullable();
             $table->foreignId('risque_id')->nullable()->constrained('risques')->restrictOnDelete();
             $table->timestampsTz();
 

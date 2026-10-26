@@ -12,7 +12,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('fiche_id')->constrained('fiches_a3')->restrictOnDelete();
             $table->unsignedInteger('numero');
-            $table->string('methode', 50);
             $table->string('categorie', 50);
             $table->text('libelle');
             $table->unsignedInteger('niveau')->default(1);

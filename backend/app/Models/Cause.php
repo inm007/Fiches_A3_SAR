@@ -13,7 +13,6 @@ class Cause extends Model
     protected $fillable = [
         'fiche_id',
         'numero',
-        'methode',
         'categorie',
         'libelle',
         'niveau',

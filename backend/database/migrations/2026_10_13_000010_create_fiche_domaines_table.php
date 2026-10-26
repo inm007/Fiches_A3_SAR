@@ -16,6 +16,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('fiche_id')->constrained('fiches_a3')->restrictOnDelete();
             $table->string('domaine', 50);
+            $table->text('precision')->nullable();
             $table->foreignId('valideur_role_id')->nullable()->constrained('roles')->restrictOnDelete();
             $table->timestampsTz();
 

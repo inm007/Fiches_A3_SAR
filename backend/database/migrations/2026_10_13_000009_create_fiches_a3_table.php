@@ -23,7 +23,7 @@ return new class extends Migration
             $table->foreignId('declarant_id')->constrained('users')->restrictOnDelete();
             $table->foreignId('pilote_id')->nullable()->constrained('users')->restrictOnDelete();
             $table->foreignId('sponsor_id')->nullable()->constrained('users')->restrictOnDelete();
-            $table->jsonb('equipe')->nullable();
+            $table->foreignId('chef_pertinence_id')->nullable()->constrained('users')->restrictOnDelete();
             $table->string('type_amelioration', 50)->nullable();
             $table->foreignId('frequence_id')->nullable()->constrained('valeurs_listes')->restrictOnDelete();
             $table->string('origine_precision')->nullable();
@@ -46,8 +46,10 @@ return new class extends Migration
             $table->text('ecart_objectif')->nullable();
             $table->string('etape_avant_attente', 50)->nullable();
             $table->string('motif_attente')->nullable();
+            $table->timestampTz('pertinence_validee_le')->nullable();
+            $table->date('date_resultats')->nullable();
+            $table->text('motif_classement')->nullable();
             $table->date('date_cloture')->nullable();
-            $table->boolean('actif')->default(true);
             $table->timestampsTz();
 
             $table->index(['statut_general', 'unite_id']);
@@ -57,11 +59,11 @@ return new class extends Migration
         });
 
         DB::statement("ALTER TABLE fiches_a3 ADD CONSTRAINT fiches_a3_numero_format_check CHECK (numero_a3 ~ '^A3-[0-9]{4}-[0-9]{3}$')");
-        DB::statement("ALTER TABLE fiches_a3 ADD CONSTRAINT fiches_a3_statut_general_check CHECK (statut_general IN ('OUVERT', 'EN_COURS', 'EN_ATTENTE', 'CLOTURE'))");
-        DB::statement("ALTER TABLE fiches_a3 ADD CONSTRAINT fiches_a3_statut_etape_check CHECK (statut_etape IN ('OUVERT', 'EN_COURS', 'EN_VALIDATION_PLAN', 'REALISATION_ACTIONS', 'MESURE_RESULTATS', 'VERIFICATION_MAINTIEN', 'EN_VALIDATION_CLOTURE', 'EN_ATTENTE', 'CLOTURE'))");
+        DB::statement("ALTER TABLE fiches_a3 ADD CONSTRAINT fiches_a3_statut_general_check CHECK (statut_general IN ('OUVERT', 'EN_COURS', 'EN_ATTENTE', 'CLOTURE', 'CLASSE'))");
+        DB::statement("ALTER TABLE fiches_a3 ADD CONSTRAINT fiches_a3_statut_etape_check CHECK (statut_etape IN ('OUVERT', 'EN_VALIDATION_PERTINENCE', 'EN_COURS', 'EN_VALIDATION_PLAN', 'REALISATION_ACTIONS', 'MESURE_RESULTATS', 'VERIFICATION_MAINTIEN', 'EN_VALIDATION_CLOTURE', 'EN_ATTENTE', 'CLOTURE', 'CLASSE_SANS_SUITE'))");
         DB::statement("ALTER TABLE fiches_a3 ADD CONSTRAINT fiches_a3_confidentialite_check CHECK (confidentialite IN ('NORMAL', 'RESTREINT'))");
         DB::statement("ALTER TABLE fiches_a3 ADD CONSTRAINT fiches_a3_objectif_atteint_check CHECK (objectif_atteint IS NULL OR objectif_atteint IN ('OUI', 'PARTIELLEMENT', 'NON'))");
-        DB::statement("ALTER TABLE fiches_a3 ADD CONSTRAINT fiches_a3_etape_avant_attente_check CHECK (etape_avant_attente IS NULL OR etape_avant_attente IN ('OUVERT', 'EN_COURS', 'EN_VALIDATION_PLAN', 'REALISATION_ACTIONS', 'MESURE_RESULTATS', 'VERIFICATION_MAINTIEN', 'EN_VALIDATION_CLOTURE'))");
+        DB::statement("ALTER TABLE fiches_a3 ADD CONSTRAINT fiches_a3_etape_avant_attente_check CHECK (etape_avant_attente IS NULL OR etape_avant_attente IN ('OUVERT', 'EN_VALIDATION_PERTINENCE', 'EN_COURS', 'EN_VALIDATION_PLAN', 'REALISATION_ACTIONS', 'MESURE_RESULTATS', 'VERIFICATION_MAINTIEN', 'EN_VALIDATION_CLOTURE'))");
     }
 
     /**
