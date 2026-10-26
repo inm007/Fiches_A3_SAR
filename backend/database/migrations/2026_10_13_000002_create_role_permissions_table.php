@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\RolePermission;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -20,9 +19,6 @@ return new class extends Migration
 
             $table->unique(['role_id', 'permission']);
         });
-
-        // Base existante : les rôles sont déjà là, on reprend la matrice du PRD.
-        RolePermission::initialiserParDefaut();
     }
 
     public function down(): void

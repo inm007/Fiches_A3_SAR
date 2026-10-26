@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('cible_type', 100)->nullable();
             $table->unsignedBigInteger('cible_id')->nullable();
             $table->timestampTz('lu_le')->nullable();
+            $table->timestampTz('traite_le')->nullable();
             $table->timestampsTz();
 
             $table->index(['user_id', 'lu_le']);

@@ -14,9 +14,6 @@ return new class extends Migration
             $table->foreignId('fiche_id')->constrained('fiches_a3')->restrictOnDelete();
             $table->string('categorie', 50);
             $table->text('hypothese_calcul');
-            $table->decimal('quantite', 15, 4);
-            $table->string('unite', 50);
-            $table->unsignedBigInteger('cout_unitaire');
             $table->unsignedBigInteger('montant_annuel');
             $table->string('statut', 20)->default('PROPOSE');
             $table->foreignId('valide_par_id')->nullable()->constrained('users')->restrictOnDelete();

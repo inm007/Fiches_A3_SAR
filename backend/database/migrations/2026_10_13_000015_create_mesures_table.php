@@ -19,12 +19,13 @@ return new class extends Migration
             $table->decimal('valeur', 15, 4);
             $table->date('date_mesure')->nullable();
             $table->string('periode_verification')->nullable();
+            $table->text('commentaire')->nullable();
             $table->timestampsTz();
 
             $table->index(['indicateur_id', 'type']);
         });
 
-        DB::statement("ALTER TABLE mesures ADD CONSTRAINT mesures_type_check CHECK (type IN ('REFERENCE', 'CIBLE', 'ACTUELLE', 'APRES'))");
+        DB::statement("ALTER TABLE mesures ADD CONSTRAINT mesures_type_check CHECK (type IN ('REFERENCE', 'CIBLE', 'ACTUELLE', 'APRES', 'MAINTIEN_J30', 'MAINTIEN_J60', 'MAINTIEN_J90'))");
     }
 
     /**

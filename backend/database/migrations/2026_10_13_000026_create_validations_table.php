@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('valideur_id')->constrained('users')->restrictOnDelete();
             $table->string('decision', 20)->default('EN_ATTENTE');
             $table->text('commentaire')->nullable();
+            $table->unsignedTinyInteger('section_concernee')->nullable();
             $table->unsignedInteger('version_fiche');
             $table->jsonb('empreinte_domaine')->nullable();
             $table->timestampTz('demandee_le')->useCurrent();
@@ -27,7 +28,7 @@ return new class extends Migration
             $table->index(['valideur_id', 'decision']);
         });
 
-        DB::statement('ALTER TABLE validations ADD CONSTRAINT validations_porte_check CHECK (porte IN (1, 2))');
+        DB::statement('ALTER TABLE validations ADD CONSTRAINT validations_porte_check CHECK (porte IN (0, 1, 2))');
         DB::statement("ALTER TABLE validations ADD CONSTRAINT validations_decision_check CHECK (decision IN ('EN_ATTENTE', 'VALIDE', 'REFUSE', 'ANNULE'))");
     }
 
