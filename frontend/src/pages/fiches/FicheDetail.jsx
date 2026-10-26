@@ -19,7 +19,6 @@ import ValidationsTab from '../../components/fiche/tabs/ValidationsTab.jsx'
 import Button from '../../components/ui/Button.jsx'
 import Icon from '../../components/ui/Icon.jsx'
 import { ficheService } from '../../services/ficheService.js'
-import { setCrumb } from '../../utils/crumb.js'
 import PageLoader from '../../components/shared/PageLoader.jsx'
 import './FicheDetail.css'
 
@@ -58,10 +57,8 @@ function FicheDetail() {
   useEffect(() => { load() }, [load])
 
   useEffect(() => {
-    if (fiche?.numero_a3) setCrumb(fiche.numero_a3)
   }, [fiche?.numero_a3])
 
-  useEffect(() => () => setCrumb(null), [])
 
   const reload = () => {
     setPanel(null)
