@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { apiRequest } from '../../auth/api.js'
 import { useAuth } from '../../auth/useAuth.js'
 import AdminFicheModal from '../../components/fiche/AdminFicheModal.jsx'
-import EtapeBadge, { ConfidentialiteBadge } from '../../components/fiche/EtapeBadge.jsx'
+import EtapeBadge from '../../components/fiche/EtapeBadge.jsx'
 import { DateRangeFilter, FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../../components/shared/ListToolbar.jsx'
 import PageBanner from '../../components/shared/PageBanner.jsx'
 import Alert from '../../components/ui/Alert.jsx'
@@ -29,7 +29,8 @@ const REGISTRE_FILTERS = { q: '', statut_etape: '', unite_id: '', equipement_id:
 const ADMIN_FILTERS = { q: '', statut_etape: '', confidentialite: '' }
 
 const personName = (pilote) => (pilote ? `${pilote.prenom} ${pilote.nom}` : null)
-const initials = (name) => (name ? name.split(' ').map((part) => part[0]).join('').slice(0, 2) : '?')
+// Filtres rarement utilisés : repliés derrière « Plus de filtres », ouverts d'office s'ils sont remplis.
+const FILTRES_AVANCES = ['equipement_id', 'type_amelioration', 'origine_id', 'confidentialite', 'date_debut', 'date_fin']
 const withoutEmpty = (values) => Object.fromEntries(Object.entries(values).filter(([, value]) => value !== ''))
 
 /** Registre servi par /fiches : filtres, tri et pagination côté serveur. */
@@ -151,6 +152,7 @@ function Fiches() {
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState('')
   const [managed, setManaged] = useState(null)
+  const [plusDeFiltres, setPlusDeFiltres] = useState(() => FILTRES_AVANCES.some((cle) => filters[cle]))
 
   const registre = useRegistre({ enabled: !isAdmin, filters, sort, page, perPage })
   const admin = useAdminRegistre({ enabled: isAdmin, filters, page, perPage })
@@ -192,7 +194,10 @@ function Fiches() {
       label: 'Fiche',
       render: (fiche) => (
         <span className="fiches-page__titre">
-          <strong title={fiche.titre}>{fiche.titre}</strong>
+          <strong title={fiche.titre}>
+            {fiche.confidentialite === 'RESTREINT' && <span className="fiches-page__lock" title="Fiche restreinte"><Icon name="lock" size={13} /><span className="sar-sr-only">Restreinte : </span></span>}
+            {fiche.titre}
+          </strong>
           <small>{fiche.equipement ? `${fiche.unite} · ${fiche.equipement}` : fiche.unite}</small>
         </span>
       ),
@@ -202,10 +207,7 @@ function Fiches() {
       label: 'Pilote',
       width: '150px',
       render: (fiche) => (
-        <span className="fiches-page__pilote" title={fiche.piloteNom ?? 'Non désigné'}>
-          <span aria-hidden="true" className="sar-avatar sar-avatar--sm">{initials(fiche.piloteNom)}</span>
-          <span className="data-table__cell-text">{fiche.piloteNom ?? <span className="sar-muted">Non désigné</span>}</span>
-        </span>
+        <span className="data-table__cell-text" title={fiche.piloteNom ?? 'Non désigné'}>{fiche.piloteNom ?? <span className="sar-muted">Non désigné</span>}</span>
       ),
     },
     {
@@ -223,12 +225,6 @@ function Fiches() {
         ? <span className="fiches-page__late" title="Date cible dépassée"><Icon name="clock" size={14} />{formatDate(fiche.date_cible)}</span>
         : <span className="sar-num">{formatDate(fiche.date_cible)}</span>),
     }]),
-    {
-      key: 'confidentialite',
-      label: 'Confidentialité',
-      width: '136px',
-      render: (fiche) => <ConfidentialiteBadge value={fiche.confidentialite} />,
-    },
     ...(isAdmin ? [] : [{
       key: 'created_at',
       label: 'Ancienneté',
@@ -241,7 +237,6 @@ function Fiches() {
   return (
     <section className="fiches-page">
       <PageBanner
-        actions={canDeclare && <Button icon="plus" type="button" onClick={() => navigate('/fiches/nouvelle')}>Nouvelle fiche</Button>}
         description={isAdmin ? 'Consultation des fiches, désignation du pilote et gestion de la confidentialité. Le contenu métier reste en lecture seule.' : undefined}
         title="Fiches"
       />
@@ -249,25 +244,28 @@ function Fiches() {
       <ListToolbar>
         <SearchField id="fiches-search" label="Recherche" placeholder="N°, titre, unité, équipement, pilote…" value={filters.q} onChange={setFilter('q')} />
         <FilterSelect label="Étape" options={ETAPE_OPTIONS} value={filters.statut_etape} onChange={setFilter('statut_etape')} />
-        {!isAdmin && (
+        {!isAdmin && <FilterSelect label="Unité" options={(refs?.unites ?? []).map((unite) => [unite.id, unite.libelle])} value={filters.unite_id} onChange={(value) => list.updateFilters({ unite_id: value, equipement_id: '' })} />}
+        {plusDeFiltres && (
           <>
-            <FilterSelect label="Unité" options={(refs?.unites ?? []).map((unite) => [unite.id, unite.libelle])} value={filters.unite_id} onChange={(value) => list.updateFilters({ unite_id: value, equipement_id: '' })} />
-            <FilterSelect label="Équipement" options={equipementOptions} value={filters.equipement_id} onChange={setFilter('equipement_id')} />
-            <FilterSelect allLabel="Tous" label="Type" options={(refs?.listes?.type_amelioration ?? []).map((valeur) => [valeur.code, valeur.libelle])} value={filters.type_amelioration} onChange={setFilter('type_amelioration')} />
-            <FilterSelect label="Origine" options={(refs?.listes?.origine ?? []).map((valeur) => [valeur.id, valeur.libelle])} value={filters.origine_id} onChange={setFilter('origine_id')} />
+            {!isAdmin && (
+              <>
+                <FilterSelect label="Équipement" options={equipementOptions} value={filters.equipement_id} onChange={setFilter('equipement_id')} />
+                <FilterSelect allLabel="Tous" label="Type" options={(refs?.listes?.type_amelioration ?? []).map((valeur) => [valeur.code, valeur.libelle])} value={filters.type_amelioration} onChange={setFilter('type_amelioration')} />
+                <FilterSelect label="Origine" options={(refs?.listes?.origine ?? []).map((valeur) => [valeur.id, valeur.libelle])} value={filters.origine_id} onChange={setFilter('origine_id')} />
+              </>
+            )}
+            <FilterSelect label="Confidentialité" options={CONFIDENTIALITE_OPTIONS} value={filters.confidentialite} onChange={setFilter('confidentialite')} />
+            {!isAdmin && (
+              <DateRangeFilter
+                from={filters.date_debut}
+                label="Création"
+                to={filters.date_fin}
+                onChange={({ from, to }) => list.updateFilters({ date_debut: from, date_fin: to })}
+              />
+            )}
           </>
         )}
-        <FilterSelect label="Confidentialité" options={CONFIDENTIALITE_OPTIONS} value={filters.confidentialite} onChange={setFilter('confidentialite')} />
-        {!isAdmin && (
-          <>
-            <DateRangeFilter
-              from={filters.date_debut}
-              label="Création"
-              to={filters.date_fin}
-              onChange={({ from, to }) => list.updateFilters({ date_debut: from, date_fin: to })}
-            />
-          </>
-        )}
+        {!plusDeFiltres && <Button type="button" variant="ghost" onClick={() => setPlusDeFiltres(true)}>Plus de filtres</Button>}
         <ToolbarActions>
           <ResultCount count={source.total} singular="fiche" />
           {list.active && <Button type="button" variant="ghost" onClick={list.reset}>Réinitialiser</Button>}

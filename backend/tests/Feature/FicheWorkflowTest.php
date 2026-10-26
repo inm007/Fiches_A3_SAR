@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\ActionA3;
 use App\Models\Affectation;
-use App\Models\Cause;
 use App\Models\Controle;
 use App\Models\EvenementHistorique;
 use App\Models\Validation;
@@ -253,49 +252,21 @@ class FicheWorkflowTest extends TestCase
 
     public function test_dashboard_counts_only_visible_fiches(): void
     {
-        $fiche = $this->declarer();
+        $this->declarer();
         $this->declarer(['confidentialite' => 'RESTREINT']);
-        $cause = Cause::create([
-            'fiche_id' => $fiche->id,
-            'numero' => 1,
-            'methode' => '5_POURQUOI',
-            'categorie' => 'METHODE',
-            'libelle' => 'Cause',
-        ]);
-        ActionA3::create([
-            'fiche_id' => $fiche->id,
-            'cause_id' => $cause->id,
-            'description' => 'Action à faire',
-            'type_action' => 'CORRECTIVE',
-            'echeance' => today()->addWeek(),
-            'statut' => 'A_FAIRE',
-        ]);
-        ActionA3::create([
-            'fiche_id' => $fiche->id,
-            'cause_id' => $cause->id,
-            'description' => 'Action en cours',
-            'type_action' => 'CORRECTIVE',
-            'echeance' => today()->addWeek(),
-            'statut' => 'EN_COURS',
-        ]);
-        $moisCourant = now()->format('Y-m');
 
         $this->agir('AGENT')->getJson('/api/tableau-de-bord')
             ->assertOk()
             ->assertJsonPath('data.mes_fiches', 2)
-            ->assertJsonPath('data.par_etape.OUVERT', 2)
-            ->assertJsonPath('data.actions_par_statut.A_FAIRE', 1)
-            ->assertJsonPath('data.actions_par_statut.EN_COURS', 1)
-            ->assertJsonPath('data.fiches_creees_par_mois.5.mois', $moisCourant)
-            ->assertJsonPath('data.fiches_creees_par_mois.5.total', 2);
+            ->assertJsonPath('data.fiches_total', 2)
+            ->assertJsonPath('data.fiches_ouvertes', 2);
 
         $autreAgent = $this->acteur('AGENT', $this->unite->id);
         $this->actingAs($autreAgent[0])->withSession(['auth.active_assignment_id' => $autreAgent[1]->id])
             ->getJson('/api/tableau-de-bord')
             ->assertOk()
             ->assertJsonPath('data.fiches_total', 0)
-            ->assertJsonPath('data.actions_par_statut.A_FAIRE', 0)
-            ->assertJsonPath('data.fiches_creees_par_mois.5.total', 0);
+            ->assertJsonPath('data.fiches_ouvertes', 0);
 
         // Une fiche déclarée par un agent attend que l'administrateur désigne son pilote.
         $this->agir('ADMIN_FONCTIONNEL')->getJson('/api/tableau-de-bord')

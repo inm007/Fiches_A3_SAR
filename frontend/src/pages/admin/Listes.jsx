@@ -85,7 +85,7 @@ function Listes() {
   return (
     <AdminEntityPage
       columns={columns}
-      description="Gérez les valeurs de référence utilisées dans les fiches. Les valeurs historiques sont conservées."
+      description="Les valeurs proposées dans les fiches."
       endpoint={endpoint}
       exportColumns={exportColumns}
       exportName={`valeurs-${selected?.code ?? 'referentiel'}.xlsx`}

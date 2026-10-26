@@ -2,8 +2,6 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiRequest } from '../../auth/api.js'
 import AuthPage from '../../components/layout/AuthPage.jsx'
-import BrandSlogan from '../../components/layout/BrandSlogan.jsx'
-import { BRAND_LINES } from '../../components/layout/brand.js'
 import Alert from '../../components/ui/Alert.jsx'
 import Button from '../../components/ui/Button.jsx'
 import FormField from '../../components/ui/FormField.jsx'
@@ -39,11 +37,9 @@ function ForgotPassword() {
 
   return (
     <AuthPage
-      brandAriaLabel={BRAND_LINES.join(' ')}
-      brandTitle={<BrandSlogan />}
       description="Saisissez votre identifiant ou votre courriel : un lien de réinitialisation vous sera envoyé."
       footer={<Link to="/connexion">Retour à la connexion</Link>}
-      pageClass="forgot-password-page login-page"
+      pageClass="forgot-password-page"
       title="Mot de passe oublié"
     >
       {notice && <Alert severity="success">{notice}</Alert>}
