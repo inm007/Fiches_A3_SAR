@@ -78,7 +78,7 @@ function Affectations() {
   return (
     <AdminEntityPage
       columns={columns}
-      description="Gérez les rôles et périmètres des comptes. Un utilisateur peut cumuler plusieurs affectations."
+      description="Le rôle et l’unité de chaque compte. Une personne peut en avoir plusieurs."
       endpoint="/admin/assignments"
       exportColumns={exportColumns}
       fields={fields}

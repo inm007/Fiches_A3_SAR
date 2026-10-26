@@ -72,7 +72,7 @@ function Organigramme() {
   return (
     <AdminEntityPage
       columns={columns}
-      description="Directions, départements et services. Le responsable d’un département valide la pertinence des fiches déclarées par les personnes rattachées à son département ou à ses services."
+      description="Le responsable d’un département valide la pertinence des fiches de son département."
       endpoint="/admin/entities"
       exportColumns={exportColumns}
       fields={fields}
