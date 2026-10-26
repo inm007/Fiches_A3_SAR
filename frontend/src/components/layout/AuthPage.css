@@ -1,54 +1,136 @@
-/* Pages publiques : une carte blanche centrée, logo SAR au-dessus du formulaire. */
 .auth-page {
   display: grid;
   min-height: 100vh;
-  padding: 24px 16px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(440px, 1fr);
+  background: var(--white);
+}
+
+/* Papier d'ingénierie : quadrillage de 24 px, très discret */
+.auth-page__brand {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 32px;
+  padding: 48px 64px;
+  border-right: 1px solid var(--gray-200);
+  background-color: var(--gray-50);
+  background-image:
+    linear-gradient(var(--gray-200) 1px, transparent 1px),
+    linear-gradient(90deg, var(--gray-200) 1px, transparent 1px);
+  background-position: -1px -1px;
+  background-size: 24px 24px;
+}
+
+/* Bloc de marque : logo dans sa pastille blanche, filet, nom de l'application. */
+.auth-page__logo {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 16px;
+  color: var(--ink);
+}
+
+.auth-page__logo-mark {
+  display: grid;
+  width: 88px;
+  height: 56px;
+  flex: 0 0 auto;
   place-items: center;
-  background: var(--gray-50);
+  border-radius: 14px;
+  background: var(--white);
+}
+
+.auth-page__logo img {
+  display: block;
+  width: 64px;
+  height: auto;
+}
+
+.auth-page__logo-copy {
+  display: grid;
+  gap: 3px;
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+  line-height: 1.2;
+}
+
+.auth-page__logo-copy strong {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.auth-page__logo-copy span {
+  color: var(--gray-500);
+  font-size: var(--text-3xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.auth-page__intro {
+  max-width: 560px;
+}
+
+.auth-page__eyebrow {
+  margin: 0 0 12px;
+  color: var(--brand-600);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.auth-page__intro h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-display);
+  font-weight: 700;
+  line-height: 46px;
+  letter-spacing: -0.03em;
+}
+
+.auth-page__intro p:last-child {
+  margin: 14px 0 0;
+  color: var(--gray-700);
+  font-size: var(--text-lg);
+  line-height: 24px;
+}
+
+.auth-page__panel {
+  display: grid;
+  padding: 48px;
+  place-items: center;
 }
 
 .auth-card {
   display: grid;
   width: 100%;
-  max-width: 400px;
-  box-sizing: border-box;
+  max-width: 380px;
   gap: 20px;
-  padding: 32px;
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-card);
-  background: var(--white);
-}
-
-.auth-card__brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--ink);
-  font-size: var(--text-lg);
-}
-
-.auth-card__brand img {
-  width: 56px;
-  height: auto;
+  animation: sar-up 0.3s ease-out;
 }
 
 .auth-card h1 {
   margin: 0;
-  font-size: var(--text-2xl);
+  font-size: var(--text-3xl);
   font-weight: 700;
+  line-height: 34px;
+  letter-spacing: -0.02em;
 }
 
 .auth-card__description {
   margin: -12px 0 0;
   color: var(--gray-500);
-  font-size: var(--text-sm);
+  font-size: var(--text-md);
 }
 
 .auth-card__footer {
-  padding-top: 16px;
+  padding-top: 20px;
   border-top: 1px solid var(--gray-200);
   color: var(--gray-500);
   font-size: var(--text-sm);
+  line-height: 19px;
 }
 
 /* Formulaires des pages publiques */
@@ -148,6 +230,27 @@
 
 .auth-card a {
   color: var(--brand-500);
+}
+
+@media (max-width: 1100px) {
+  .auth-page {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-page__brand {
+    padding: 32px 24px;
+    border-right: 0;
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  .auth-page__intro h2 {
+    font-size: var(--text-4xl);
+    line-height: 36px;
+  }
+
+  .auth-page__panel {
+    padding: 32px 24px;
+  }
 }
 
 /* Champs FormField des pages mot de passe : même rendu que la connexion */

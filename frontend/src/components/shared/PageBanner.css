@@ -1,29 +1,58 @@
-/* Titre de page sobre : titre, phrase d'explication facultative, boutons à droite. */
 .sar-page-banner {
+  position: relative;
   display: flex;
   min-width: 0;
-  align-items: flex-end;
+  min-height: 116px;
+  box-sizing: border-box;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 20px;
+  overflow: hidden;
+  padding: 20px 24px;
+  border-radius: var(--radius-card);
+  color: var(--white);
+  background:
+    radial-gradient(420px 220px at 92% 0, rgb(230 0 18 / 75%), transparent),
+    linear-gradient(120deg, var(--ink), var(--gray-800));
+}
+
+.sar-page-banner::after {
+  position: absolute;
+  top: -52px;
+  right: 12%;
+  width: 260px;
+  height: 150px;
+  border: 14px solid rgb(255 255 255 / 8%);
+  border-radius: 50%;
+  content: '';
+  pointer-events: none;
+  transform: rotate(-12deg);
+}
+
+.sar-page-banner__content,
+.sar-page-banner__actions {
+  position: relative;
+  z-index: 1;
 }
 
 .sar-page-banner__content {
   min-width: 0;
 }
 
-.sar-page-banner__content h1 {
+.sar-page-banner .sar-page-banner__content h1 {
   margin: 0;
-  color: var(--ink);
-  font-size: var(--text-2xl);
+  color: var(--white);
+  font-size: clamp(20px, 2vw, 26px);
   font-weight: 700;
   line-height: 1.25;
+  letter-spacing: -0.02em;
 }
 
-.sar-page-banner__content p {
-  max-width: 760px;
-  margin: 4px 0 0;
-  color: var(--text-muted);
-  font-size: var(--text-sm);
+.sar-page-banner .sar-page-banner__content p {
+  max-width: 900px;
+  margin: 7px 0 0;
+  color: rgb(255 255 255 / 82%);
+  font-size: var(--text-md);
   line-height: 1.5;
 }
 
@@ -36,13 +65,41 @@
   gap: 8px;
 }
 
+.sar-page-banner__actions .sar-button {
+  min-height: 42px;
+  border-color: var(--white);
+  color: var(--ink);
+  background: var(--white);
+}
+
+.sar-page-banner__actions .sar-button:hover:not(:disabled) {
+  border-color: var(--gray-100);
+  color: var(--ink);
+  background: var(--gray-100);
+}
+
+.sar-page-banner__actions .sar-button:focus-visible {
+  outline-color: var(--ink);
+}
+
 @media (max-width: 700px) {
   .sar-page-banner {
+    min-height: 108px;
     align-items: flex-start;
     flex-direction: column;
+    gap: 14px;
+    padding: 18px;
   }
 
   .sar-page-banner__actions {
     justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sar-page-banner,
+  .sar-page-banner * {
+    animation: none !important;
+    transition: none !important;
   }
 }

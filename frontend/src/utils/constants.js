@@ -32,6 +32,14 @@ export const PARCOURS = [
   'MESURE_RESULTATS', 'VERIFICATION_MAINTIEN', 'EN_VALIDATION_CLOTURE', 'CLOTURE',
 ]
 
+export const STATUTS_GENERAUX = {
+  OUVERT: 'Ouvert',
+  EN_COURS: 'En cours',
+  EN_ATTENTE: 'En attente',
+  CLOTURE: 'Clôturé',
+  CLASSE: 'Classée sans suite',
+}
+
 export const STATUTS_ACTION = {
   A_FAIRE: { label: 'À faire', tone: 'a-faire' },
   EN_COURS: { label: 'En cours', tone: 'encours' },

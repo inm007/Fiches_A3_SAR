@@ -1,0 +1,102 @@
+/* Tableau de bord · Grille et panneaux */
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dash-span-3 { grid-column: span 3; }
+.dash-span-4 { grid-column: span 4; }
+.dash-span-5 { grid-column: span 5; }
+.dash-span-6 { grid-column: span 6; }
+.dash-span-7 { grid-column: span 7; }
+.dash-span-8 { grid-column: span 8; }
+.dash-span-12 { grid-column: 1 / -1; }
+
+.dash-panel {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 16px;
+  padding: 20px 22px 22px;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+  animation: dash-rise 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.dash-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dash-panel__header h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-lg);
+  font-weight: 650;
+}
+
+.dash-panel__header p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.dash-panel__link {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  color: var(--brand-600);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color var(--duration-fast) ease;
+}
+
+.dash-panel__link:hover {
+  background: var(--brand-50);
+}
+
+.dash-panel--accent {
+  border-color: var(--brand-100);
+  background:
+    radial-gradient(300px 160px at 100% 0, var(--brand-50), transparent 70%),
+    var(--white);
+}
+
+.dash-panel--accent .dash-hero__button--primary {
+  justify-self: start;
+}
+
+.dash-empty {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--gray-700);
+  background: var(--gray-50);
+}
+
+.dash-empty span {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--success);
+  background: var(--success-bg);
+}
+
+.dash-empty p {
+  margin: 0;
+}

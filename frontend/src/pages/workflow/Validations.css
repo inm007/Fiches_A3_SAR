@@ -1,0 +1,5 @@
+.validations-page {
+  display: grid;
+  gap: var(--space-2);
+}
+

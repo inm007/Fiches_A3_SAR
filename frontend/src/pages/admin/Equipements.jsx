@@ -55,7 +55,7 @@ function Equipements() {
   return (
     <AdminEntityPage
       columns={columns}
-      description="Les équipements de chaque unité et leur référence SAP."
+      description="Maintenez les équipements par unité et leur référence SAP."
       endpoint="/admin/equipment"
       exportColumns={exportColumns}
       fields={fields}

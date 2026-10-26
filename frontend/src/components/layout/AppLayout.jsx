@@ -6,7 +6,8 @@ import ErrorBoundary from '../shared/ErrorBoundary.jsx'
 import PageLoader from '../shared/PageLoader.jsx'
 import ToastHost from '../ui/ToastHost.jsx'
 import SessionWarning from './SessionWarning.jsx'
-import Header from './Header.jsx'
+import Sidebar from './Sidebar.jsx'
+import Topbar from './Topbar.jsx'
 import './AppLayout.css'
 
 function AppLayout() {
@@ -23,16 +24,19 @@ function AppLayout() {
 
   return (
     <div className="app-layout">
-      <Header />
-      <main className="app-layout__content">
-        {maintenance ? <Maintenance /> : (
-          <ErrorBoundary homeTo={activeProfile?.redirect_to || '/'} key={pathname}>
-            <Suspense fallback={<PageLoader />}>
-              <Outlet />
-            </Suspense>
-          </ErrorBoundary>
-        )}
-      </main>
+      <Sidebar />
+      <div className="app-layout__workspace">
+        <Topbar />
+        <main className="app-layout__content">
+          {maintenance ? <Maintenance /> : (
+            <ErrorBoundary homeTo={activeProfile?.redirect_to || '/'} key={pathname}>
+              <Suspense fallback={<PageLoader />}>
+                <Outlet />
+              </Suspense>
+            </ErrorBoundary>
+          )}
+        </main>
+      </div>
       <ToastHost />
       <SessionWarning />
     </div>

@@ -13,6 +13,27 @@
   margin: 0 0 var(--space-05);
 }
 
+.technique-page__status > * {
+  position: relative;
+  overflow: hidden;
+}
+
+.technique-page__status > *::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(90deg, var(--brand-500), var(--brand-highlight));
+  content: '';
+}
+
+.technique-page__status > *:nth-child(2)::before {
+  background: linear-gradient(90deg, var(--chart-phase-realization), var(--chart-phase-planning));
+}
+
+.technique-page__status > *:nth-child(3)::before {
+  background: linear-gradient(90deg, var(--chart-phase-closure), var(--success-highlight));
+}
+
 .technique-page__logs {
   display: grid;
   gap: var(--space-15);

@@ -34,7 +34,7 @@ function Unites() {
   return (
     <AdminEntityPage
       columns={columns}
-      description="Une unité déjà utilisée se désactive, elle ne se supprime pas."
+      description="Gérez le référentiel des unités. Les unités utilisées dans l’historique sont désactivées, jamais supprimées."
       endpoint="/admin/units"
       fields={fields}
       title="Unités"

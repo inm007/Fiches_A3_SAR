@@ -16,33 +16,21 @@ import ControlesTab from '../../components/fiche/tabs/ControlesTab.jsx'
 import HistoriqueTab from '../../components/fiche/tabs/HistoriqueTab.jsx'
 import PiecesJointesTab from '../../components/fiche/tabs/PiecesJointesTab.jsx'
 import ValidationsTab from '../../components/fiche/tabs/ValidationsTab.jsx'
+import Button from '../../components/ui/Button.jsx'
+import Icon from '../../components/ui/Icon.jsx'
 import { ficheService } from '../../services/ficheService.js'
+import { setCrumb } from '../../utils/crumb.js'
 import PageLoader from '../../components/shared/PageLoader.jsx'
 import './FicheDetail.css'
 
-// Trois rubriques autour de la fiche : le suivi (actions et contrôles), les décisions, les échanges.
-function SuiviTab(props) {
-  return <><ActionsTab {...props} /><ControlesTab {...props} /></>
-}
-
-function EchangesTab(props) {
-  return (
-    <>
-      <CommentairesTab {...props} />
-      <PiecesJointesTab {...props} />
-      {props.fiche.droits.peut_voir_historique && <HistoriqueTab {...props} />}
-    </>
-  )
-}
-
 const tabComponents = {
-  actions: SuiviTab,
+  actions: ActionsTab,
+  controles: ControlesTab,
   validations: ValidationsTab,
-  echanges: EchangesTab,
+  pieces: PiecesJointesTab,
+  commentaires: CommentairesTab,
+  historique: HistoriqueTab,
 }
-
-// Le serveur désigne encore les anciens onglets : chacun est rangé dans sa nouvelle rubrique.
-const TAB_RUBRIQUE = { controles: 'actions', pieces: 'echanges', commentaires: 'echanges', historique: 'echanges' }
 
 function FicheDetail() {
   const { id } = useParams()
@@ -68,6 +56,12 @@ function FicheDetail() {
     .catch((error) => setStatus(error.status === 404 ? 'not-found' : 'error')), [id])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    if (fiche?.numero_a3) setCrumb(fiche.numero_a3)
+  }, [fiche?.numero_a3])
+
+  useEffect(() => () => setCrumb(null), [])
 
   const reload = () => {
     setPanel(null)
@@ -115,14 +109,14 @@ function FicheDetail() {
       setTab('fiche')
       setSection(location.section)
     } else {
-      setTab(TAB_RUBRIQUE[location.tab] ?? location.tab)
+      setTab(location.tab)
     }
   }
 
   useEffect(() => {
     if (!pendingLocation) return undefined
     if (pendingLocation.type === 'section' && tab !== 'fiche') return undefined
-    if (pendingLocation.type === 'tab' && tab !== (TAB_RUBRIQUE[pendingLocation.tab] ?? pendingLocation.tab)) return undefined
+    if (pendingLocation.type === 'tab' && tab !== pendingLocation.tab) return undefined
 
     const frame = window.requestAnimationFrame(() => {
       let target
@@ -158,21 +152,20 @@ function FicheDetail() {
   const actionnables = fiche.validations.filter((validation) => validation.actionnable).length
   const tabs = [
     { key: 'fiche', label: 'Fiche' },
-    {
-      key: 'actions',
-      label: 'Actions et contrôles',
-      count: fiche.actions.filter((action) => action.en_retard).length
-        + fiche.actions.flatMap((action) => action.controles).filter((controle) => controle.disponible).length,
-    },
+    { key: 'actions', label: 'Actions', count: fiche.actions.filter((action) => action.en_retard).length },
+    { key: 'controles', label: 'Contrôles', count: fiche.actions.flatMap((action) => action.controles).filter((controle) => controle.disponible).length },
     { key: 'validations', label: 'Validations', count: actionnables + (fiche.droits.peut_decider_gains ? 1 : 0) },
-    { key: 'echanges', label: 'Échanges' },
+    { key: 'pieces', label: 'Pièces jointes' },
+    { key: 'commentaires', label: 'Commentaires' },
+    ...(fiche.droits.peut_voir_historique ? [{ key: 'historique', label: 'Historique' }] : []),
   ]
   const TabComponent = tabComponents[tab]
 
   return (
     <div className="fiche-detail-page">
       <FicheHeader fiche={fiche}>
-        <WorkflowActions fiche={fiche} options={options} onChange={onChange} onError={onError} onExportPdf={() => exportPdf()} />
+        <Button type="button" variant="secondary" onClick={() => exportPdf()}><Icon name="pdf" />Exporter en PDF A3</Button>
+        <WorkflowActions fiche={fiche} options={options} onChange={onChange} onError={onError} />
       </FicheHeader>
       <MissingConditionsPanel error={panel} onClose={() => setPanel(null)} onNavigate={navigateToLocation} onReload={reload} />
       {!panel && <NextStepPanel fiche={fiche} onChange={onChange} onError={onError} onNavigate={navigateToLocation} />}

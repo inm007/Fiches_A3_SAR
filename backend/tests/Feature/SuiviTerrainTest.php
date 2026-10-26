@@ -279,16 +279,31 @@ class SuiviTerrainTest extends TestCase
         $this->assertTrue(NotificationInterne::where('type', 'CONTROLE_DISPONIBLE')->where('cible_type', 'controle')->where('cible_id', $j30->id)->exists());
     }
 
-    public function test_dashboard_consolidates_a_chosen_year(): void
+    public function test_dashboard_consolidates_a_chosen_year_and_reports_efficiency_and_breakdowns(): void
     {
-        $this->declarer();
+        $fiche = $this->declarer();
+        $ids = $this->amenerEnRealisation($fiche);
 
         $courante = $this->agir('DIRECTION')->getJson('/api/tableau-de-bord')->assertOk();
         $this->assertSame((int) now()->year, $courante->json('data.annee'));
+        $this->assertContains((int) now()->year, $courante->json('data.annees_disponibles'));
+        $this->assertContains((int) now()->year - 1, $courante->json('data.annees_disponibles'));
+        $unites = collect($courante->json('data.repartition.unite'));
+        $this->assertSame(1, $unites->firstWhere('libelle', 'Unité de test')['total']);
+        $this->assertNotEmpty($courante->json('data.repartition.origine'));
+        $this->assertNotEmpty($courante->json('data.repartition.type_amelioration'));
 
         $this->agir('DIRECTION')->getJson('/api/tableau-de-bord?annee='.(now()->year + 1))->assertUnprocessable();
         $passee = $this->agir('DIRECTION')->getJson('/api/tableau-de-bord?annee='.(now()->year - 1))->assertOk();
         $this->assertSame(now()->year - 1, $passee->json('data.annee'));
+
+        // Vue du seul pilote de l'unité de test : une fiche mesurée sans contrôle renseigné, puis renseigné.
+        $this->amenerEnVerification($fiche, $ids, 100);
+        $this->assertEquals(0, $this->agir('PILOTE')->getJson('/api/tableau-de-bord')->json('data.part_verification_efficacite'));
+        foreach (Controle::where('action_id', $ids['action'])->get() as $controle) {
+            $this->controle($controle, 'CONFORME')->assertOk();
+        }
+        $this->assertEquals(100, $this->agir('PILOTE')->getJson('/api/tableau-de-bord')->json('data.part_verification_efficacite'));
     }
 
     public function test_register_finds_fiches_by_equipment(): void
