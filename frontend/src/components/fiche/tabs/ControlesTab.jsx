@@ -53,8 +53,7 @@ export default function ControlesTab({ fiche, options, onChange, onError }) {
     <section className="fiche-tab" data-fiche-tab="controles">
       <h2>Contrôles d’efficacité</h2>
       <p className="fiche-tab__help">
-        Trois contrôles par action réalisée, à J+30, J+60 et J+90 de sa réalisation. Un contrôle non conforme exige une action corrective,
-        vérifiée une fois à 30 jours (hypothèse D2). Tous doivent être conformes avant la clôture (B4).
+        Tous doivent être conformes avant la clôture. Un contrôle non conforme demande une action corrective.
       </p>
       {actions.length === 0 && <p className="fiche-tab__muted">Aucun contrôle : ils sont créés quand une action passe à « Réalisée ».</p>}
       {actions.map((action) => (

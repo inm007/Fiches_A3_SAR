@@ -187,8 +187,7 @@ export default function ActionsTab({ fiche, options, refs, onChange, onError }) 
         {fiche.droits.peut_ajouter_action && <Button icon="plus" size="small" type="button" variant="secondary" onClick={() => setAjout(true)}>Ajouter une action</Button>}
       </div>
       <p className="fiche-tab__help">
-        Ici, vous suivez le plan validé : démarrez chaque action, puis passez-la à « Réalisée », avec si vous le souhaitez une preuve (bon de travaux, compte rendu) et un document ou une photo.
-        La réalisation crée ses contrôles J+30, J+60 et J+90. Une action sous MOC ne démarre qu’avec le MOC clôturé. Vous pouvez reporter une échéance ou changer un responsable avec un motif.
+        Démarrez chaque action puis passez-la à « Réalisée » : ses contrôles J+30, J+60 et J+90 apparaissent alors ci-dessous.
       </p>
       <table>
         <thead>
