@@ -92,29 +92,16 @@ function Droits() {
     .map((groupe) => ({ ...groupe, roles: groupe.roles.map((code) => rolesParCode[code]).filter(Boolean) }))
     .filter((groupe) => groupe.roles.length > 0)
   const nbDroits = matrice?.permissions.length ?? 0
-  const accordes = (role) => (matrice?.permissions ?? []).filter((permission) => permission.roles[role.id]?.accorde).length
 
   return (
     <section className="droits-page">
       <PageBanner
-        description="Choisissez ce que chaque rôle peut faire dans l’application. Un changement s’applique dès la prochaine action des utilisateurs concernés et il est inscrit au journal d’administration."
+        description="Ce que chaque rôle peut faire. Survolez un droit pour sa description ; chaque changement est journalisé."
         title="Droits des rôles"
       />
       {error && <Alert severity="error">{error}</Alert>}
       {!matrice ? <Skeleton height={56} lines={6} /> : (
         <>
-          <ul className="droits-catalogue" aria-label="Droits réglables">
-            {matrice.permissions.map((permission) => (
-              <li key={permission.code}>
-                <span className="droits-catalogue__icone"><Icon name={ICONES[permission.code] ?? 'info'} size={18} /></span>
-                <span>
-                  <strong>{permission.libelle}</strong>
-                  <span>{permission.description}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-
           <div className="droits-carte">
             <div className="droits-carte__entete">
               <h2>Droits par rôle</h2>
@@ -153,7 +140,6 @@ function Droits() {
                                 <strong>{role.libelle}</strong>
                                 {role.description && <span>{role.description}</span>}
                               </span>
-                              <span className="droits-table__compteur" title="Droits dont dispose ce rôle">{accordes(role)} / {nbDroits}</span>
                             </div>
                           </th>
                           {matrice.permissions.map((permission) => (

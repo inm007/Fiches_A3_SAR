@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import Badge from '../ui/Badge.jsx'
 import Icon from '../ui/Icon.jsx'
-import { ETAPES, PARCOURS, STATUTS_GENERAUX } from '../../utils/constants.js'
+import { ETAPES, PARCOURS } from '../../utils/constants.js'
 import { formatDate } from '../../utils/format.js'
 import EtapeBadge, { ConfidentialiteBadge } from './EtapeBadge.jsx'
 import './FicheHeader.css'
@@ -44,8 +43,7 @@ function FicheHeader({ fiche, children }) {
         </div>
         <div className="fiche-header__badges">
           <EtapeBadge etape={fiche.statut_etape} />
-          {STATUTS_GENERAUX[fiche.statut_general] !== ETAPES[fiche.statut_etape]?.label && <Badge tone="neutral">{STATUTS_GENERAUX[fiche.statut_general]}</Badge>}
-          <ConfidentialiteBadge value={fiche.confidentialite} />
+          {fiche.confidentialite === 'RESTREINT' && <ConfidentialiteBadge value={fiche.confidentialite} />}
           <span className="fiche-header__version" title="Une nouvelle boucle repart de l’analyse quand l’objectif n’est pas atteint.">Boucle {fiche.version}</span>
         </div>
         <ul className="fiche-header__meta">

@@ -15,7 +15,7 @@ import './WorkflowActions.css'
  * Boutons selon l'étape et le profil actif (UX §8.2). Le serveur reste seul juge :
  * un refus revient en 422 (manques) ou 409 (fiche modifiée) et s'affiche dans le panneau.
  */
-function WorkflowActions({ fiche, options, onChange, onError }) {
+function WorkflowActions({ fiche, options, onChange, onError, onExportPdf }) {
   const [dialog, setDialog] = useState(null)
   const [motif, setMotif] = useState('')
   const [pilote, setPilote] = useState('')
@@ -65,6 +65,8 @@ function WorkflowActions({ fiche, options, onChange, onError }) {
   // Un seul bouton principal : l'étape suivante, ou « Nouvelle boucle » quand l'objectif n'est pas atteint.
   const nouvelleBoucle = droits.transitions.includes('T11') && fiche.resultats?.objectif_atteint === 'NON'
   const principale = nouvelleBoucle ? 'T11' : droits.transitions.find((code) => TRANSITIONS[code].primary)
+  // Le panneau « Prochaine étape » porte déjà ce bouton, avec ce qu'il reste à faire : pas de doublon en haut.
+  const dansLePanneau = !nouvelleBoucle && principale === fiche.prochaine_etape?.code
   const secondaires = droits.transitions.filter((code) => code !== principale)
   const menu = [
     ...secondaires.map((code) => ({ key: code, label: TRANSITIONS[code].label, danger: TRANSITIONS[code].danger || code === 'T12', onClick: () => startTransition(code) })),
@@ -76,6 +78,7 @@ function WorkflowActions({ fiche, options, onChange, onError }) {
       ? [{ key: 'partage-validation', label: 'Partager une validation', onClick: () => setDialog({ type: 'partage-validation' }) }] : []),
     ...(droits.peut_changer_confidentialite
       ? [{ key: 'confidentialite', label: fiche.confidentialite === 'RESTREINT' ? 'Passer en Normal' : 'Passer en Restreint', onClick: () => setDialog({ type: 'confidentialite' }) }] : []),
+    ...(onExportPdf ? [{ key: 'pdf', label: 'Exporter en PDF A3', onClick: onExportPdf }] : []),
   ]
 
   return (
@@ -86,7 +89,7 @@ function WorkflowActions({ fiche, options, onChange, onError }) {
       {droits.peut_se_designer_pilote && (
         <Button disabled={busy} type="button" variant="primary" onClick={meDesigner}>Me désigner comme pilote</Button>
       )}
-      {principale && (
+      {principale && !dansLePanneau && (
         <Button disabled={busy} type="button" variant="primary" onClick={() => startTransition(principale)}>
           {TRANSITIONS[principale].label}
         </Button>
