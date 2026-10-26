@@ -100,10 +100,7 @@ class ControleEfficaciteService
         foreach ($jalons as $jalon => $jours) {
             Controle::firstOrCreate(
                 ['action_id' => $action->id, 'jalon' => $jalon],
-                [
-                    'date_reference' => $reference->toDateString(),
-                    'date_echeance' => $reference->copy()->addDays($jours)->toDateString(),
-                ],
+                ['date_echeance' => $reference->copy()->addDays($jours)->toDateString()],
             );
         }
     }

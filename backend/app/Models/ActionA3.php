@@ -47,16 +47,6 @@ class ActionA3 extends Model
         return $this->belongsTo(Cause::class, 'cause_id');
     }
 
-    public function actionOrigine(): BelongsTo
-    {
-        return $this->belongsTo(self::class, 'action_origine_id');
-    }
-
-    public function actionsDerivees(): HasMany
-    {
-        return $this->hasMany(self::class, 'action_origine_id');
-    }
-
     public function risque(): BelongsTo
     {
         return $this->belongsTo(Risque::class, 'risque_id');

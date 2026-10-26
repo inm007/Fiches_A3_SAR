@@ -22,7 +22,6 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'actif' => 'boolean',
             'derniere_connexion' => 'datetime',
@@ -50,28 +49,8 @@ class User extends Authenticatable
         return $this->hasMany(Affectation::class, 'user_id');
     }
 
-    public function fichesPilote(): HasMany
-    {
-        return $this->hasMany(FicheA3::class, 'pilote_id');
-    }
-
-    public function fichesDeclarees(): HasMany
-    {
-        return $this->hasMany(FicheA3::class, 'declarant_id');
-    }
-
-    public function actionsResponsable(): HasMany
-    {
-        return $this->hasMany(ActionA3::class, 'responsable_id');
-    }
-
     public function validations(): HasMany
     {
         return $this->hasMany(Validation::class, 'valideur_id');
-    }
-
-    public function notificationsMetier(): HasMany
-    {
-        return $this->hasMany(NotificationInterne::class, 'user_id');
     }
 }

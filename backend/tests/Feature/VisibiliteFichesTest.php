@@ -42,7 +42,7 @@ class VisibiliteFichesTest extends TestCase
         $this->nevoitPas($autreAgent, $restreinte);
 
         // Responsable d'une action : la fiche, même restreinte, devient visible.
-        $cause = Cause::create(['fiche_id' => $restreinte->id, 'numero' => 1, 'methode' => '5_POURQUOI', 'categorie' => 'METHODE', 'libelle' => 'Cause']);
+        $cause = Cause::create(['fiche_id' => $restreinte->id, 'numero' => 1, 'categorie' => 'METHODE', 'libelle' => 'Cause']);
         ActionA3::create(['fiche_id' => $restreinte->id, 'cause_id' => $cause->id, 'description' => 'Action', 'type_action' => 'CORRECTIVE', 'responsable_id' => $autreAgent[0]->id, 'echeance' => today()->addMonth()]);
         $this->voitActeur($autreAgent, $restreinte);
     }

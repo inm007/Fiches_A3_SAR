@@ -258,7 +258,6 @@ class FicheWorkflowTest extends TestCase
         $cause = Cause::create([
             'fiche_id' => $fiche->id,
             'numero' => 1,
-            'methode' => '5_POURQUOI',
             'categorie' => 'METHODE',
             'libelle' => 'Cause',
         ]);
