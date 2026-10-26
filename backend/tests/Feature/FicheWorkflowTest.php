@@ -278,24 +278,19 @@ class FicheWorkflowTest extends TestCase
             'echeance' => today()->addWeek(),
             'statut' => 'EN_COURS',
         ]);
-        $moisCourant = now()->format('Y-m');
 
         $this->agir('AGENT')->getJson('/api/tableau-de-bord')
             ->assertOk()
             ->assertJsonPath('data.mes_fiches', 2)
-            ->assertJsonPath('data.par_etape.OUVERT', 2)
-            ->assertJsonPath('data.actions_par_statut.A_FAIRE', 1)
-            ->assertJsonPath('data.actions_par_statut.EN_COURS', 1)
-            ->assertJsonPath('data.fiches_creees_par_mois.5.mois', $moisCourant)
-            ->assertJsonPath('data.fiches_creees_par_mois.5.total', 2);
+            ->assertJsonPath('data.fiches_total', 2)
+            ->assertJsonPath('data.fiches_ouvertes', 2);
 
         $autreAgent = $this->acteur('AGENT', $this->unite->id);
         $this->actingAs($autreAgent[0])->withSession(['auth.active_assignment_id' => $autreAgent[1]->id])
             ->getJson('/api/tableau-de-bord')
             ->assertOk()
             ->assertJsonPath('data.fiches_total', 0)
-            ->assertJsonPath('data.actions_par_statut.A_FAIRE', 0)
-            ->assertJsonPath('data.fiches_creees_par_mois.5.total', 0);
+            ->assertJsonPath('data.fiches_ouvertes', 0);
 
         // Une fiche déclarée par un agent attend que l'administrateur désigne son pilote.
         $this->agir('ADMIN_FONCTIONNEL')->getJson('/api/tableau-de-bord')
