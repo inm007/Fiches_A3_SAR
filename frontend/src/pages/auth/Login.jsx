@@ -93,7 +93,6 @@ function Login() {
         <div className="auth-field">
           <label className="auth-field__label" htmlFor="identifiant">Identifiant</label>
           <div className="auth-field__control login-page__input-control">
-            <Icon name="user" size={18} />
             <input
               aria-describedby={fieldDescription}
               aria-invalid={invalid || undefined}
@@ -111,12 +110,8 @@ function Login() {
           </div>
         </div>
         <div className="auth-field">
-          <div className="auth-field__label">
-            <label htmlFor="mot-de-passe">Mot de passe</label>
-            <Link to="/mot-de-passe-oublie">Mot de passe oublié ?</Link>
-          </div>
+          <label className="auth-field__label" htmlFor="mot-de-passe">Mot de passe</label>
           <div className="auth-field__control login-page__input-control">
-            <Icon name="lock" size={18} />
             <input
               aria-describedby={fieldDescription}
               aria-invalid={invalid || undefined}
@@ -124,6 +119,7 @@ function Login() {
               className="has-toggle"
               id="mot-de-passe"
               name="password"
+              placeholder="••••••••"
               required
               type={showPassword ? 'text' : 'password'}
               value={password}
@@ -140,6 +136,7 @@ function Login() {
             </button>
           </div>
         </div>
+        <p className="auth-form__forgot"><Link to="/mot-de-passe-oublie">Mot de passe oublié ?</Link></p>
         <Button
           className={submitting ? 'is-loading' : ''}
           disabled={locked || !identifiant.trim() || !password}
