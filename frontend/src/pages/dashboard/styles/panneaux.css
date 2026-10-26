@@ -2,7 +2,7 @@
 .dash-grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 16px;
+  gap: 24px;
 }
 
 .dash-span-3 { grid-column: span 3; }

@@ -1,6 +1,6 @@
 .notifications-page {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
 .notifications-page__groups {
@@ -132,6 +132,26 @@
 .notifications-page__state.is-unread {
   color: var(--brand-600);
   font-weight: 700;
+}
+
+.notifications-page__state.is-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  color: var(--success);
+  background: var(--success-bg);
+  font-weight: 600;
+}
+
+.notifications-page__state.is-done::before {
+  content: '✓';
+}
+
+/* Une demande satisfaite reste consultable, mais recule visuellement. */
+.notifications-page__item.is-done .notifications-page__message {
+  color: var(--text-muted);
 }
 
 .notifications-page__chevron {

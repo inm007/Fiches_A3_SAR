@@ -4,7 +4,6 @@ import { useAuth } from '../../auth/useAuth.js'
 import { ApiError } from '../../auth/api.js'
 import Alert from '../../components/ui/Alert.jsx'
 import AuthPage from '../../components/layout/AuthPage.jsx'
-import { BRAND_LINES as brandLines } from '../../components/layout/brand.js'
 import Button from '../../components/ui/Button.jsx'
 import Icon from '../../components/ui/Icon.jsx'
 import './Login.css'
@@ -20,17 +19,6 @@ function Login() {
   const [errorMessage, setErrorMessage] = useState('')
   const [retrySeconds, setRetrySeconds] = useState(0)
   const identifierRef = useRef(null)
-  const [reducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-  const [compactViewport] = useState(() => window.matchMedia('(max-width: 1023px)').matches)
-  const showBrandTextImmediately = reducedMotion || compactViewport
-  const [typedLines, setTypedLines] = useState(() => (
-    showBrandTextImmediately ? brandLines : brandLines.map(() => '')
-  ))
-  const [activeBrandLine, setActiveBrandLine] = useState(() => (
-    showBrandTextImmediately ? brandLines.length - 1 : 0
-  ))
-  const [typingComplete, setTypingComplete] = useState(showBrandTextImmediately)
-
   useEffect(() => {
     const previousTitle = document.title
     document.title = 'Connexion — Fiches A3'
@@ -39,51 +27,6 @@ function Login() {
       document.title = previousTitle
     }
   }, [])
-
-  useEffect(() => {
-    if (showBrandTextImmediately) return undefined
-
-    let lineIndex = 0
-    let characterIndex = 0
-    let cancelled = false
-    const timers = new Set()
-
-    function schedule(callback, delay) {
-      const timer = window.setTimeout(() => {
-        timers.delete(timer)
-        if (!cancelled) callback()
-      }, delay)
-      timers.add(timer)
-    }
-
-    function typeCharacter() {
-      const line = brandLines[lineIndex]
-      characterIndex += 1
-      setTypedLines((previous) => previous.map((text, index) => (
-        index === lineIndex ? line.slice(0, characterIndex) : text
-      )))
-
-      if (characterIndex < line.length) {
-        schedule(typeCharacter, 45)
-      } else if (lineIndex < brandLines.length - 1) {
-        schedule(() => {
-          lineIndex += 1
-          characterIndex = 0
-          setActiveBrandLine(lineIndex)
-          typeCharacter()
-        }, 600)
-      } else {
-        setTypingComplete(true)
-      }
-    }
-
-    schedule(typeCharacter, 45)
-    return () => {
-      cancelled = true
-      timers.forEach((timer) => window.clearTimeout(timer))
-      timers.clear()
-    }
-  }, [showBrandTextImmediately])
 
   useEffect(() => {
     if (user) navigate(activeProfile?.redirect_to || '/tableau-de-bord', { replace: true })
@@ -125,23 +68,7 @@ function Login() {
 
   return (
     <AuthPage
-      brandAriaLabel={brandLines.join(' ')}
-      brandTitle={(
-        <>
-          <span aria-hidden="true" className="login-page__typewriter">
-            {brandLines.map((line, index) => (
-              <span
-                className={`login-page__typewriter-line${(typingComplete && index === brandLines.length - 1) || (!typingComplete && index === activeBrandLine) ? ' has-cursor' : ''}${index === brandLines.length - 1 ? ' is-highlighted' : ''}`}
-                key={line}
-              >
-                {typedLines[index]}
-              </span>
-            ))}
-          </span>
-          <span aria-hidden="true" className="login-page__mobile-slogan">Jusqu’à la preuve des résultats.</span>
-        </>
-      )}
-      footer="Accès créé par votre administrateur."
+      footer="Session fermée automatiquement après 30 minutes d’inactivité."
       pageClass={`login-page${invalid ? ' has-error' : ''}`}
       title="Connexion"
     >
@@ -166,7 +93,6 @@ function Login() {
         <div className="auth-field">
           <label className="auth-field__label" htmlFor="identifiant">Identifiant</label>
           <div className="auth-field__control login-page__input-control">
-            <Icon name="user" size={18} />
             <input
               aria-describedby={fieldDescription}
               aria-invalid={invalid || undefined}
@@ -174,7 +100,7 @@ function Login() {
               autoComplete="username"
               id="identifiant"
               name="identifiant"
-              placeholder="Ex. prenom.nom"
+              placeholder="prenom.nom"
               required
               ref={identifierRef}
               spellCheck="false"
@@ -184,12 +110,8 @@ function Login() {
           </div>
         </div>
         <div className="auth-field">
-          <div className="auth-field__label">
-            <label htmlFor="mot-de-passe">Mot de passe</label>
-            <Link to="/mot-de-passe-oublie">Mot de passe oublié ?</Link>
-          </div>
+          <label className="auth-field__label" htmlFor="mot-de-passe">Mot de passe</label>
           <div className="auth-field__control login-page__input-control">
-            <Icon name="lock" size={18} />
             <input
               aria-describedby={fieldDescription}
               aria-invalid={invalid || undefined}
@@ -197,6 +119,7 @@ function Login() {
               className="has-toggle"
               id="mot-de-passe"
               name="password"
+              placeholder="••••••••"
               required
               type={showPassword ? 'text' : 'password'}
               value={password}
@@ -213,6 +136,7 @@ function Login() {
             </button>
           </div>
         </div>
+        <p className="auth-form__forgot"><Link to="/mot-de-passe-oublie">Mot de passe oublié ?</Link></p>
         <Button
           className={submitting ? 'is-loading' : ''}
           disabled={locked || !identifiant.trim() || !password}

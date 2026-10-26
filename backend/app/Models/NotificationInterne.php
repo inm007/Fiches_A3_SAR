@@ -17,12 +17,14 @@ class NotificationInterne extends Model
         'cible_type',
         'cible_id',
         'lu_le',
+        'traite_le',
     ];
 
     protected function casts(): array
     {
         return [
             'lu_le' => 'datetime',
+            'traite_le' => 'datetime',
         ];
     }
 

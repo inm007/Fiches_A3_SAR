@@ -437,6 +437,67 @@ class AdminAdministrationTest extends TestCase
             ->assertJsonPath('message', 'Un lien ne peut être envoyé qu’à un compte local.');
     }
 
+    /**
+     * Tout ce que l'administrateur fonctionnel crée depuis ses écrans est relu depuis la base,
+     * avec exactement les champs que les formulaires envoient (champ vide → null).
+     */
+    public function test_everything_the_admin_creates_from_the_screens_is_persisted(): void
+    {
+        $this->asAdmin();
+
+        $unite = $this->postJson('/api/admin/units', ['code' => 'DA', 'libelle' => 'Distillation atmosphérique'])->assertCreated()->json('data');
+        $this->assertDatabaseHas('unites', ['id' => $unite['id'], 'code' => 'DA', 'libelle' => 'Distillation atmosphérique', 'actif' => true]);
+
+        $equipement = $this->postJson('/api/admin/equipment', ['unite_id' => (string) $unite['id'], 'code' => 'P-204', 'libelle' => 'Pompe de charge', 'reference_sap' => null])->assertCreated()->json('data');
+        $this->assertDatabaseHas('equipements', ['id' => $equipement['id'], 'unite_id' => $unite['id'], 'code' => 'P-204', 'reference_sap' => null]);
+
+        $direction = $this->postJson('/api/admin/entities', ['type' => 'DIRECTION', 'code' => 'DPROD', 'libelle' => 'Direction Production', 'parent_id' => null, 'responsable_id' => null])->assertCreated()->json('data');
+        $departement = $this->postJson('/api/admin/entities', ['type' => 'DEPARTEMENT', 'code' => 'DFAB', 'libelle' => 'Fabrication', 'parent_id' => (string) $direction['id'], 'responsable_id' => null])->assertCreated()->json('data');
+        $this->assertDatabaseHas('entites', ['id' => $departement['id'], 'type' => 'DEPARTEMENT', 'parent_id' => $direction['id']]);
+
+        $user = $this->postJson('/api/admin/users', [
+            'identifiant' => 'awa.ndiaye', 'email' => 'awa.ndiaye@example.test', 'nom' => 'Ndiaye', 'prenom' => 'Awa',
+            'auth_source' => 'local', 'entite_id' => (string) $departement['id'],
+        ])->assertCreated()->json('data');
+        $this->assertDatabaseHas('users', ['id' => $user['id'], 'identifiant' => 'awa.ndiaye', 'entite_id' => $departement['id'], 'auth_source' => 'local', 'actif' => true]);
+
+        $role = Role::where('code', 'AGENT')->firstOrFail();
+        $affectation = $this->postJson('/api/admin/assignments', [
+            'user_id' => (string) $user['id'], 'role_id' => (string) $role->id, 'unite_id' => (string) $unite['id'], 'date_debut' => null, 'date_fin' => now()->addMonth()->toDateString(),
+        ])->assertCreated()->json('data');
+        $this->assertDatabaseHas('affectations', ['id' => $affectation['id'], 'user_id' => $user['id'], 'role_id' => $role->id, 'unite_id' => $unite['id'], 'actif' => true]);
+        $this->assertNotNull(Affectation::findOrFail($affectation['id'])->date_fin);
+
+        $liste = Liste::query()->firstOrFail();
+        $valeur = $this->postJson("/api/admin/lists/{$liste->id}/values", ['code' => 'NOUVELLE_VALEUR', 'libelle' => 'Nouvelle valeur', 'ordre' => 99])->assertCreated()->json('data');
+        $this->assertDatabaseHas('valeurs_listes', ['id' => $valeur['id'], 'liste_id' => $liste->id, 'libelle' => 'Nouvelle valeur', 'ordre' => 99]);
+
+        $reglages = ['reminder_interval_days' => 5, 'validation_reminders_enabled' => false, 'due_soon_days' => 4, 'attachment_max_size_mb' => 12, 'attachment_max_files' => 15];
+        $this->putJson('/api/admin/settings', $reglages)->assertOk();
+        foreach ($reglages as $cle => $valeurAttendue) {
+            $this->assertEquals($valeurAttendue, $this->getJson('/api/admin/settings')->json("data.{$cle}"));
+        }
+
+        $circuit = $this->getJson('/api/admin/circuit')->assertOk()->json('data');
+        $ligne = collect($circuit['domaines'])->first(fn (array $domaine) => ! $domaine['choisi_sur_la_fiche']);
+        $directeur = $circuit['directeurs'][0]['code'];
+        $domaines = collect($circuit['domaines'])->map(fn (array $domaine) => [
+            'domaine' => $domaine['domaine'],
+            'roles' => $domaine['domaine'] === $ligne['domaine'] ? [$directeur] : $domaine['roles'],
+        ])->all();
+        $this->putJson('/api/admin/circuit', ['domaines' => $domaines])->assertOk();
+        $relu = collect($this->getJson('/api/admin/circuit')->json('data.domaines'))->firstWhere('domaine', $ligne['domaine']);
+        $this->assertSame([$directeur], $relu['roles']);
+
+        $matrice = $this->getJson('/api/admin/permissions')->assertOk()->json('data');
+        [$permission, $roleId, $cellule] = collect($matrice['permissions'])
+            ->flatMap(fn (array $p) => collect($p['roles'])->map(fn (array $c, $id) => [$p['code'], (int) $id, $c]))
+            ->first(fn (array $triple) => $triple[2]['etat'] === 'REGLABLE');
+        $this->putJson('/api/admin/permissions', ['role_id' => $roleId, 'permission' => $permission, 'accorde' => ! $cellule['accorde']])->assertOk();
+        $relue = collect($this->getJson('/api/admin/permissions')->json('data.permissions'))->firstWhere('code', $permission);
+        $this->assertSame(! $cellule['accorde'], $relue['roles'][$roleId]['accorde']);
+    }
+
     private function asAdmin(): array
     {
         [$user, $role] = $this->userWithRole('ADMIN_FONCTIONNEL');

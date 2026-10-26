@@ -293,6 +293,27 @@ class SuiviTerrainTest extends TestCase
         $this->assertSame(now()->year - 1, $passee->json('data.annee'));
     }
 
+    public function test_direction_and_admin_dashboards_carry_their_curve_and_indicators(): void
+    {
+        $this->declarer();
+
+        $direction = $this->agir('DIRECTION')->getJson('/api/tableau-de-bord')->assertOk();
+        $evolution = collect($direction->json('data.evolution'));
+        $this->assertCount((int) now()->month, $evolution);
+        $this->assertSame(1, $evolution->firstWhere('mois', (int) now()->month)['declarees']);
+        $this->assertSame(1, $direction->json('data.unites.0.ouvertes'));
+        $this->assertNull($direction->json('data.administration'));
+
+        $admin = $this->agir('ADMIN_FONCTIONNEL')->getJson('/api/tableau-de-bord')->assertOk();
+        $this->assertNotNull($admin->json('data.evolution'));
+        $this->assertGreaterThan(0, $admin->json('data.administration.utilisateurs_actifs'));
+        $this->assertArrayHasKey('sans_role', $admin->json('data.administration'));
+        $this->assertNull($admin->json('data.unites'));
+
+        $agent = $this->agir('AGENT')->getJson('/api/tableau-de-bord')->assertOk();
+        $this->assertNull($agent->json('data.evolution'));
+    }
+
     public function test_register_finds_fiches_by_equipment(): void
     {
         $equipement = Equipement::create(['code' => 'P-'.random_int(1000, 9999), 'libelle' => 'Pompe de test', 'unite_id' => $this->unite->id, 'actif' => true]);

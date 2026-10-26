@@ -19,6 +19,7 @@ use App\Services\ActiveProfile;
 use App\Services\FicheSectionService;
 use App\Services\FicheVisibility;
 use App\Services\FicheWorkflow;
+use App\Services\HistoriqueRecit;
 use App\Services\HistoryLogger;
 use App\Services\NotificationService;
 use App\Services\Organigramme;
@@ -266,7 +267,7 @@ class FicheController extends Controller
     /**
      * Historique (PRD §14) : pilote, Direction et administrateur fonctionnel.
      */
-    public function historique(FicheA3 $fiche, ActiveProfile $profile): JsonResponse
+    public function historique(FicheA3 $fiche, ActiveProfile $profile, HistoriqueRecit $recit): JsonResponse
     {
         $this->visible($fiche, $profile);
         if (! $profile->peutVoirHistorique()) {
@@ -279,12 +280,12 @@ class FicheController extends Controller
             ->orderByDesc('id')
             ->get();
 
+        $phrases = $recit->phrases($evenements);
+
         return response()->json(['data' => $evenements->map(fn ($evenement) => [
             'id' => $evenement->id,
             'type' => $evenement->type,
-            'champ' => $evenement->champ,
-            'ancienne_valeur' => $evenement->ancien_etat['valeur'] ?? null,
-            'nouvelle_valeur' => $evenement->nouvel_etat['valeur'] ?? null,
+            'phrase' => $phrases->get($evenement->id),
             'commentaire' => $evenement->commentaire,
             'version_fiche' => $evenement->version_fiche,
             'auteur' => $evenement->user?->nom_complet ?? 'Système',

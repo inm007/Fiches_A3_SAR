@@ -110,7 +110,7 @@ function Notifications() {
       {!result && !error && <Skeleton lines={5} height={22} />}
       {result && (
         <ListToolbar>
-          <FilterSelect label="État" options={[['non_lu', 'Non lues'], ['lu', 'Lues']]} value={readFilter} onChange={list.setFilter('etat')} />
+          <FilterSelect label="État" options={[['non_lu', 'À lire'], ['lu', 'Lues']]} value={readFilter} onChange={list.setFilter('etat')} />
           <ToolbarActions>
             <ResultCount count={result.meta.total} singular="notification" />
             {list.active && <Button onClick={list.reset} type="button" variant="secondary">Réinitialiser</Button>}
@@ -137,7 +137,7 @@ function Notifications() {
                   const { numero, text } = splitMessage(notification)
                   return (
                     <li key={notification.id}>
-                      <button className={`notifications-page__item${notification.lu ? '' : ' is-unread'}`} type="button" onClick={() => open(notification)}>
+                      <button className={`notifications-page__item${notification.lu ? '' : ' is-unread'}${notification.traite ? ' is-done' : ''}`} type="button" onClick={() => open(notification)}>
                         <span aria-hidden="true" className="notifications-page__icon"><Icon name={iconFor(notification.message)} size={18} /></span>
                         <span className="notifications-page__body">
                           <span className="notifications-page__message">{text}</span>
@@ -146,7 +146,9 @@ function Notifications() {
                             <span className="sar-num">{formatDateTime(notification.created_at)}</span>
                           </span>
                         </span>
-                        <span className={`notifications-page__state${notification.lu ? '' : ' is-unread'}`}>{notification.lu ? 'Lu' : 'Non lu'}</span>
+                        <span className={`notifications-page__state${notification.lu ? '' : ' is-unread'}${notification.traite ? ' is-done' : ''}`}>
+                          {notification.traite ? 'Fait' : notification.lu ? 'Lu' : 'À lire'}
+                        </span>
                         <Icon className="notifications-page__chevron" name="page-next" size={16} />
                       </button>
                     </li>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\PagineEtRecherche;
 use App\Models\NotificationInterne;
+use App\Services\NotificationCloture;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -16,8 +17,10 @@ class NotificationController extends Controller
 {
     use PagineEtRecherche;
 
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, NotificationCloture $cloture): JsonResponse
     {
+        $cloture->marquerTraitees($request->user()->id);
+
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
             'etat' => ['nullable', Rule::in(['lu', 'non_lu'])],
@@ -44,14 +47,17 @@ class NotificationController extends Controller
                 'message' => $notification->message,
                 'fiche' => $notification->fiche?->only(['id', 'numero_a3']),
                 'lu' => $notification->lu_le !== null,
+                'traite' => $notification->traite_le !== null,
                 'created_at' => $notification->created_at?->toIso8601String(),
             ]),
             'meta' => $this->metaPagination($page, ['unread_total' => $unreadTotal]),
         ]);
     }
 
-    public function nonLues(Request $request): JsonResponse
+    public function nonLues(Request $request, NotificationCloture $cloture): JsonResponse
     {
+        $cloture->marquerTraitees($request->user()->id);
+
         return response()->json(['data' => [
             'count' => NotificationInterne::where('user_id', $request->user()->id)->whereNull('lu_le')->count(),
         ]]);

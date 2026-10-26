@@ -75,7 +75,6 @@ function EmptyNote({ children, icon = 'ok' }) {
   )
 }
 
-/** Barres horizontales libellé / valeur. */
 /** Choix de l'année des indicateurs annuels (consolidation des gains en fin d'année). */
 export function YearSelect({ data, onChange }) {
   const annees = data?.annees_disponibles ?? []

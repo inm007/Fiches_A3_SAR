@@ -8,21 +8,21 @@ import './Listes.css'
 const nextOrder = (values) => values.reduce((max, item) => Math.max(max, Number(item.ordre) || 0), 0) + 1
 
 const fields = [
-  { name: 'code', label: 'Code', required: true, maxLength: 255 },
-  { name: 'libelle', label: 'Libellé', required: true, maxLength: 255 },
-  { name: 'ordre', label: 'Ordre', type: 'number', required: true, min: 0, defaultValue: nextOrder },
+  { name: 'libelle', label: 'Valeur affichée', hint: 'Ce que la personne lit dans la liste déroulante de la fiche.', required: true, maxLength: 255 },
+  { name: 'code', label: 'Code interne', hint: 'Sert aux exports et ne change jamais, par exemple « PANNE_RECURRENTE ».', required: true, maxLength: 255 },
+  { name: 'ordre', label: 'Rang dans la liste', hint: 'Le plus petit s’affiche en premier.', type: 'number', required: true, min: 0, defaultValue: nextOrder },
 ]
 
 const columns = [
-  { key: 'code', label: 'Code', width: '22%', titleValue: (item) => item.code },
+  { key: 'code', label: 'Code interne', width: '22%', titleValue: (item) => item.code },
   {
     key: 'libelle',
-    label: 'Libellé',
+    label: 'Valeur affichée',
     width: '36%',
     titleValue: (item) => item.libelle,
     render: (item) => <span className="data-table__cell-text" title={item.libelle}>{item.libelle}</span>,
   },
-  { key: 'ordre', label: 'Ordre', width: '12%' },
+  { key: 'ordre', label: 'Rang', width: '12%' },
   {
     key: 'actif',
     label: 'État',
@@ -85,7 +85,7 @@ function Listes() {
       messages={messages}
       pending={!listsLoaded}
       reorderEndpoint={endpoint && `${endpoint}/order`}
-      searchPlaceholder="Code ou libellé…"
+      searchPlaceholder="Valeur ou code…"
       title="Listes de choix"
       wrapContent={(content) => (
         <div className="listes-page__layout">

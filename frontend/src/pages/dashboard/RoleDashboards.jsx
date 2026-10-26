@@ -3,10 +3,13 @@ import { useAuth } from '../../auth/useAuth.js'
 import Button from '../../components/ui/Button.jsx'
 import { plural } from '../../utils/format.js'
 import { days, percent, shortFcfa } from './dashboardData.js'
+import Courbe from './Courbe.jsx'
 import { FichesEnCours, KpiCard, KpiRow, Panel, TodoList, YearSelect } from './widgets.jsx'
 
 // Un tableau de bord par profil, réduit à ce que la personne vient y faire : ce qui l'attend,
-// quelques chiffres cliquables, et pour le terrain ses fiches en cours. Pas de graphiques.
+// quelques chiffres cliquables, et pour le terrain ses fiches en cours. Seules la Direction et
+// l'administration ont une courbe : la tendance mois par mois les aide à piloter.
+// Le bandeau sombre n'apparaît que lorsqu'il porte une action ; sinon, un simple titre.
 
 const alertTone = (value) => (Number(value ?? 0) > 0 ? 'alert' : 'calm')
 
@@ -20,6 +23,15 @@ function Hero({ eyebrow, title, text, actions }) {
         {actions && <div className="dash-hero__actions">{actions}</div>}
       </div>
     </section>
+  )
+}
+
+function Entete({ title, text }) {
+  return (
+    <header className="dash-entete">
+      <h1>{title}</h1>
+      {text && <p>{text}</p>}
+    </header>
   )
 }
 
@@ -68,8 +80,7 @@ export function PiloteDashboard({ data, fiches, hello }) {
   const loading = !data
   return (
     <>
-      <Hero
-        eyebrow="Pilotage"
+      <Entete
         text={data ? `${plural(data.mes_fiches, 'fiche', 'fiches')} à piloter, ${plural(data.controles_disponibles, 'contrôle disponible', 'contrôles disponibles')}.` : 'Chargement…'}
         title={hello}
       />
@@ -90,14 +101,12 @@ export function PiloteDashboard({ data, fiches, hello }) {
   )
 }
 
-export function ValideurDashboard({ data, hello, roleCode, roleLabel }) {
+export function ValideurDashboard({ data, hello, roleCode }) {
   const loading = !data
   const autres = (data?.a_traiter ?? []).some((item) => item.type !== 'validation')
   return (
     <>
-      <Hero
-        actions={<HeroButton icon="validation" to="/validations">Ouvrir ma file de validation</HeroButton>}
-        eyebrow={roleLabel || 'Validation'}
+      <Entete
         text={data
           ? data.validations_a_traiter ? `${plural(data.validations_a_traiter, 'fiche attend', 'fiches attendent')} votre décision.` : 'Aucune demande en attente.'
           : 'Chargement…'}
@@ -125,12 +134,7 @@ export function ControleDashboard({ data, hello, onAnneeChange }) {
   const loading = !data
   return (
     <>
-      <Hero
-        actions={<HeroButton icon="validation" to="/validations">Gains à valider</HeroButton>}
-        eyebrow="Contrôle de gestion"
-        text="Validez les gains déclarés par les pilotes."
-        title={hello}
-      />
+      <Entete text="Validez les gains déclarés par les pilotes." title={hello} />
       <div className="dash-money">
         <article className="dash-money__main">
           <span className="dash-money__head">Gains annuels validés<YearSelect data={data} onChange={onAnneeChange} /></span>
@@ -149,27 +153,36 @@ export function ControleDashboard({ data, hello, onAnneeChange }) {
 
 export function DirectionDashboard({ data, hello, onAnneeChange }) {
   const loading = !data
+  const evolution = data?.evolution ?? []
   return (
     <>
-      <Hero
-        actions={<HeroButton icon="files" to="/fiches">Registre des fiches</HeroButton>}
-        eyebrow="Direction"
-        text="L’essentiel de la démarche A3 : ce qui avance, ce qui bloque, ce que ça rapporte."
-        title={hello}
-      />
+      <Entete text="Ce qui avance, ce qui bloque, ce que ça rapporte." title={hello} />
       <KpiRow>
-        <KpiCard icon="file" label="Fiches ouvertes" loading={loading} to="/fiches" tone="brand" value={data?.fiches_ouvertes} />
+        <KpiCard icon="file" label="Fiches en cours" loading={loading} to="/fiches" tone="brand" value={data?.fiches_ouvertes} />
         <KpiCard icon="clock" label="Fiches en retard" loading={loading} to="/fiches" tone={alertTone(data?.fiches_en_retard)} value={data?.fiches_en_retard} />
         <KpiCard icon="al" label="Actions en retard" loading={loading} to="/fiches" tone={alertTone(data?.actions_en_retard)} value={data?.actions_en_retard} />
         <KpiCard format={percent} icon="ok" label={`Taux de clôture ${data?.annee ?? ''}`} loading={loading} to="/fiches" tone="calm" value={data?.taux_cloture} />
       </KpiRow>
       <div className="dash-grid">
+        <Panel className="dash-span-8" subtitle={`Par mois, en ${data?.annee ?? ''}.`} title="Fiches déclarées et clôturées">
+          <Courbe
+            data={evolution}
+            series={[
+              { key: 'declarees', label: 'Déclarées', couleur: 'var(--dash-serie-1)' },
+              { key: 'cloturees', label: 'Clôturées', couleur: 'var(--dash-serie-2)' },
+            ]}
+            titre="Fiches déclarées et clôturées par mois"
+          />
+        </Panel>
         <article className="dash-span-4 dash-money__main dash-money__main--panel">
           <span className="dash-money__head">Gains annuels validés<YearSelect data={data} onChange={onAnneeChange} /></span>
           <strong>{data ? shortFcfa(data.gains_valides_annee ?? 0) : '—'}</strong>
           <small>{data ? `Validés par le Contrôle de gestion en ${data.annee}` : ''}</small>
         </article>
-        <Panel className="dash-span-8" title="À traiter">
+        <Panel className="dash-span-6" subtitle="Les unités qui ont le plus de fiches en retard." title="Où ça bloque">
+          <UnitesTable unites={data?.unites} />
+        </Panel>
+        <Panel className="dash-span-6" title="À traiter">
           <TodoList data={data} emptyText="Rien n’attend votre décision." />
         </Panel>
       </div>
@@ -177,23 +190,49 @@ export function DirectionDashboard({ data, hello, onAnneeChange }) {
   )
 }
 
+function UnitesTable({ unites }) {
+  if (!unites) return null
+  if (unites.length === 0) return <p className="sar-muted">Aucune fiche en cours.</p>
+  return (
+    <table className="dash-unites">
+      <thead><tr><th scope="col">Unité</th><th scope="col">En cours</th><th scope="col">En retard</th></tr></thead>
+      <tbody>
+        {unites.map((ligne) => (
+          <tr key={ligne.unite}>
+            <td>{ligne.unite}</td>
+            <td>{ligne.ouvertes}</td>
+            <td className={ligne.en_retard ? 'dash-unites__retard' : undefined}>{ligne.en_retard}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
 export function AdminDashboard({ data, hello }) {
   const loading = !data
+  const admin = data?.administration
   return (
     <>
-      <Hero
-        actions={<HeroButton icon="users" to="/admin/utilisateurs">Gérer les utilisateurs</HeroButton>}
-        eyebrow="Administration fonctionnelle"
-        text="Chaque fiche doit trouver son pilote et chaque validation son valideur."
-        title={hello}
-      />
+      <Entete text="Chaque personne doit pouvoir travailler, chaque fiche avoir son pilote." title={hello} />
       <KpiRow>
-        <KpiCard icon="users" label="Fiches sans pilote" loading={loading} to="/fiches" tone={alertTone(data?.fiches_sans_pilote)} value={data?.fiches_sans_pilote} />
-        <KpiCard icon="assignments" label="Affectations actives" loading={loading} to="/admin/affectations" tone="brand" value={data?.affectations_actives} />
+        <KpiCard hint={admin ? `${admin.connectes_30_jours} connectés ces 30 jours` : undefined} icon="users" label="Comptes actifs" loading={loading} to="/admin/utilisateurs" tone="brand" value={admin?.utilisateurs_actifs} />
+        <KpiCard hint="Ils ne peuvent rien faire" icon="assignments" label="Comptes sans rôle" loading={loading} to="/admin/utilisateurs" tone={alertTone(admin?.sans_role)} value={admin?.sans_role} />
+        <KpiCard hint="Dans les 30 jours" icon="clock" label="Rôles qui expirent" loading={loading} to="/admin/affectations" tone={Number(admin?.affectations_expirant ?? 0) > 0 ? 'warning' : 'calm'} value={admin?.affectations_expirant} />
+        <KpiCard icon="file" label="Fiches sans pilote" loading={loading} to="/fiches" tone={alertTone(data?.fiches_sans_pilote)} value={data?.fiches_sans_pilote} />
       </KpiRow>
-      <Panel title="À régulariser">
-        <TodoList data={data} emptyText="Toutes les fiches ont un pilote et un valideur disponible." types={['reattribution', 'pilote']} />
-      </Panel>
+      <div className="dash-grid">
+        <Panel className="dash-span-7" subtitle={`Utilisation de l’application : fiches déclarées par mois en ${data?.annee ?? ''}.`} title="Fiches déclarées">
+          <Courbe
+            data={data?.evolution ?? []}
+            series={[{ key: 'declarees', label: 'Déclarées', couleur: 'var(--dash-serie-1)' }]}
+            titre="Fiches déclarées par mois"
+          />
+        </Panel>
+        <Panel className="dash-span-5" title="À régulariser">
+          <TodoList data={data} emptyText="Toutes les fiches ont un pilote et un valideur disponible." types={['reattribution', 'pilote']} />
+        </Panel>
+      </div>
     </>
   )
 }
