@@ -2,7 +2,7 @@
 .dash-kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+  gap: 24px;
 }
 
 .dash-kpi {
@@ -56,6 +56,7 @@
 .dash-kpi--success,
 .dash-kpi--calm { --tone: var(--dash-tone-success); }
 .dash-kpi--alert { --tone: var(--brand-500); }
+.dash-kpi--warning { --tone: var(--dash-tone-warning); }
 
 .dash-kpi__icon {
   display: grid;

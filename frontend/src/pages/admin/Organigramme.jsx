@@ -11,8 +11,8 @@ const related = [
 
 const fields = [
   { name: 'type', label: 'Type', type: 'select', required: true, defaultValue: 'DEPARTEMENT', options: TYPES_ENTITE.map(([value, label]) => ({ value, label })) },
-  { name: 'code', label: 'Code', required: true, maxLength: 255 },
-  { name: 'libelle', label: 'Libellé', required: true, maxLength: 255 },
+  { name: 'libelle', label: 'Nom de l’entité', hint: 'Par exemple « Direction Production » ou « Département Fabrication ».', required: true, maxLength: 255 },
+  { name: 'code', label: 'Abréviation', hint: 'Forme courte, par exemple « DPROD ».', required: true, maxLength: 255 },
   {
     name: 'parent_id',
     label: 'Rattachée à',
@@ -40,7 +40,7 @@ const columns = [
     value: (entite) => typeLabel(entite.type),
     render: (entite) => <Badge>{typeLabel(entite.type)}</Badge>,
   },
-  { key: 'libelle', label: 'Libellé', width: '26%', render: (entite) => <span className="data-table__cell-text" title={entite.libelle}>{entite.libelle}</span> },
+  { key: 'libelle', label: 'Nom', width: '26%', render: (entite) => <span className="data-table__cell-text" title={entite.libelle}>{entite.libelle}</span> },
   { key: 'parent', label: 'Rattachée à', width: '22%', value: (entite) => entite.parent ?? '—', render: (entite) => <span className="data-table__cell-text" title={entite.parent ?? ''}>{entite.parent ?? '—'}</span> },
   { key: 'responsable', label: 'Responsable', width: '20%', render: (entite) => entite.responsable ?? <span className="admin-entity__never">Non désigné</span> },
   { key: 'membres_count', label: 'Personnes', width: '9%' },

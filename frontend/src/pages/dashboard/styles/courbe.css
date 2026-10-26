@@ -1,0 +1,85 @@
+/* Tableau de bord · Courbes mois par mois */
+.dash-courbe {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.dash-courbe__legende {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  color: var(--gray-700);
+  font-size: var(--text-sm);
+}
+
+.dash-courbe__legende span,
+.dash-courbe__bulle span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dash-courbe__legende i,
+.dash-courbe__bulle i {
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.dash-courbe__zone {
+  position: relative;
+}
+
+.dash-courbe svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.dash-courbe__grille {
+  stroke: var(--gray-100);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.dash-courbe__repere {
+  stroke: var(--gray-300, #d4d4d4);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.dash-courbe__axe {
+  fill: var(--text-muted);
+  font-size: 11px;
+}
+
+.dash-courbe__fin {
+  fill: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dash-courbe__point {
+  stroke: var(--white);
+  stroke-width: 2;
+}
+
+.dash-courbe__bulle {
+  position: absolute;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--ink);
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}

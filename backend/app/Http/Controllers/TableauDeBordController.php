@@ -9,6 +9,7 @@ use App\Models\Affectation;
 use App\Models\Controle;
 use App\Models\FicheA3;
 use App\Models\Gain;
+use App\Models\User;
 use App\Models\Validation;
 use App\Services\ActiveProfile;
 use App\Services\FicheVisibility;
@@ -20,10 +21,10 @@ use Illuminate\Support\Collection;
 
 /**
  * Indicateurs du tableau de bord, calculés par le serveur et limités à la visibilité
- * du profil actif : une fiche invisible n'entre dans aucun total. Seuls les chiffres
- * affichés sont calculés (pas de graphiques). Les indicateurs annuels (taux de clôture,
- * gains validés) portent sur l'année
- * choisie, l'année en cours par défaut, pour consolider les gains en fin d'année.
+ * du profil actif : une fiche invisible n'entre dans aucun total. Les indicateurs annuels
+ * (taux de clôture, gains validés, évolution mois par mois) portent sur l'année choisie,
+ * l'année en cours par défaut, pour consolider les gains en fin d'année. La Direction et
+ * l'administrateur fonctionnel reçoivent en plus leur courbe et leurs indicateurs propres.
  */
 class TableauDeBordController extends Controller
 {
@@ -68,8 +69,80 @@ class TableauDeBordController extends Controller
                 ? round((clone $creesCetteAnnee)->where('statut_etape', StatutEtape::Cloture->value)->count() / $total * 100, 1)
                 : null,
             'affectations_actives' => $profile->is('ADMIN_FONCTIONNEL') ? Affectation::where('actif', true)->count() : null,
+            'evolution' => $profile->is('DIRECTION', 'ADMIN_FONCTIONNEL') ? $this->evolution($visibles, $visibleIds, $annee) : null,
+            'unites' => $profile->is('DIRECTION') ? $this->parUnite($visibles) : null,
+            'administration' => $profile->is('ADMIN_FONCTIONNEL') ? $this->administration() : null,
             'a_traiter' => $this->aTraiter($validations, $profile, $visibles, $circuit),
         ]]);
+    }
+
+    /**
+     * Mois par mois sur l'année choisie : fiches déclarées, fiches clôturées et gains validés.
+     *
+     * @param  callable(): Builder<FicheA3>  $visibles
+     * @return array<int, array{mois: int, declarees: int, cloturees: int, gains_valides: int}>
+     */
+    private function evolution(callable $visibles, Builder $visibleIds, int $annee): array
+    {
+        $parMois = fn (Collection $dates): Collection => $dates->filter()->countBy(fn ($date) => (int) $date->month);
+        $declarees = $parMois($visibles()->whereYear('created_at', $annee)->pluck('created_at'));
+        $cloturees = $parMois($visibles()->where('statut_etape', StatutEtape::Cloture->value)->whereYear('date_cloture', $annee)->pluck('date_cloture'));
+        $gains = Gain::query()->whereIn('fiche_id', $visibleIds)->where('statut', 'VALIDE')->whereYear('date_validation', $annee)
+            ->get(['date_validation', 'montant_annuel'])
+            ->groupBy(fn (Gain $gain) => (int) $gain->date_validation->month)
+            ->map(fn (Collection $lignes) => (int) $lignes->sum('montant_annuel'));
+
+        // L'année en cours s'arrête au mois courant : pas de mois à venir affichés à zéro.
+        $dernier = $annee === (int) now()->year ? (int) now()->month : 12;
+
+        return collect(range(1, $dernier))->map(fn (int $mois) => [
+            'mois' => $mois,
+            'declarees' => $declarees->get($mois, 0),
+            'cloturees' => $cloturees->get($mois, 0),
+            'gains_valides' => $gains->get($mois, 0),
+        ])->all();
+    }
+
+    /**
+     * Où ça bloque : fiches ouvertes et en retard par unité, les unités les plus en retard d'abord.
+     *
+     * @param  callable(): Builder<FicheA3>  $visibles
+     * @return array<int, array{unite: string, ouvertes: int, en_retard: int}>
+     */
+    private function parUnite(callable $visibles): array
+    {
+        return $visibles()
+            ->with('unite:id,libelle')
+            ->whereNotIn('statut_etape', StatutEtape::valeursFinales())
+            ->get(['id', 'unite_id', 'date_cible'])
+            ->groupBy('unite_id')
+            ->map(fn (Collection $fiches) => [
+                'unite' => $fiches->first()->unite?->libelle ?? '—',
+                'ouvertes' => $fiches->count(),
+                'en_retard' => $fiches->filter(fn (FicheA3 $fiche) => $fiche->date_cible?->lt(today()))->count(),
+            ])
+            ->sortByDesc(fn (array $ligne) => [$ligne['en_retard'], $ligne['ouvertes']])
+            ->take(6)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Santé des comptes pour l'administrateur fonctionnel : qui peut travailler, qui est bloqué.
+     *
+     * @return array<string, int>
+     */
+    private function administration(): array
+    {
+        $actifs = User::query()->where('actif', true);
+
+        return [
+            'utilisateurs_actifs' => (clone $actifs)->count(),
+            'connectes_30_jours' => (clone $actifs)->where('derniere_connexion', '>=', now()->subDays(30))->count(),
+            'sans_role' => (clone $actifs)->whereDoesntHave('affectations', fn (Builder $q) => $q->where('actif', true))->count(),
+            'affectations_expirant' => Affectation::query()->where('actif', true)
+                ->whereNotNull('date_fin')->whereBetween('date_fin', [now(), now()->addDays(30)])->count(),
+        ];
     }
 
     /**

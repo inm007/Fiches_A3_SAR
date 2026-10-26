@@ -2,15 +2,15 @@ import AdminEntityPage from '../../components/admin/AdminEntityPage.jsx'
 import Badge from '../../components/ui/Badge.jsx'
 
 const fields = [
-  { name: 'code', label: 'Code', required: true, maxLength: 255 },
-  { name: 'libelle', label: 'Libellé', required: true, maxLength: 255 },
+  { name: 'libelle', label: 'Nom de l’unité', hint: 'Tel qu’il apparaîtra sur les fiches, par exemple « Distillation atmosphérique ».', required: true, maxLength: 255 },
+  { name: 'code', label: 'Abréviation', hint: 'Forme courte utilisée dans les listes et les exports, par exemple « DA ».', required: true, maxLength: 255 },
 ]
 
 const columns = [
-  { key: 'code', label: 'Code', width: '22%', titleValue: (unit) => unit.code },
+  { key: 'code', label: 'Abréviation', width: '22%', titleValue: (unit) => unit.code },
   {
     key: 'libelle',
-    label: 'Libellé',
+    label: 'Nom de l’unité',
     width: '48%',
     render: (unit) => <span className="data-table__cell-text" title={unit.libelle}>{unit.libelle}</span>,
   },

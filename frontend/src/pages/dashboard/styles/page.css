@@ -9,8 +9,59 @@
   --dash-tone-success: var(--success-highlight);
   --dash-tone-warning: var(--warning-solid);
   --dash-tone-neutral: var(--gray-500);
+  /* Séries des courbes : deux premières teintes de la palette catégorielle validée. */
+  --dash-serie-1: #2a78d6;
+  --dash-serie-2: #eb6834;
 
   display: grid;
-  gap: 18px;
+  gap: 24px;
   overflow-x: clip;
+}
+
+/* En-tête simple quand le bandeau n'a pas d'action à proposer. */
+.dash-entete h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-2xl, 28px);
+  font-weight: 700;
+}
+
+.dash-entete p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+}
+
+.dash-unites {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.dash-unites th,
+.dash-unites td {
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+}
+
+.dash-unites th:first-child,
+.dash-unites td:first-child {
+  text-align: left;
+}
+
+.dash-unites th {
+  color: var(--gray-700);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dash-unites tr:last-child td {
+  border-bottom: 0;
+}
+
+.dash-unites__retard {
+  color: var(--brand-700, #b0000c);
+  font-weight: 600;
 }
