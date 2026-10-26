@@ -46,6 +46,7 @@ export default function HistoriqueTab({ fiche, onError }) {
   return (
     <section className="fiche-tab">
       <h2>Historique</h2>
+      <p className="fiche-tab__help">Journal immuable : aucun utilisateur ne peut le modifier ou le supprimer.</p>
       {evenements === null && <Skeleton lines={4} />}
       {evenements?.length === 0 && <p className="fiche-tab__muted">Aucun événement.</p>}
       <ol className="sar-timeline">

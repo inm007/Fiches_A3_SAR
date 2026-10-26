@@ -1,0 +1,205 @@
+/* Barre du haut : verre dépoli, fil d'Ariane à gauche, recherche au centre, profil à droite. */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 68px;
+  align-items: center;
+  gap: 16px;
+  padding: 0 28px;
+  border-bottom: 1px solid rgb(26 26 31 / 6%);
+  background: rgb(255 255 255 / 78%);
+  backdrop-filter: saturate(160%) blur(16px);
+}
+
+/* Filet de couleur SAR sous la barre */
+.topbar::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--brand-500), rgb(227 0 15 / 0%) 40%);
+  content: '';
+  opacity: 0.55;
+}
+
+.topbar__breadcrumb {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar__breadcrumb .sar-breadcrumb__home {
+  border-color: var(--border);
+  background: var(--white);
+  box-shadow: 0 1px 2px rgb(26 26 31 / 5%);
+}
+
+.topbar__breadcrumb [aria-current] {
+  font-size: var(--text-xl);
+  letter-spacing: -0.01em;
+}
+
+/* Recherche */
+.topbar__search {
+  display: flex;
+  width: 360px;
+  min-width: 0;
+  flex: 0 1 360px;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0 8px 0 14px;
+  height: 42px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--gray-500);
+  background: var(--white);
+  box-shadow: 0 1px 2px rgb(26 26 31 / 4%);
+  font-size: var(--text-sm);
+  transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease, width var(--duration-fast) ease;
+}
+
+.topbar__search:hover {
+  border-color: var(--border-strong);
+}
+
+.topbar__search:focus-within {
+  border-color: var(--brand-500);
+  color: var(--brand-600);
+  box-shadow: var(--ring-focus);
+}
+
+.topbar__search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  color: var(--ink);
+  background: transparent;
+  font: inherit;
+}
+
+.topbar__search input::placeholder {
+  color: var(--text-muted);
+}
+
+.topbar__search kbd {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  background: var(--gray-50);
+  font-family: inherit;
+  font-size: var(--text-3xs);
+  font-weight: 600;
+  line-height: 18px;
+}
+
+/* Profil, cloche, déconnexion */
+.topbar__profile {
+  display: flex;
+  min-width: 0;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  color: var(--gray-700);
+}
+
+.topbar__profile > * {
+  flex-shrink: 0;
+}
+
+.topbar__divider {
+  width: 1px;
+  height: 28px;
+  margin: 0 4px;
+  background: var(--border);
+}
+
+.topbar__logout {
+  display: inline-flex;
+  height: 42px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--gray-700);
+  background: var(--white);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  transition: color var(--duration-fast) ease, background-color var(--duration-fast) ease, border-color var(--duration-fast) ease;
+}
+
+.topbar__logout svg {
+  width: 18px;
+  height: 18px;
+}
+
+.topbar__logout:hover {
+  border-color: var(--brand-100);
+  color: var(--brand-600);
+  background: var(--brand-50);
+}
+
+.topbar__logout:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+}
+
+.topbar__logout-label {
+  white-space: nowrap;
+}
+
+.topbar__error {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 16px;
+  color: var(--error);
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 1399px) {
+  .topbar__search {
+    width: 280px;
+    flex-basis: 280px;
+  }
+
+  .topbar__logout {
+    width: 42px;
+    padding: 0;
+  }
+
+  .topbar__logout-label {
+    display: none;
+  }
+}
+
+@media (max-width: 1199px) {
+  .topbar {
+    gap: 10px;
+    padding: 0 16px;
+  }
+
+  .topbar__search {
+    width: 220px;
+    flex-basis: 220px;
+  }
+
+  .topbar__search kbd,
+  .profile-switcher__label {
+    display: none;
+  }
+}

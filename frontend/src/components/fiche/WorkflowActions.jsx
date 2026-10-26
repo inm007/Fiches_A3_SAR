@@ -15,7 +15,7 @@ import './WorkflowActions.css'
  * Boutons selon l'étape et le profil actif (UX §8.2). Le serveur reste seul juge :
  * un refus revient en 422 (manques) ou 409 (fiche modifiée) et s'affiche dans le panneau.
  */
-function WorkflowActions({ fiche, options, onChange, onError, onExportPdf }) {
+function WorkflowActions({ fiche, options, onChange, onError }) {
   const [dialog, setDialog] = useState(null)
   const [motif, setMotif] = useState('')
   const [pilote, setPilote] = useState('')
@@ -65,11 +65,8 @@ function WorkflowActions({ fiche, options, onChange, onError, onExportPdf }) {
   // Un seul bouton principal : l'étape suivante, ou « Nouvelle boucle » quand l'objectif n'est pas atteint.
   const nouvelleBoucle = droits.transitions.includes('T11') && fiche.resultats?.objectif_atteint === 'NON'
   const principale = nouvelleBoucle ? 'T11' : droits.transitions.find((code) => TRANSITIONS[code].primary)
-  // L'étape suivante a déjà son bouton dans le panneau « Prochaine étape » : pas de doublon en haut.
-  const dansLePanneau = !nouvelleBoucle && principale === fiche.prochaine_etape?.code
   const secondaires = droits.transitions.filter((code) => code !== principale)
   const menu = [
-    ...(onExportPdf ? [{ key: 'pdf', label: 'Exporter en PDF A3', onClick: onExportPdf }] : []),
     ...secondaires.map((code) => ({ key: code, label: TRANSITIONS[code].label, danger: TRANSITIONS[code].danger || code === 'T12', onClick: () => startTransition(code) })),
     ...(droits.peut_designer_pilote && fiche.pilote ? [
       { key: 'pilote', label: 'Changer le pilote', onClick: () => setDialog({ type: 'pilote' }) },
@@ -89,7 +86,7 @@ function WorkflowActions({ fiche, options, onChange, onError, onExportPdf }) {
       {droits.peut_se_designer_pilote && (
         <Button disabled={busy} type="button" variant="primary" onClick={meDesigner}>Me désigner comme pilote</Button>
       )}
-      {principale && !dansLePanneau && (
+      {principale && (
         <Button disabled={busy} type="button" variant="primary" onClick={() => startTransition(principale)}>
           {TRANSITIONS[principale].label}
         </Button>

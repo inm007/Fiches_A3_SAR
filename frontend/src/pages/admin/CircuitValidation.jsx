@@ -54,7 +54,7 @@ function CircuitValidation() {
   return (
     <section className="parametres-fonctionnels-page">
       <PageBanner
-        description="Les directeurs qui valident le plan, selon les domaines cochés en section 7."
+        description="Choisissez les directeurs sollicités pour chaque domaine coché en section 7. Ils reçoivent le plan en même temps, et tous doivent l’approuver."
         title="Circuit de validation"
       />
       {error && <Alert severity="error">{error}</Alert>}

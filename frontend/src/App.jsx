@@ -8,12 +8,14 @@ import ErrorBoundary from './components/shared/ErrorBoundary.jsx'
 import PageLoader from './components/shared/PageLoader.jsx'
 import Login from './pages/auth/Login.jsx'
 import { Forbidden, Maintenance, NotFound, ServerError, SessionExpired } from './pages/system/ErrorPages.jsx'
+import { DECIDING_ROLES } from './utils/constants.js'
 
 // Chaque page est chargée à la demande (un fichier JS par page) ; la connexion reste dans le bundle principal.
-const AFaire = lazy(() => import('./pages/afaire/AFaire.jsx'))
+const Dashboard = lazy(() => import('./pages/dashboard/Dashboard.jsx'))
 const Fiches = lazy(() => import('./pages/fiches/Fiches.jsx'))
 const FicheNouvelle = lazy(() => import('./pages/fiches/FicheNouvelle.jsx'))
 const FicheDetail = lazy(() => import('./pages/fiches/FicheDetail.jsx'))
+const Validations = lazy(() => import('./pages/workflow/Validations.jsx'))
 const Notifications = lazy(() => import('./pages/workflow/Notifications.jsx'))
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword.jsx'))
 const ResetPassword = lazy(() => import('./pages/auth/ResetPassword.jsx'))
@@ -33,7 +35,7 @@ function DashboardRoute() {
   if (activeProfile?.redirect_to === '/technique') {
     return <Navigate replace to="/technique" />
   }
-  return <AFaire />
+  return <Dashboard />
 }
 
 function App() {
@@ -57,7 +59,9 @@ function App() {
                     <Route path="/fiches/nouvelle" element={<FicheNouvelle />} />
                   </Route>
                   <Route path="/fiches/:id" element={<FicheDetail />} />
-                  <Route path="/validations" element={<Navigate replace to="/tableau-de-bord" />} />
+                  <Route element={<RequireRole roleCodes={DECIDING_ROLES} />}>
+                    <Route path="/validations" element={<Validations />} />
+                  </Route>
                   <Route path="/notifications" element={<Notifications />} />
                   <Route element={<RequireRole roleCode="ADMIN_FONCTIONNEL" />}>
                     <Route path="/admin/utilisateurs" element={<Utilisateurs />} />
