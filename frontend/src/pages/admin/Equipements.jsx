@@ -18,12 +18,11 @@ const columns = [
     value: (equipment) => equipment.unite?.libelle ?? '—',
     render: (equipment) => <span className="data-table__cell-text data-table__unit-name" title={equipment.unite?.libelle ?? '—'}>{equipment.unite?.libelle ?? '—'}</span>,
   },
-  { key: 'code', label: 'Code', width: '17%', filterable: false, titleValue: (equipment) => equipment.code },
+  { key: 'code', label: 'Code', width: '17%', titleValue: (equipment) => equipment.code },
   {
     key: 'libelle',
     label: 'Libellé',
     width: '28%',
-    filterable: false,
     titleValue: (equipment) => equipment.libelle,
     render: (equipment) => <span className="data-table__cell-text" title={equipment.libelle}>{equipment.libelle}</span>,
   },
@@ -43,21 +42,12 @@ const columns = [
   },
 ]
 
-const exportColumns = [
-  { key: 'unite', label: 'Unité', value: (equipment) => equipment.unite?.libelle ?? '—' },
-  { key: 'code', label: 'Code' },
-  { key: 'libelle', label: 'Libellé' },
-  { key: 'reference_sap', label: 'Référence SAP' },
-  { key: 'actif', label: 'Actif', value: (equipment) => equipment.actif ? 'Oui' : 'Non' },
-]
-
 function Equipements() {
   return (
     <AdminEntityPage
       columns={columns}
-      description="Maintenez les équipements par unité et leur référence SAP."
+      description="Équipements par unité, avec leur référence SAP."
       endpoint="/admin/equipment"
-      exportColumns={exportColumns}
       fields={fields}
       related={related}
       title="Équipements"

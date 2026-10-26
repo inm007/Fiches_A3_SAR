@@ -68,3 +68,9 @@
   font-variant-numeric: tabular-nums;
   font-weight: var(--weight-medium);
 }
+
+.fiches-page__lock {
+  margin-right: 4px;
+  color: var(--text-muted);
+  vertical-align: -1px;
+}

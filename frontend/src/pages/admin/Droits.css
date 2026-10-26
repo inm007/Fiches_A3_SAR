@@ -3,58 +3,6 @@
   gap: var(--space-2);
 }
 
-/* Les cinq droits, expliqués une fois avant le tableau. */
-.droits-catalogue {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 12px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.droits-catalogue li {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px 16px;
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-card);
-  background: var(--white);
-  box-shadow: var(--shadow-card);
-}
-
-.droits-catalogue li > span:last-child {
-  display: grid;
-  gap: 4px;
-}
-
-.droits-catalogue strong {
-  color: var(--ink-strong);
-  font-size: var(--text-md);
-}
-
-.droits-catalogue li > span:last-child > span {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-  line-height: var(--leading-normal);
-}
-
-.droits-catalogue__icone {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-lg);
-  color: var(--brand-600);
-  background: var(--brand-50);
-}
-
-.droits-catalogue__icone .sar-icon {
-  stroke-width: 2;
-}
-
 /* Carte du tableau */
 .droits-carte {
   overflow: hidden;
@@ -179,16 +127,6 @@
 .droits-table__role span {
   color: var(--text-muted);
   font-size: var(--text-xs);
-}
-
-.droits-table__compteur {
-  flex: none;
-  padding: 2px 8px;
-  border-radius: var(--radius-pill);
-  color: var(--brand-700);
-  background: var(--brand-50);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
 }
 
 .droits-table td {

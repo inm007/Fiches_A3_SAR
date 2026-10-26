@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { apiRequest } from '../../auth/api.js'
 import { useListFilters } from '../../hooks/useListFilters.js'
 import Alert from '../ui/Alert.jsx'
@@ -7,11 +7,11 @@ import ConfirmDialog from '../ui/ConfirmDialog.jsx'
 import DataTable from '../ui/DataTable.jsx'
 import { Checkbox, Select, TextInput } from '../ui/FormControls.jsx'
 import Modal from '../ui/Modal.jsx'
-import { FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../shared/ListToolbar.jsx'
+import { ListToolbar, ResultCount, SearchField, ToolbarActions } from '../shared/ListToolbar.jsx'
 import PageBanner from '../shared/PageBanner.jsx'
 import RowActions from '../ui/RowActions.jsx'
 import ListPagination from '../ui/ListPagination.jsx'
-import { downloadExcel, matchesSearch, normalizeSearchText, paginate } from '../../utils/listTools.js'
+import { downloadExcel, matchesSearch, paginate } from '../../utils/listTools.js'
 import { toast } from '../../utils/toast.js'
 import './AdminEntityPage.css'
 
@@ -40,8 +40,8 @@ function emptyValues(fields, rows) {
 const byOrder = (rows) => [...rows].sort((a, b) => a.ordre - b.ordre)
 
 /**
- * Page d'administration d'un référentiel : recherche, filtres, export, ajout,
- * modification et désactivation.
+ * Page d'administration d'un référentiel : recherche, ajout, modification et désactivation,
+ * et export Excel quand la page fournit `exportColumns`.
  *
  * @param {string|null} props.endpoint Ressource REST ; null tant qu'elle n'est pas connue.
  * @param {boolean} [props.pending] La page attend encore de connaître sa ressource : la liste reste en chargement.
@@ -50,8 +50,7 @@ const byOrder = (rows) => [...rows].sort((a, b) => a.ordre - b.ordre)
  *   Mise en page autour de la liste (sous le bandeau), ex. une colonne de navigation.
  * @param {Partial<typeof DEFAULT_MESSAGES>} [props.messages] Libellés propres à la page.
  *
- * Une colonne peut fixer les choix de son filtre avec `filterOptions` ([valeur normalisée, libellé]) ;
- * sinon le filtre est proposé quand la colonne compte entre 2 et 12 valeurs distinctes.
+ * @param {object} [props.createWith] Ouvre d'emblée le formulaire d'ajout, prérempli avec ces valeurs.
  */
 function AdminEntityPage({
   title,
@@ -68,6 +67,7 @@ function AdminEntityPage({
   wrapContent = (content) => content,
   messages: customMessages,
   pending = false,
+  createWith,
 }) {
   const messages = { ...DEFAULT_MESSAGES, ...customMessages }
   const [rows, setRows] = useState([])
@@ -135,26 +135,9 @@ function AdminEntityPage({
         : column.value
           ? column.value(row, relatedData)
           : row[column.key])
-      return matchesSearch(values, filters.q) && columns.every((column) => (
-        !filters[column.key]
-        || normalizeSearchText(column.value ? column.value(row, relatedData) : row[column.key]) === filters[column.key]
-      ))
+      return matchesSearch(values, filters.q)
     })
   }, [columns, filters, relatedData, rows])
-
-  const filterOptions = useMemo(() => columns
-    .filter((column) => column.filterable !== false)
-    .map((column) => {
-      if (column.filterOptions) return { column, options: column.filterOptions }
-      const options = new Map()
-      rows.forEach((row) => {
-        const value = column.value ? column.value(row, relatedData) : row[column.key]
-        const normalized = normalizeSearchText(value)
-        if (normalized) options.set(normalized, String(value))
-      })
-      return { column, options: [...options.entries()].sort((a, b) => a[1].localeCompare(b[1], 'fr')) }
-    })
-    .filter(({ column, options }) => column.filterOptions || (options.length > 1 && options.length <= 12)), [columns, relatedData, rows])
   const visible = paginate(filteredRows, list.page, list.pageSize)
   const formDirty = fields.some((field) => field.type === 'checkbox'
     ? Boolean(values[field.name]) !== Boolean(initialValues[field.name])
@@ -173,6 +156,14 @@ function AdminEntityPage({
   function openCreate() {
     openForm(null, emptyValues(fields, rows))
   }
+
+  // Arrivée depuis un autre écran (ex. « Donner un rôle » sur un utilisateur) : formulaire prérempli, une seule fois.
+  const createWithDone = useRef(false)
+  useEffect(() => {
+    if (!createWith || createWithDone.current || loading) return
+    createWithDone.current = true
+    openForm(null, { ...emptyValues(fields, rows), ...createWith })
+  })
 
   function openEdit(row) {
     openForm(row, Object.fromEntries(fields.map((field) => {
@@ -268,20 +259,20 @@ function AdminEntityPage({
     setError('')
     try {
       const message = await action.run(row)
-      toast.success(message || 'Opération effectuée.')
+      if (message) toast.success(message)
     } catch (actionError) {
       toast.error(actionError.message)
     }
   }
 
   function renderExportButton() {
-    const columnsToExport = exportColumns ?? columns
+    if (!exportColumns) return null
     return (
       <Button
         disabled={pending || loading || filteredRows.length === 0}
         onClick={() => downloadExcel(
           exportName ?? `${title.toLocaleLowerCase('fr').replaceAll(/[^a-z0-9]+/g, '-')}.xlsx`,
-          columnsToExport.map((column) => ({
+          exportColumns.map((column) => ({
             label: column.label,
             value: (row) => column.value ? column.value(row, relatedData) : row[column.key],
           })),
@@ -374,16 +365,6 @@ function AdminEntityPage({
               value={filters.q}
               onChange={list.setFilter('q')}
             />
-            {filterOptions.map(({ column, options }) => (
-              <FilterSelect
-                allLabel="Tous"
-                key={column.key}
-                label={column.label}
-                options={options}
-                value={filters[column.key] ?? ''}
-                onChange={list.setFilter(column.key)}
-              />
-            ))}
             <ToolbarActions>
               <ResultCount count={filteredRows.length} />
               {list.active && (

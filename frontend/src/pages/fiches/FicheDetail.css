@@ -21,3 +21,8 @@
 .fiche-detail-page [role='tabpanel'] {
   min-width: 0;
 }
+
+.fiche-detail-page__group {
+  display: grid;
+  gap: 20px;
+}

@@ -9,16 +9,16 @@ import ListPagination from '../../components/ui/ListPagination.jsx'
 import { TextArea } from '../../components/ui/FormControls.jsx'
 import Badge from '../../components/ui/Badge.jsx'
 import DataTable from '../../components/ui/DataTable.jsx'
-import { FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../../components/shared/ListToolbar.jsx'
+import { ListToolbar, ResultCount, SearchField, ToolbarActions } from '../../components/shared/ListToolbar.jsx'
 import { refreshCounters } from '../../hooks/useCounters.js'
 import { useListFilters } from '../../hooks/useListFilters.js'
 import { describeError, ficheService } from '../../services/ficheService.js'
 import { toast } from '../../utils/toast.js'
-import { downloadExcel, matchesSearch, paginate } from '../../utils/listTools.js'
+import { matchesSearch, paginate } from '../../utils/listTools.js'
 import './Validations.css'
 
 const SEUIL_ANCIENNETE = 7
-const NO_FILTERS = { q: '', porte: '', anciennete: '' }
+const NO_FILTERS = { q: '' }
 
 /**
  * Demandes qui attendent le profil actif, les plus anciennes en premier (UX §9.1).
@@ -66,8 +66,6 @@ function Validations() {
       `porte ${demande.porte}`,
       demande.anciennete_jours,
     ], filters.q)
-    && (!filters.porte || String(demande.porte) === filters.porte)
-    && (!filters.anciennete || (filters.anciennete === 'ancienne' ? demande.anciennete_jours >= SEUIL_ANCIENNETE : demande.anciennete_jours < SEUIL_ANCIENNETE))
   ))
   const visible = paginate(filteredDemandes, list.page, list.pageSize)
 
@@ -86,19 +84,9 @@ function Validations() {
         <>
           <ListToolbar className="validations-page__toolbar">
             <SearchField placeholder="N°, titre, rôle…" value={filters.q} onChange={list.setFilter('q')} />
-            <FilterSelect label="Porte" options={[['0', 'Porte 0 (pertinence)'], ['1', 'Porte 1 (plan)'], ['2', 'Porte 2 (clôture)']]} value={filters.porte} onChange={list.setFilter('porte')} />
-            <FilterSelect label="Ancienneté" options={[['ancienne', `${SEUIL_ANCIENNETE} jours et plus`], ['recente', `Moins de ${SEUIL_ANCIENNETE} jours`]]} value={filters.anciennete} onChange={list.setFilter('anciennete')} />
             <ToolbarActions>
               <ResultCount count={filteredDemandes.length} singular="demande" />
               {list.active && <Button type="button" variant="secondary" onClick={list.reset}>Réinitialiser</Button>}
-              <Button disabled={!filteredDemandes.length} icon="download" type="button" variant="export" onClick={() => downloadExcel('validations-a-traiter.xlsx', [
-                { label: 'N° A3', value: (demande) => demande.fiche.numero_a3 },
-                { label: 'Titre', value: (demande) => demande.fiche.titre },
-                { label: 'Porte', value: (demande) => demande.porte },
-                { label: 'Rôle demandé', value: (demande) => demande.role },
-                { label: 'Demandée le', value: (demande) => demande.demandee_le },
-                { label: 'Ancienneté (jours)', value: (demande) => demande.anciennete_jours },
-              ], filteredDemandes)}>Exporter Excel</Button>
             </ToolbarActions>
           </ListToolbar>
           <DataTable

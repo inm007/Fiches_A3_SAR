@@ -3,6 +3,7 @@ import { useAuth } from '../../auth/useAuth.js'
 import { useCounters } from '../../hooks/useCounters.js'
 import Icon from '../ui/Icon.jsx'
 import sarLogo from '../../assets/logo.jpg'
+import { ADMIN_SECTIONS, sectionOf } from '../admin/adminSections.js'
 import { BUSINESS_ROLES, DECIDING_ROLES } from '../../utils/constants.js'
 import './Sidebar.css'
 
@@ -18,17 +19,6 @@ const menuLinks = [
   { label: 'Notifications', to: '/notifications', icon: 'bell', roles: sharedRoles },
 ]
 
-const adminLinks = [
-  { label: 'Utilisateurs', to: '/admin/utilisateurs', icon: 'users' },
-  { label: 'Affectations', to: '/admin/affectations', icon: 'assignments' },
-  { label: 'Droits des rôles', to: '/admin/droits', icon: 'lock' },
-  { label: 'Organigramme', to: '/admin/organigramme', icon: 'org' },
-  { label: 'Circuit de validation', to: '/admin/circuit', icon: 'circuit' },
-  { label: 'Unités', to: '/admin/unites', icon: 'unit' },
-  { label: 'Équipements', to: '/admin/equipements', icon: 'equipment' },
-  { label: 'Listes de choix', to: '/admin/listes', icon: 'lists' },
-  { label: 'Paramètres fonctionnels', to: '/admin/parametres-fonctionnels', icon: 'settings' },
-]
 
 function SidebarLink({ label, to, icon, count = 0, active }) {
   return (
@@ -76,8 +66,8 @@ function Sidebar() {
           <>
             <div className="sidebar__section-label">Administration</div>
             <nav aria-label="Administration" className="sidebar__nav">
-              {adminLinks.map(({ label, to, icon }) => (
-                <SidebarLink icon={icon} key={to} label={label} to={to} />
+              {ADMIN_SECTIONS.map((section) => (
+                <SidebarLink active={sectionOf(pathname) === section} icon={section.icon} key={section.label} label={section.label} to={section.pages[0].to} />
               ))}
             </nav>
           </>

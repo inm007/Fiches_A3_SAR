@@ -14,31 +14,22 @@ const fields = [
 ]
 
 const columns = [
-  { key: 'code', label: 'Code', width: '22%', filterable: false, titleValue: (item) => item.code },
+  { key: 'code', label: 'Code', width: '22%', titleValue: (item) => item.code },
   {
     key: 'libelle',
     label: 'Libellé',
     width: '36%',
-    filterable: false,
     titleValue: (item) => item.libelle,
     render: (item) => <span className="data-table__cell-text" title={item.libelle}>{item.libelle}</span>,
   },
-  { key: 'ordre', label: 'Ordre', width: '12%', filterable: false },
+  { key: 'ordre', label: 'Ordre', width: '12%' },
   {
     key: 'actif',
     label: 'État',
     width: '14%',
     value: (item) => item.actif ? 'Actif' : 'Inactif',
-    filterOptions: [['actif', 'Actifs'], ['inactif', 'Inactifs']],
     render: (item) => <Badge tone={item.actif ? 'active' : 'inactive'}>{item.actif ? 'Actif' : 'Inactif'}</Badge>,
   },
-]
-
-const exportColumns = [
-  { key: 'code', label: 'Code' },
-  { key: 'libelle', label: 'Libellé' },
-  { key: 'ordre', label: 'Ordre' },
-  { key: 'actif', label: 'Actif', value: (item) => item.actif ? 'Oui' : 'Non' },
 ]
 
 const messages = {
@@ -85,9 +76,8 @@ function Listes() {
   return (
     <AdminEntityPage
       columns={columns}
-      description="Gérez les valeurs de référence utilisées dans les fiches. Les valeurs historiques sont conservées."
+      description="Valeurs proposées dans les fiches. Une valeur déjà utilisée se désactive."
       endpoint={endpoint}
-      exportColumns={exportColumns}
       exportName={`valeurs-${selected?.code ?? 'referentiel'}.xlsx`}
       fields={fields}
       // Changer de référentiel repart d'une liste vierge (recherche, filtres, page).

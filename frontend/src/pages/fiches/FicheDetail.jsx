@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import Alert from '../../components/ui/Alert.jsx'
+import AttenduDeVousPanel from '../../components/fiche/AttenduDeVousPanel.jsx'
 import FicheHeader from '../../components/fiche/FicheHeader.jsx'
 import ErrorPage from '../../components/shared/ErrorPage.jsx'
 import Tabs from '../../components/ui/Tabs.jsx'
@@ -16,20 +17,20 @@ import ControlesTab from '../../components/fiche/tabs/ControlesTab.jsx'
 import HistoriqueTab from '../../components/fiche/tabs/HistoriqueTab.jsx'
 import PiecesJointesTab from '../../components/fiche/tabs/PiecesJointesTab.jsx'
 import ValidationsTab from '../../components/fiche/tabs/ValidationsTab.jsx'
-import Button from '../../components/ui/Button.jsx'
-import Icon from '../../components/ui/Icon.jsx'
 import { ficheService } from '../../services/ficheService.js'
 import { setCrumb } from '../../utils/crumb.js'
 import PageLoader from '../../components/shared/PageLoader.jsx'
 import './FicheDetail.css'
 
-const tabComponents = {
-  actions: ActionsTab,
-  controles: ControlesTab,
-  validations: ValidationsTab,
-  pieces: PiecesJointesTab,
-  commentaires: CommentairesTab,
-  historique: HistoriqueTab,
+// Quatre onglets : les contrôles suivent les actions, les échanges regroupent commentaires,
+// pièces jointes et historique. Les emplacements envoyés par le serveur gardent leurs anciennes clés.
+const ONGLET_DE = { controles: 'actions', pieces: 'echanges', commentaires: 'echanges', historique: 'echanges' }
+const ongletDe = (key) => ONGLET_DE[key] ?? key
+
+function ongletContenu(tab, fiche) {
+  if (tab === 'actions') return [ActionsTab, ControlesTab]
+  if (tab === 'validations') return [ValidationsTab]
+  return [CommentairesTab, PiecesJointesTab, ...(fiche.droits.peut_voir_historique ? [HistoriqueTab] : [])]
 }
 
 function FicheDetail() {
@@ -109,14 +110,14 @@ function FicheDetail() {
       setTab('fiche')
       setSection(location.section)
     } else {
-      setTab(location.tab)
+      setTab(ongletDe(location.tab))
     }
   }
 
   useEffect(() => {
     if (!pendingLocation) return undefined
     if (pendingLocation.type === 'section' && tab !== 'fiche') return undefined
-    if (pendingLocation.type === 'tab' && tab !== pendingLocation.tab) return undefined
+    if (pendingLocation.type === 'tab' && tab !== ongletDe(pendingLocation.tab)) return undefined
 
     const frame = window.requestAnimationFrame(() => {
       let target
@@ -152,23 +153,24 @@ function FicheDetail() {
   const actionnables = fiche.validations.filter((validation) => validation.actionnable).length
   const tabs = [
     { key: 'fiche', label: 'Fiche' },
-    { key: 'actions', label: 'Actions', count: fiche.actions.filter((action) => action.en_retard).length },
-    { key: 'controles', label: 'Contrôles', count: fiche.actions.flatMap((action) => action.controles).filter((controle) => controle.disponible).length },
+    {
+      key: 'actions',
+      label: 'Actions et contrôles',
+      count: fiche.actions.filter((action) => action.en_retard).length
+        + fiche.actions.flatMap((action) => action.controles).filter((controle) => controle.disponible).length,
+    },
     { key: 'validations', label: 'Validations', count: actionnables + (fiche.droits.peut_decider_gains ? 1 : 0) },
-    { key: 'pieces', label: 'Pièces jointes' },
-    { key: 'commentaires', label: 'Commentaires' },
-    ...(fiche.droits.peut_voir_historique ? [{ key: 'historique', label: 'Historique' }] : []),
+    { key: 'echanges', label: 'Échanges' },
   ]
-  const TabComponent = tabComponents[tab]
 
   return (
     <div className="fiche-detail-page">
       <FicheHeader fiche={fiche}>
-        <Button type="button" variant="secondary" onClick={() => exportPdf()}><Icon name="pdf" />Exporter en PDF A3</Button>
-        <WorkflowActions fiche={fiche} options={options} onChange={onChange} onError={onError} />
+        <WorkflowActions fiche={fiche} options={options} onChange={onChange} onError={onError} onExportPdf={() => exportPdf()} />
       </FicheHeader>
       <MissingConditionsPanel error={panel} onClose={() => setPanel(null)} onNavigate={navigateToLocation} onReload={reload} />
       {!panel && <NextStepPanel fiche={fiche} onChange={onChange} onError={onError} onNavigate={navigateToLocation} />}
+      {!panel && <AttenduDeVousPanel fiche={fiche} onNavigate={navigateToLocation} />}
       <Tabs active={tab} idPrefix="fiche-tab" label="Rubriques de la fiche" tabs={tabs} onChange={goToTab} />
       <div aria-labelledby={`fiche-tab-${tab}`} id={`fiche-tab-panel-${tab}`} role="tabpanel">
         {tab === 'fiche' ? (
@@ -190,7 +192,11 @@ function FicheDetail() {
             />
           </div>
         ) : (
-          <TabComponent fiche={fiche} options={options} refs={refs} onChange={onChange} onError={onError} />
+          <div className="fiche-detail-page__group">
+            {ongletContenu(tab, fiche).map((TabComponent, index) => (
+              <TabComponent fiche={fiche} key={index} options={options} refs={refs} onChange={onChange} onError={onError} />
+            ))}
+          </div>
         )}
       </div>
       <FichePrintView copie={copie} fiche={copie?.contenu ?? fiche} refs={refs} />
