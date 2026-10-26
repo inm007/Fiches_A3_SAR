@@ -35,6 +35,21 @@
   color: var(--error);
 }
 
+/* À côté des commentaires, la colonne est étroite : formulaire sur une colonne, liste qui défile. */
+.fiche-detail-page__group--echanges .pieces-jointes__upload {
+  grid-template-columns: 1fr;
+}
+
+.fiche-detail-page__group--echanges .pieces-jointes__list {
+  max-height: 360px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.fiche-detail-page__group--echanges .pieces-jointes__item:last-child {
+  border-bottom: 0;
+}
+
 @media (max-width: 900px) {
   .pieces-jointes__upload {
     grid-template-columns: 1fr;

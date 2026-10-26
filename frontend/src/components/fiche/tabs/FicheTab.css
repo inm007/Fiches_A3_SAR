@@ -151,3 +151,21 @@
 .fiche-tab__resume dd {
   margin: 0;
 }
+
+/* Commentaires en fil : les messages défilent dans leur cadre, la saisie reste en bas. */
+.fiche-tab__fil {
+  max-height: 420px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.fiche-tab__fil .fiche-tab__comment:last-child {
+  border-bottom: 0;
+}
+
+.fiche-tab__composer {
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}

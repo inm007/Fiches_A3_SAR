@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Button from '../../ui/Button.jsx'
 import Badge from '../../ui/Badge.jsx'
 import { Select, TextArea } from '../../ui/FormControls.jsx'
@@ -23,6 +23,13 @@ export default function CommentairesTab({ fiche, onError }) {
   const [sujet, setSujet] = useState('FICHE')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const filRef = useRef(null)
+
+  // Le fil s'ouvre sur le dernier message, comme une messagerie.
+  useEffect(() => {
+    const fil = filRef.current
+    if (fil) fil.scrollTop = fil.scrollHeight
+  }, [commentaires, loading])
 
   useEffect(() => {
     let active = true
@@ -49,26 +56,28 @@ export default function CommentairesTab({ fiche, onError }) {
   }
 
   return (
-    <section className="fiche-tab">
-      <h2>Commentaires</h2>
-      {loading && <Skeleton lines={3} />}
-      {!loading && commentaires.length === 0 && <p className="fiche-tab__muted">Aucun commentaire.</p>}
-      {commentaires.map((commentaire) => (
-        <article className="fiche-tab__comment" key={commentaire.id}>
-          <span className="sar-avatar">{commentaire.auteur.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</span>
-          <div>
-            <strong>{commentaire.auteur}</strong> <span className="fiche-tab__muted">· {formatDateTime(commentaire.created_at)}</span>
-            {commentaire.cible && <> <Badge tone="neutral">{commentaire.cible}</Badge></>}
-            <div>{commentaire.texte}</div>
-          </div>
-        </article>
-      ))}
+    <section className="fiche-tab fiche-tab--fil">
+      <h2>Commentaires{commentaires.length > 0 && <span className="fiche-tab__muted"> · {commentaires.length}</span>}</h2>
+      <div className="fiche-tab__fil" ref={filRef} tabIndex={-1}>
+        {loading && <Skeleton lines={3} />}
+        {!loading && commentaires.length === 0 && <p className="fiche-tab__muted">Aucun commentaire pour l’instant.</p>}
+        {commentaires.map((commentaire) => (
+          <article className="fiche-tab__comment" key={commentaire.id}>
+            <span className="sar-avatar">{commentaire.auteur.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</span>
+            <div>
+              <strong>{commentaire.auteur}</strong> <span className="fiche-tab__muted">· {formatDateTime(commentaire.created_at)}</span>
+              {commentaire.cible && <> <Badge tone="neutral">{commentaire.cible}</Badge></>}
+              <div>{commentaire.texte}</div>
+            </div>
+          </article>
+        ))}
+      </div>
       {fiche.droits.peut_commenter && (
-        <>
+        <div className="fiche-tab__composer">
           <Select label="À propos de" options={sujets(fiche)} value={sujet} onChange={setSujet} />
           <TextArea label="Nouveau commentaire" rows={2} value={texte} onChange={setTexte} />
           <div><Button disabled={sending || !texte.trim()} type="button" onClick={send}>{sending ? 'Envoi…' : 'Commenter'}</Button></div>
-        </>
+        </div>
       )}
     </section>
   )
