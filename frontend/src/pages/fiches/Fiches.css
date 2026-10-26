@@ -53,13 +53,6 @@
   opacity: 1;
 }
 
-.fiches-page__pilote {
-  display: inline-flex;
-  max-width: 100%;
-  align-items: center;
-  gap: var(--space-1);
-}
-
 .fiches-page__late {
   display: inline-flex;
   align-items: center;
@@ -67,4 +60,10 @@
   color: var(--error);
   font-variant-numeric: tabular-nums;
   font-weight: var(--weight-medium);
+}
+
+.fiches-page__lock {
+  margin-right: 6px;
+  color: var(--brand-700);
+  vertical-align: -1px;
 }

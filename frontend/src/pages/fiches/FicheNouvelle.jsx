@@ -4,19 +4,11 @@ import { useAuth } from '../../auth/useAuth.js'
 import EtapeBadge from '../../components/fiche/EtapeBadge.jsx'
 import Alert from '../../components/ui/Alert.jsx'
 import Button from '../../components/ui/Button.jsx'
-import Icon from '../../components/ui/Icon.jsx'
 import PageBanner from '../../components/shared/PageBanner.jsx'
 import { Checkbox, Select, TextArea, TextInput } from '../../components/ui/FormControls.jsx'
 import { listOptions } from '../../components/fiche/sections/options.js'
 import { ficheService } from '../../services/ficheService.js'
 import './FicheNouvelle.css'
-
-const NEXT_STEPS = [
-  { title: 'Désignation du pilote', text: 'Le pilote de l’unité se désigne lui-même, sinon l’administrateur, prévenu, désigne un pilote de l’unité.' },
-  { title: 'Pertinence (porte 0)', text: 'Le pilote remplit les sections 1 à 4 et les soumet au chef de département qu’il a choisi.' },
-  { title: 'Analyse et plan d’actions', text: 'Le pilote et son équipe complètent l’analyse, puis les directeurs concernés valident le plan.' },
-  { title: 'Validation et suivi', text: 'Vous êtes notifié à chaque étape franchie.' },
-]
 
 const initial = { titre: '', unite_id: '', origine_id: '', origine_precision: '', enonce_probleme: '', equipement_id: '', restreint: false, piloter: true }
 
@@ -84,8 +76,7 @@ function FicheNouvelle() {
 
   return (
     <section className="fiche-nouvelle-page">
-      <PageBanner title="Déclarer une fiche" />
-      <div className="fiche-nouvelle-page__layout">
+      <PageBanner description="Le pilote de l’unité complétera ensuite la fiche. Vous serez prévenu à chaque étape." title="Déclarer une fiche" />
       <form className="fiche-nouvelle-page__card" noValidate ref={formRef} onSubmit={submit}>
         {message && <Alert severity="error">{message}</Alert>}
         <TextInput error={fieldError('titre')} label="Titre" required value={form.titre} wide onChange={set('titre')} />
@@ -94,7 +85,7 @@ function FicheNouvelle() {
           <Select disabled={!refs} error={fieldError('origine_id')} label="Origine" options={listOptions(refs, 'origine', 'id')} required value={form.origine_id} onChange={set('origine_id')} />
         </div>
         {origineAutre && <TextInput error={fieldError('origine_precision')} label="Précision de l’origine" required value={form.origine_precision} onChange={set('origine_precision')} />}
-        <TextArea error={fieldError('enonce_probleme')} hint="Faits, lieu, période, fréquence." label="Énoncé du problème" required rows={5} value={form.enonce_probleme} onChange={set('enonce_probleme')} />
+        <TextArea error={fieldError('enonce_probleme')} hint="Ce qui se passe, sans supposer la cause : où, quand, combien de fois." label="Énoncé du problème" required rows={5} value={form.enonce_probleme} onChange={set('enonce_probleme')} />
         <Select
           error={fieldError('equipement_id')}
           hint={form.unite_id ? 'Recommandé quand il est identifié.' : 'Choisissez d’abord l’unité.'}
@@ -125,24 +116,6 @@ function FicheNouvelle() {
         <Checkbox checked={form.restreint} label="Confidentialité Restreint (Normal par défaut)" onChange={set('restreint')} />
         <div className="fiche-nouvelle-page__submit"><Button icon="plus" loading={saving} loadingLabel="Déclaration…" type="submit">Déclarer la fiche</Button></div>
       </form>
-      <aside className="fiche-nouvelle-page__aside">
-        <section className="fiche-nouvelle-page__help">
-          <h2>Et ensuite ?</h2>
-          <p>Déclaration en une étape : le pilote désigné complète ensuite les 12 sections.</p>
-          <ol className="fiche-nouvelle-page__steps">
-            {NEXT_STEPS.map((step) => <li key={step.title}><strong>{step.title}</strong><span>{step.text}</span></li>)}
-          </ol>
-        </section>
-        <section className="fiche-nouvelle-page__tips">
-          <h2><Icon name="info" size={16} />Un bon énoncé</h2>
-          <ul>
-            <li>Ce qui se passe, sans supposer la cause.</li>
-            <li>Où et quand : unité, équipement, période.</li>
-            <li>Combien : fréquence, durée, quantité.</li>
-          </ul>
-        </section>
-      </aside>
-      </div>
     </section>
   )
 }
