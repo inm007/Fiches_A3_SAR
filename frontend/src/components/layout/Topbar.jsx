@@ -13,6 +13,7 @@ const routeNames = {
   '/fiches/nouvelle': 'Nouvelle fiche',
   '/validations': 'Validations à traiter',
   '/notifications': 'Notifications',
+  '/lecons': 'Leçons et standards',
   '/admin/utilisateurs': 'Utilisateurs',
   '/admin/affectations': 'Affectations',
   '/admin/organigramme': 'Organigramme',

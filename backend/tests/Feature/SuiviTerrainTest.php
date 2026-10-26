@@ -9,7 +9,9 @@ use App\Models\Equipement;
 use App\Models\EvenementHistorique;
 use App\Models\FicheA3;
 use App\Models\Gain;
+use App\Models\Lecon;
 use App\Models\NotificationInterne;
+use App\Models\Perennisation;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -335,6 +337,28 @@ class SuiviTerrainTest extends TestCase
         }
 
         $this->assertNull($this->agir('AGENT')->getJson('/api/tableau-de-bord')->assertOk()->json('data.pilotage'));
+    }
+
+    public function test_lessons_and_standards_of_every_fiche_are_gathered_in_one_place(): void
+    {
+        $pompe = $this->declarer();
+        $four = $this->declarer();
+        Lecon::create(['fiche_id' => $pompe->id, 'rubrique' => 'A_FONCTIONNE', 'texte' => 'Graisser la garniture chaque semaine']);
+        Lecon::create(['fiche_id' => $four->id, 'rubrique' => 'RETOUR_EXPERIENCE', 'texte' => 'Prévenir la salle avant l’arrêt du four']);
+        Perennisation::create(['fiche_id' => $pompe->id, 'type' => 'SOP', 'statut' => 'REALISE', 'preuve' => 'SOP-12']);
+        Perennisation::create(['fiche_id' => $four->id, 'type' => 'SOP', 'statut' => 'A_FAIRE', 'preuve' => 'SOP-99']);
+
+        $toutes = $this->agir('DIRECTION')->getJson('/api/capitalisation')->assertOk();
+        $this->assertSame(2, $toutes->json('meta.total'));
+        $this->assertSame($pompe->numero_a3, collect($toutes->json('data'))->firstWhere('rubrique', 'A_FONCTIONNE')['fiche']['numero_a3']);
+
+        $recherche = $this->agir('DIRECTION')->getJson('/api/capitalisation?q=garniture')->assertOk();
+        $this->assertSame(['Graisser la garniture chaque semaine'], collect($recherche->json('data'))->pluck('texte')->all());
+        $this->assertSame(1, $this->agir('DIRECTION')->getJson('/api/capitalisation?rubrique=RETOUR_EXPERIENCE')->json('meta.total'));
+
+        // Un standard n'est capitalisé qu'une fois réalisé.
+        $standards = $this->agir('DIRECTION')->getJson('/api/capitalisation?vue=standards')->assertOk();
+        $this->assertSame(['SOP-12'], collect($standards->json('data'))->pluck('texte')->all());
     }
 
     public function test_register_finds_fiches_by_equipment(): void

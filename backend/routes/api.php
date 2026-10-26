@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\TechniqueController;
 use App\Http\Controllers\Admin\UniteController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CapitalisationController;
 use App\Http\Controllers\CommentaireController;
 use App\Http\Controllers\FicheController;
 use App\Http\Controllers\NotificationController;
@@ -91,6 +92,7 @@ Route::prefix('technique')
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/referentiels', [ReferentielController::class, 'index']);
     Route::get('/tableau-de-bord', [TableauDeBordController::class, 'index']);
+    Route::get('/capitalisation', [CapitalisationController::class, 'index']);
 
     Route::get('/fiches', [FicheController::class, 'index']);
     Route::post('/fiches', [FicheController::class, 'store']);
