@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import Alert from '../../components/ui/Alert.jsx'
+import AttenduDeVousPanel from '../../components/fiche/AttenduDeVousPanel.jsx'
 import FicheHeader from '../../components/fiche/FicheHeader.jsx'
 import ErrorPage from '../../components/shared/ErrorPage.jsx'
 import Tabs from '../../components/ui/Tabs.jsx'
@@ -169,6 +170,7 @@ function FicheDetail() {
       </FicheHeader>
       <MissingConditionsPanel error={panel} onClose={() => setPanel(null)} onNavigate={navigateToLocation} onReload={reload} />
       {!panel && <NextStepPanel fiche={fiche} onChange={onChange} onError={onError} onNavigate={navigateToLocation} />}
+      {!panel && <AttenduDeVousPanel fiche={fiche} onNavigate={navigateToLocation} />}
       <Tabs active={tab} idPrefix="fiche-tab" label="Rubriques de la fiche" tabs={tabs} onChange={goToTab} />
       <div aria-labelledby={`fiche-tab-${tab}`} id={`fiche-tab-panel-${tab}`} role="tabpanel">
         {tab === 'fiche' ? (

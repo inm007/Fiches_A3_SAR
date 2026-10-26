@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom'
 import AdminEntityPage from '../../components/admin/AdminEntityPage.jsx'
 import Badge from '../../components/ui/Badge.jsx'
 import { formatDate } from '../../utils/format.js'
@@ -52,7 +53,6 @@ const columns = [
     key: 'date_fin',
     label: 'Fin',
     width: '13%',
-    filterable: false,
     value: (assignment) => assignment.date_fin ? formatDate(assignment.date_fin) : '—',
     render: (assignment) => formatDate(assignment.date_fin),
   },
@@ -75,14 +75,17 @@ const exportColumns = [
 ]
 
 function Affectations() {
+  const userId = useSearchParams()[0].get('user_id')
   return (
     <AdminEntityPage
+      createWith={userId ? { user_id: userId } : undefined}
       columns={columns}
-      description="Gérez les rôles et périmètres des comptes. Un utilisateur peut cumuler plusieurs affectations."
+      description="Un rôle par ligne, sur une unité ou global. Une personne peut en cumuler plusieurs."
       endpoint="/admin/assignments"
       exportColumns={exportColumns}
       fields={fields}
       related={related}
+      messages={{ add: 'Donner un rôle', createTitle: () => 'Donner un rôle', created: 'Rôle donné.' }}
       title="Affectations"
     />
   )

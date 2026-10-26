@@ -7,12 +7,11 @@ const fields = [
 ]
 
 const columns = [
-  { key: 'code', label: 'Code', width: '22%', filterable: false, titleValue: (unit) => unit.code },
+  { key: 'code', label: 'Code', width: '22%', titleValue: (unit) => unit.code },
   {
     key: 'libelle',
     label: 'Libellé',
     width: '48%',
-    filterable: false,
     render: (unit) => <span className="data-table__cell-text" title={unit.libelle}>{unit.libelle}</span>,
   },
   {
@@ -24,21 +23,14 @@ const columns = [
   },
 ]
 
-const exportColumns = [
-  { key: 'code', label: 'Code' },
-  { key: 'libelle', label: 'Libellé' },
-  { key: 'actif', label: 'Actif', value: (unit) => unit.actif ? 'Oui' : 'Non' },
-]
-
 function Unites() {
   return (
     <AdminEntityPage
       columns={columns}
-      description="Gérez le référentiel des unités. Les unités utilisées dans l’historique sont désactivées, jamais supprimées."
+      description="Une unité déjà utilisée se désactive, elle n’est jamais supprimée."
       endpoint="/admin/units"
       fields={fields}
       title="Unités"
-      exportColumns={exportColumns}
     />
   )
 }

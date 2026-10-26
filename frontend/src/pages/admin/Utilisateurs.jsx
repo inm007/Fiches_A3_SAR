@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { apiRequest } from '../../auth/api.js'
 import AdminEntityPage from '../../components/admin/AdminEntityPage.jsx'
 import Badge from '../../components/ui/Badge.jsx'
@@ -36,6 +37,11 @@ function formatFrenchDateTime(value) {
   }).format(date).replace(',', '')
 }
 
+// Rôles en cours de la personne, avec leur unité : l'admin voit qui fait quoi sans changer d'écran.
+const rolesActifs = (user) => (user.affectations ?? [])
+  .filter((affectation) => affectation.actif)
+  .map((affectation) => (affectation.unite ? `${affectation.role?.libelle} (${affectation.unite.libelle})` : affectation.role?.libelle))
+
 function userInitials(user) {
   return `${user.prenom?.trim().charAt(0) ?? ''}${user.nom?.trim().charAt(0) ?? ''}`.toLocaleUpperCase('fr') || '?'
 }
@@ -44,7 +50,7 @@ const columns = [
   {
     key: 'name',
     label: 'Utilisateur',
-    width: '26%',
+    width: '22%',
     searchValue: (user) => `${user.prenom} ${user.nom} ${user.identifiant}`,
     render: (user) => (
       <div className="admin-entity__user">
@@ -58,35 +64,39 @@ const columns = [
       </div>
     ),
   },
-  { key: 'email', label: 'Courriel', width: '20%', className: 'data-table__secondary-column', filterable: false, titleValue: (user) => user.email },
+  { key: 'email', label: 'Courriel', width: '18%', className: 'data-table__secondary-column', titleValue: (user) => user.email },
   {
     key: 'entite',
     label: 'Entité',
-    width: '15%',
+    width: '14%',
     value: (user) => user.entite ?? 'Non rattaché',
     render: (user) => user.entite
       ? <span className="data-table__cell-text" title={user.entite}>{user.entite}</span>
       : <span className="admin-entity__never">Non rattaché</span>,
   },
   {
-    key: 'auth_source',
-    label: 'Source',
-    width: '10%',
-    className: 'data-table__secondary-column',
-    value: (user) => user.auth_source === 'ldap' ? 'Annuaire' : 'Locale',
-    render: (user) => <Badge>{user.auth_source === 'ldap' ? 'Annuaire' : 'Locale'}</Badge>,
+    key: 'roles',
+    label: 'Rôles',
+    width: '22%',
+    value: (user) => rolesActifs(user).join(', '),
+    render: (user) => {
+      const roles = rolesActifs(user)
+      return roles.length
+        ? <span className="data-table__cell-text" title={roles.join('\n')}>{roles.join(', ')}</span>
+        : <span className="admin-entity__never">Aucun rôle</span>
+    },
   },
   {
     key: 'actif',
     label: 'État',
-    width: '10%',
+    width: '9%',
     value: (user) => user.actif ? 'Actif' : 'Inactif',
     render: (user) => <Badge tone={user.actif ? 'active' : 'inactive'}>{user.actif ? 'Actif' : 'Inactif'}</Badge>,
   },
   {
     key: 'derniere_connexion',
     label: 'Dernière connexion',
-    width: '19%',
+    width: '15%',
     className: 'data-table__date-column',
     value: (user) => formatFrenchDateTime(user.derniere_connexion),
     render: (user) => user.derniere_connexion
@@ -105,7 +115,7 @@ const exportColumns = [
   { key: 'derniere_connexion', label: 'Dernière connexion', value: (user) => user.derniere_connexion ? new Date(user.derniere_connexion).toLocaleString('fr-FR') : 'Jamais' },
 ]
 
-const extraActions = [{
+const lienMotDePasse = {
   label: 'Envoyer le lien',
   icon: 'mail',
   disabled: (user) => user.auth_source !== 'local' || !user.actif,
@@ -113,20 +123,25 @@ const extraActions = [{
     await apiRequest(`/admin/users/${user.id}/password-link`, { method: 'POST' })
     return 'Lien de définition du mot de passe envoyé.'
   },
-}]
+}
 
 function Utilisateurs() {
+  const navigate = useNavigate()
+  const extraActions = [
+    { label: 'Donner un rôle', icon: 'assignments', disabled: (user) => !user.actif, run: (user) => navigate(`/admin/affectations?user_id=${user.id}`) },
+    lienMotDePasse,
+  ]
   return (
     <AdminEntityPage
       columns={columns}
-      description="Créez les comptes métier (un compte local reçoit aussitôt son lien de définition du mot de passe), activez ou désactivez leur accès et renvoyez un lien si besoin."
+      description="Un compte local reçoit son lien de mot de passe à la création. Ensuite, « Donner un rôle » lui ouvre l’application."
       endpoint="/admin/users"
       exportColumns={exportColumns}
       extraActions={extraActions}
       fields={fields}
       related={related}
       messages={{ created: (user) => (user?.lien_envoye ? 'Compte créé : le lien de définition du mot de passe est envoyé.' : 'Compte créé.') }}
-      title="Administration des utilisateurs"
+      title="Utilisateurs"
     />
   )
 }

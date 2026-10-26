@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext.jsx'
 import { useAuth } from './auth/useAuth.js'
 import ProtectedLayout, { HomeRedirect, RequirePermission, RequireRole } from './auth/ProtectedLayout.jsx'
+import AdminSection from './components/admin/AdminSection.jsx'
 import AppLayout from './components/layout/AppLayout.jsx'
 import ErrorBoundary from './components/shared/ErrorBoundary.jsx'
 import PageLoader from './components/shared/PageLoader.jsx'
@@ -64,15 +65,17 @@ function App() {
                   </Route>
                   <Route path="/notifications" element={<Notifications />} />
                   <Route element={<RequireRole roleCode="ADMIN_FONCTIONNEL" />}>
-                    <Route path="/admin/utilisateurs" element={<Utilisateurs />} />
-                    <Route path="/admin/affectations" element={<Affectations />} />
-                    <Route path="/admin/droits" element={<Droits />} />
-                    <Route path="/admin/organigramme" element={<Organigramme />} />
-                    <Route path="/admin/circuit" element={<CircuitValidation />} />
-                    <Route path="/admin/unites" element={<Unites />} />
-                    <Route path="/admin/equipements" element={<Equipements />} />
-                    <Route path="/admin/listes" element={<Listes />} />
-                    <Route path="/admin/parametres-fonctionnels" element={<ParametresFonctionnels />} />
+                    <Route element={<AdminSection />}>
+                      <Route path="/admin/utilisateurs" element={<Utilisateurs />} />
+                      <Route path="/admin/affectations" element={<Affectations />} />
+                      <Route path="/admin/droits" element={<Droits />} />
+                      <Route path="/admin/organigramme" element={<Organigramme />} />
+                      <Route path="/admin/circuit" element={<CircuitValidation />} />
+                      <Route path="/admin/unites" element={<Unites />} />
+                      <Route path="/admin/equipements" element={<Equipements />} />
+                      <Route path="/admin/listes" element={<Listes />} />
+                      <Route path="/admin/parametres-fonctionnels" element={<ParametresFonctionnels />} />
+                    </Route>
                   </Route>
                   <Route element={<RequireRole roleCode="ADMIN_TECHNIQUE" />}>
                     <Route path="/technique" element={<Technique />} />

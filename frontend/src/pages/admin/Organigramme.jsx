@@ -40,10 +40,10 @@ const columns = [
     value: (entite) => typeLabel(entite.type),
     render: (entite) => <Badge>{typeLabel(entite.type)}</Badge>,
   },
-  { key: 'libelle', label: 'Libellé', width: '26%', filterable: false, render: (entite) => <span className="data-table__cell-text" title={entite.libelle}>{entite.libelle}</span> },
+  { key: 'libelle', label: 'Libellé', width: '26%', render: (entite) => <span className="data-table__cell-text" title={entite.libelle}>{entite.libelle}</span> },
   { key: 'parent', label: 'Rattachée à', width: '22%', value: (entite) => entite.parent ?? '—', render: (entite) => <span className="data-table__cell-text" title={entite.parent ?? ''}>{entite.parent ?? '—'}</span> },
-  { key: 'responsable', label: 'Responsable', width: '20%', filterable: false, render: (entite) => entite.responsable ?? <span className="admin-entity__never">Non désigné</span> },
-  { key: 'membres_count', label: 'Personnes', width: '9%', filterable: false },
+  { key: 'responsable', label: 'Responsable', width: '20%', render: (entite) => entite.responsable ?? <span className="admin-entity__never">Non désigné</span> },
+  { key: 'membres_count', label: 'Personnes', width: '9%' },
   {
     key: 'actif',
     label: 'État',
@@ -51,16 +51,6 @@ const columns = [
     value: (entite) => entite.actif ? 'Actif' : 'Inactif',
     render: (entite) => <Badge tone={entite.actif ? 'active' : 'inactive'}>{entite.actif ? 'Actif' : 'Inactif'}</Badge>,
   },
-]
-
-const exportColumns = [
-  { key: 'type', label: 'Type', value: (entite) => typeLabel(entite.type) },
-  { key: 'code', label: 'Code' },
-  { key: 'libelle', label: 'Libellé' },
-  { key: 'parent', label: 'Rattachée à', value: (entite) => entite.parent ?? '' },
-  { key: 'responsable', label: 'Responsable', value: (entite) => entite.responsable ?? '' },
-  { key: 'membres_count', label: 'Personnes rattachées' },
-  { key: 'actif', label: 'Actif', value: (entite) => entite.actif ? 'Oui' : 'Non' },
 ]
 
 /**
@@ -72,9 +62,8 @@ function Organigramme() {
   return (
     <AdminEntityPage
       columns={columns}
-      description="Directions, départements et services. Le responsable d’un département valide la pertinence des fiches déclarées par les personnes rattachées à son département ou à ses services."
+      description="Le responsable d’un département valide la pertinence des fiches de son département."
       endpoint="/admin/entities"
-      exportColumns={exportColumns}
       fields={fields}
       related={related}
       title="Organigramme"

@@ -61,3 +61,8 @@
   color: var(--error);
   font-size: var(--text-xs);
 }
+
+/* Les astuces aident à remplir : inutiles sur une section en lecture. */
+.section-editor--readonly .astuce {
+  display: none;
+}
