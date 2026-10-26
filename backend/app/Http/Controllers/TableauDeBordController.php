@@ -24,7 +24,9 @@ use Illuminate\Support\Collection;
  * du profil actif : une fiche invisible n'entre dans aucun total. Les indicateurs annuels
  * (taux de clôture, gains validés, évolution mois par mois) portent sur l'année choisie,
  * l'année en cours par défaut, pour consolider les gains en fin d'année. La Direction et
- * l'administrateur fonctionnel reçoivent en plus leur courbe et leurs indicateurs propres.
+ * l'administrateur fonctionnel reçoivent en plus leur courbe et leurs indicateurs propres ;
+ * la Direction et le Contrôle de gestion, les indicateurs de pilotage du sujet (délai moyen
+ * de clôture, efficacité vérifiée, gain net annuel).
  */
 class TableauDeBordController extends Controller
 {
@@ -72,6 +74,7 @@ class TableauDeBordController extends Controller
             'evolution' => $profile->is('DIRECTION', 'ADMIN_FONCTIONNEL') ? $this->evolution($visibles, $visibleIds, $annee) : null,
             'unites' => $profile->is('DIRECTION') ? $this->parUnite($visibles) : null,
             'administration' => $profile->is('ADMIN_FONCTIONNEL') ? $this->administration() : null,
+            'pilotage' => $profile->is('DIRECTION', 'CONTROLE_GESTION') ? $this->pilotage($visibles, $visibleIds, $annee) : null,
             'a_traiter' => $this->aTraiter($validations, $profile, $visibles, $circuit),
         ]]);
     }
@@ -125,6 +128,33 @@ class TableauDeBordController extends Controller
             ->take(6)
             ->values()
             ->all();
+    }
+
+    /**
+     * Indicateurs de pilotage de la démarche sur les fiches clôturées dans l'année : délai moyen
+     * de clôture, part des fiches dont l'efficacité a été vérifiée, et gain net (gains validés
+     * moins le coût de mise en œuvre des fiches concernées).
+     *
+     * @param  callable(): Builder<FicheA3>  $visibles
+     * @return array{delai_moyen_cloture_jours: int|null, part_efficacite_verifiee: float|null, gains_nets_annee: int, couts_mise_en_oeuvre_annee: int}
+     */
+    private function pilotage(callable $visibles, Builder $visibleIds, int $annee): array
+    {
+        $cloturees = $visibles()->where('statut_etape', StatutEtape::Cloture->value)->whereYear('date_cloture', $annee)
+            ->withExists(['controles as efficacite_verifiee' => fn (Builder $q) => $q->whereNotNull('resultat')])
+            ->get(['id', 'created_at', 'date_cloture']);
+
+        $gains = Gain::query()->whereIn('fiche_id', $visibleIds)->where('statut', 'VALIDE')->whereYear('date_validation', $annee);
+        $couts = (int) FicheA3::query()->whereIn('id', (clone $gains)->select('fiche_id'))->sum('cout_mise_en_oeuvre_b');
+
+        return [
+            'delai_moyen_cloture_jours' => $cloturees->isEmpty() ? null
+                : (int) round($cloturees->avg(fn (FicheA3 $fiche) => $fiche->created_at->startOfDay()->diffInDays($fiche->date_cloture))),
+            'part_efficacite_verifiee' => $cloturees->isEmpty() ? null
+                : round($cloturees->where('efficacite_verifiee', true)->count() / $cloturees->count() * 100, 1),
+            'gains_nets_annee' => (int) $gains->sum('montant_annuel') - $couts,
+            'couts_mise_en_oeuvre_annee' => $couts,
+        ];
     }
 
     /**

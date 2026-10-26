@@ -254,3 +254,18 @@ body:has(.auth-page) #root {
     display: none;
   }
 }
+
+/* Le navigateur colore en bleu les champs qu'il a remplis lui-même : on garde le blanc de la carte. */
+.auth-field__control input:-webkit-autofill,
+.auth-field__control input:-webkit-autofill:hover,
+.auth-field__control input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #1a1a1a;
+  box-shadow: 0 0 0 1000px var(--white) inset;
+  transition: background-color 9999s ease-out;
+}
+
+/* Edge ajoute son propre œil dans les champs mot de passe : on ne garde que le nôtre. */
+.auth-field__control input::-ms-reveal,
+.auth-field__control input::-ms-clear {
+  display: none;
+}

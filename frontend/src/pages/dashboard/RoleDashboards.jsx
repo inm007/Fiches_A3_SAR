@@ -139,7 +139,7 @@ export function ControleDashboard({ data, hello, onAnneeChange }) {
         <article className="dash-money__main">
           <span className="dash-money__head">Gains annuels validés<YearSelect data={data} onChange={onAnneeChange} /></span>
           <strong>{data ? shortFcfa(data.gains_valides_annee ?? 0) : '—'}</strong>
-          <small>Montants annuels validés, par année de validation.</small>
+          <small>{data?.pilotage ? `Gain net, coûts de mise en œuvre déduits : ${shortFcfa(data.pilotage.gains_nets_annee)}` : 'Montants annuels validés, par année de validation.'}</small>
         </article>
         <KpiCard icon="validation" label="Gains à valider" loading={loading} to="/validations" tone={alertTone(data?.gains_a_valider)} value={data?.gains_a_valider} />
         <KpiCard format={days} icon="clock" label="Plus ancienne demande" loading={loading} to="/validations" tone="neutral" value={data?.plus_ancienne_demande_jours} />
@@ -154,14 +154,15 @@ export function ControleDashboard({ data, hello, onAnneeChange }) {
 export function DirectionDashboard({ data, hello, onAnneeChange }) {
   const loading = !data
   const evolution = data?.evolution ?? []
+  const pilotage = data?.pilotage
   return (
     <>
       <Entete text="Ce qui avance, ce qui bloque, ce que ça rapporte." title={hello} />
       <KpiRow>
-        <KpiCard icon="file" label="Fiches en cours" loading={loading} to="/fiches" tone="brand" value={data?.fiches_ouvertes} />
-        <KpiCard icon="clock" label="Fiches en retard" loading={loading} to="/fiches" tone={alertTone(data?.fiches_en_retard)} value={data?.fiches_en_retard} />
-        <KpiCard icon="al" label="Actions en retard" loading={loading} to="/fiches" tone={alertTone(data?.actions_en_retard)} value={data?.actions_en_retard} />
-        <KpiCard format={percent} icon="ok" label={`Taux de clôture ${data?.annee ?? ''}`} loading={loading} to="/fiches" tone="calm" value={data?.taux_cloture} />
+        <KpiCard hint={retards(data)} icon="file" label="Fiches en cours" loading={loading} to="/fiches" tone={Number(data?.fiches_en_retard ?? 0) > 0 ? 'warning' : 'brand'} value={data?.fiches_ouvertes} />
+        <KpiCard format={percent} hint="Fiches déclarées dans l’année" icon="ok" label={`Taux de clôture ${data?.annee ?? ''}`} loading={loading} to="/fiches" tone="calm" value={data?.taux_cloture} />
+        <KpiCard format={days} hint="De la déclaration à la clôture" icon="clock" label="Délai moyen de clôture" loading={loading} to="/fiches" tone="neutral" value={pilotage?.delai_moyen_cloture_jours} />
+        <KpiCard format={percent} hint="Fiches clôturées avec un contrôle d’efficacité" icon="validation" label="Efficacité vérifiée" loading={loading} to="/fiches" tone="neutral" value={pilotage?.part_efficacite_verifiee} />
       </KpiRow>
       <div className="dash-grid">
         <Panel className="dash-span-8" subtitle={`Par mois, en ${data?.annee ?? ''}.`} title="Fiches déclarées et clôturées">
@@ -175,9 +176,9 @@ export function DirectionDashboard({ data, hello, onAnneeChange }) {
           />
         </Panel>
         <article className="dash-span-4 dash-money__main dash-money__main--panel">
-          <span className="dash-money__head">Gains annuels validés<YearSelect data={data} onChange={onAnneeChange} /></span>
-          <strong>{data ? shortFcfa(data.gains_valides_annee ?? 0) : '—'}</strong>
-          <small>{data ? `Validés par le Contrôle de gestion en ${data.annee}` : ''}</small>
+          <span className="dash-money__head">Gain net annuel<YearSelect data={data} onChange={onAnneeChange} /></span>
+          <strong>{pilotage ? shortFcfa(pilotage.gains_nets_annee) : '—'}</strong>
+          <small>{gainNetDetail(data)}</small>
         </article>
         <Panel className="dash-span-6" subtitle="Les unités qui ont le plus de fiches en retard." title="Où ça bloque">
           <UnitesTable unites={data?.unites} />
@@ -188,6 +189,20 @@ export function DirectionDashboard({ data, hello, onAnneeChange }) {
       </div>
     </>
   )
+}
+
+function retards(data) {
+  if (!data) return undefined
+  const morceaux = []
+  if (data.fiches_en_retard) morceaux.push(`${data.fiches_en_retard} en retard`)
+  if (data.actions_en_retard) morceaux.push(`${data.actions_en_retard} action${data.actions_en_retard > 1 ? 's' : ''} en retard`)
+  return morceaux.length ? `Dont ${morceaux.join(', ')}` : 'Aucun retard'
+}
+
+// Le gain net du sujet : gains validés par le Contrôle de gestion moins le coût de mise en œuvre.
+function gainNetDetail(data) {
+  if (!data?.pilotage) return ''
+  return `${shortFcfa(data.gains_valides_annee ?? 0)} validés − ${shortFcfa(data.pilotage.couts_mise_en_oeuvre_annee)} de mise en œuvre, en ${data.annee}`
 }
 
 function UnitesTable({ unites }) {

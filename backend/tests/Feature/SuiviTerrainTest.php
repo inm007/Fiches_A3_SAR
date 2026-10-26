@@ -8,6 +8,7 @@ use App\Models\Controle;
 use App\Models\Equipement;
 use App\Models\EvenementHistorique;
 use App\Models\FicheA3;
+use App\Models\Gain;
 use App\Models\NotificationInterne;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -312,6 +313,28 @@ class SuiviTerrainTest extends TestCase
 
         $agent = $this->agir('AGENT')->getJson('/api/tableau-de-bord')->assertOk();
         $this->assertNull($agent->json('data.evolution'));
+    }
+
+    public function test_direction_and_controle_see_closure_delay_efficacy_and_net_gain(): void
+    {
+        $fiche = $this->declarer();
+        $fiche->forceFill([
+            'statut_etape' => 'CLOTURE', 'date_cloture' => today(), 'created_at' => now()->subDays(10), 'cout_mise_en_oeuvre_b' => 400_000,
+        ])->save();
+        Gain::forceCreate([
+            'fiche_id' => $fiche->id, 'categorie' => 'ENERGIE', 'hypothese_calcul' => 'Vapeur économisée', 'quantite' => 1, 'unite' => 'forfait',
+            'cout_unitaire' => 1_000_000, 'montant_annuel' => 1_000_000, 'statut' => 'VALIDE', 'date_validation' => now(),
+        ]);
+
+        foreach (['DIRECTION', 'CONTROLE_GESTION'] as $role) {
+            $pilotage = $this->agir($role)->getJson('/api/tableau-de-bord')->assertOk()->json('data.pilotage');
+            $this->assertSame(10, $pilotage['delai_moyen_cloture_jours']);
+            $this->assertEquals(0, $pilotage['part_efficacite_verifiee']);
+            $this->assertSame(600_000, $pilotage['gains_nets_annee']);
+            $this->assertSame(400_000, $pilotage['couts_mise_en_oeuvre_annee']);
+        }
+
+        $this->assertNull($this->agir('AGENT')->getJson('/api/tableau-de-bord')->assertOk()->json('data.pilotage'));
     }
 
     public function test_register_finds_fiches_by_equipment(): void
