@@ -22,15 +22,16 @@ import { setCrumb } from '../../utils/crumb.js'
 import PageLoader from '../../components/shared/PageLoader.jsx'
 import './FicheDetail.css'
 
-// Quatre onglets : les contrôles suivent les actions, les échanges regroupent commentaires,
-// pièces jointes et historique. Les emplacements envoyés par le serveur gardent leurs anciennes clés.
-const ONGLET_DE = { controles: 'actions', pieces: 'echanges', commentaires: 'echanges', historique: 'echanges' }
+// Les contrôles suivent les actions ; les échanges mettent côte à côte commentaires et pièces
+// jointes ; l'historique a son propre onglet. Les emplacements envoyés par le serveur gardent leurs anciennes clés.
+const ONGLET_DE = { controles: 'actions', pieces: 'echanges', commentaires: 'echanges' }
 const ongletDe = (key) => ONGLET_DE[key] ?? key
 
-function ongletContenu(tab, fiche) {
+function ongletContenu(tab) {
   if (tab === 'actions') return [ActionsTab, ControlesTab]
   if (tab === 'validations') return [ValidationsTab]
-  return [CommentairesTab, PiecesJointesTab, ...(fiche.droits.peut_voir_historique ? [HistoriqueTab] : [])]
+  if (tab === 'historique') return [HistoriqueTab]
+  return [CommentairesTab, PiecesJointesTab]
 }
 
 function FicheDetail() {
@@ -161,6 +162,7 @@ function FicheDetail() {
     },
     { key: 'validations', label: 'Validations', count: actionnables + (fiche.droits.peut_decider_gains ? 1 : 0) },
     { key: 'echanges', label: 'Échanges' },
+    ...(fiche.droits.peut_voir_historique ? [{ key: 'historique', label: 'Historique' }] : []),
   ]
 
   return (
@@ -192,8 +194,8 @@ function FicheDetail() {
             />
           </div>
         ) : (
-          <div className="fiche-detail-page__group">
-            {ongletContenu(tab, fiche).map((TabComponent, index) => (
+          <div className={`fiche-detail-page__group${tab === 'echanges' ? ' fiche-detail-page__group--echanges' : ''}`}>
+            {ongletContenu(tab).map((TabComponent, index) => (
               <TabComponent fiche={fiche} key={index} options={options} refs={refs} onChange={onChange} onError={onError} />
             ))}
           </div>

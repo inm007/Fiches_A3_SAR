@@ -26,3 +26,15 @@
   display: grid;
   gap: 20px;
 }
+
+/* Échanges : la conversation à gauche, les pièces jointes à droite, visibles sans défiler. */
+.fiche-detail-page__group--echanges {
+  grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .fiche-detail-page__group--echanges {
+    grid-template-columns: 1fr;
+  }
+}
