@@ -6,11 +6,12 @@ import { useState } from 'react'
  *
  * @param {object} defaults Filtres vides, ex. { q: '', etat: '' }.
  * @param {object|() => object} [initial] Filtres au premier affichage (par défaut `defaults`).
+ * @param {number} [initialPageSize] Taille de page au premier affichage (10 par défaut).
  */
-export function useListFilters(defaults, initial = defaults) {
+export function useListFilters(defaults, initial = defaults, initialPageSize = 10) {
   const [filters, setFilters] = useState(initial)
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
+  const [pageSize, setPageSize] = useState(initialPageSize)
 
   return {
     filters,
