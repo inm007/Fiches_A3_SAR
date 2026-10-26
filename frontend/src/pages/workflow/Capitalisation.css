@@ -1,0 +1,74 @@
+.capitalisation-page,
+.capitalisation-page__panel {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.capitalisation-page__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.capitalisation-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 22px;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+}
+
+.capitalisation-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.capitalisation-card__texte {
+  flex: 1;
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-md);
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
+.capitalisation-card__fiche {
+  display: grid;
+  gap: 2px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.capitalisation-card__fiche strong {
+  color: var(--brand-500);
+  font-size: var(--text-sm);
+}
+
+.capitalisation-card__fiche span {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.capitalisation-card__fiche:hover span {
+  text-decoration: underline;
+}
+
+.capitalisation-card__meta {
+  margin: -8px 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}

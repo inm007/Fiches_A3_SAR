@@ -18,6 +18,7 @@ const FicheNouvelle = lazy(() => import('./pages/fiches/FicheNouvelle.jsx'))
 const FicheDetail = lazy(() => import('./pages/fiches/FicheDetail.jsx'))
 const Validations = lazy(() => import('./pages/workflow/Validations.jsx'))
 const Notifications = lazy(() => import('./pages/workflow/Notifications.jsx'))
+const Capitalisation = lazy(() => import('./pages/workflow/Capitalisation.jsx'))
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword.jsx'))
 const ResetPassword = lazy(() => import('./pages/auth/ResetPassword.jsx'))
 const Affectations = lazy(() => import('./pages/admin/Affectations.jsx'))
@@ -64,6 +65,7 @@ function App() {
                     <Route path="/validations" element={<Validations />} />
                   </Route>
                   <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/lecons" element={<Capitalisation />} />
                   <Route element={<RequireRole roleCode="ADMIN_FONCTIONNEL" />}>
                     <Route element={<AdminSection />}>
                       <Route path="/admin/utilisateurs" element={<Utilisateurs />} />

@@ -16,6 +16,7 @@ const menuLinks = [
   { label: 'Fiches', to: '/fiches', icon: 'files', roles: allBusinessRoles },
   { label: 'Nouvelle fiche', to: '/fiches/nouvelle', icon: 'plus', roles: allBusinessRoles, permission: 'DECLARER_FICHE' },
   { label: 'Validations à traiter', to: '/validations', icon: 'validation', roles: validationRoles },
+  { label: 'Leçons et standards', to: '/lecons', icon: 'bulb', roles: sharedRoles },
   { label: 'Notifications', to: '/notifications', icon: 'bell', roles: sharedRoles },
 ]
 
