@@ -14,6 +14,16 @@ const ATTENTES = {
   EN_VALIDATION_CLOTURE: 'La clôture est chez le Contrôle de gestion (gains) puis le directeur sponsor, qui valide ou renvoie la fiche.',
 }
 
+function libelleRaccourci(label) {
+  const section = label.match(/^Ouvrir la section (.+)$/i)
+  if (section) return `Section ${section[1]}`
+
+  const destination = label.match(/^Ouvrir\s+(?:la|les|le)\s+(.+)$/i)
+  if (destination) return destination[1].charAt(0).toUpperCase() + destination[1].slice(1)
+
+  return label
+}
+
 /**
  * « Prochaine étape » : ce que le pilote doit encore faire pour avancer, point par point,
  * avec un lien vers l'endroit à compléter. Le serveur calcule la liste ; le bouton
@@ -61,9 +71,16 @@ function NextStepPanel({ fiche, onChange, onError, onNavigate }) {
           <h2 id="next-step-title">{etape?.titre ?? prochaine.code}</h2>
           <p>{etape?.texte}</p>
         </div>
-        <Button disabled={!pret || busy || nouvelleBoucle} loading={busy} type="button" onClick={avancer}>
-          {pret ? etape?.titre : `Encore ${restants} point${restants > 1 ? 's' : ''}`}
-        </Button>
+        {pret ? (
+          <Button disabled={busy || nouvelleBoucle} loading={busy} type="button" onClick={avancer}>
+            {etape?.titre}
+          </Button>
+        ) : (
+          <span className="next-step__count">
+            <Icon name="info" size={15} />
+            {restants} élément{restants > 1 ? 's' : ''} à compléter
+          </span>
+        )}
       </div>
       {nouvelleBoucle && (
         <p className="next-step__alert">Objectif non atteint : lancez une nouvelle boucle (bouton en haut de la fiche) pour revoir l’analyse et le plan.</p>
@@ -75,7 +92,18 @@ function NextStepPanel({ fiche, onChange, onError, onNavigate }) {
               <Icon name="x" size={14} />
               <span>{condition.message}</span>
               {condition.emplacement && (
-                <Button size="small" type="button" variant="ghost" onClick={() => onNavigate(condition.emplacement)}>{condition.emplacement.label}</Button>
+                <Button
+                  aria-label={condition.emplacement.label}
+                  className="next-step__shortcut"
+                  icon="arrow"
+                  size="small"
+                  title={condition.emplacement.label}
+                  type="button"
+                  variant="ghost"
+                  onClick={() => onNavigate(condition.emplacement)}
+                >
+                  {libelleRaccourci(condition.emplacement.label)}
+                </Button>
               )}
             </li>
           ))}
