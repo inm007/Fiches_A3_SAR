@@ -1,11 +1,10 @@
 import { Select, TextInput } from '../../ui/FormControls.jsx'
 import { ConfidentialiteBadge } from '../EtapeBadge.jsx'
-import EquipeFiche from '../EquipeFiche.jsx'
 import Astuce from './Astuce.jsx'
 import { listOptions, peopleOptions } from './options.js'
 import './FicheSection.css'
 
-export default function Section01Identification({ draft, set, fiche, refs, options, readOnly, onFicheChange }) {
+export default function Section01Identification({ draft, set, fiche, refs, options, readOnly }) {
   const equipements = (refs?.equipements ?? [])
     .filter((equipement) => String(equipement.unite_id) === String(draft.unite_id))
     .map((equipement) => [String(equipement.id), `${equipement.code} — ${equipement.libelle}`])
@@ -47,7 +46,6 @@ export default function Section01Identification({ draft, set, fiche, refs, optio
           onChange={(value) => set('sponsor_id', value)}
         />
       </div>
-      {fiche.pertinence_validee_le && <EquipeFiche fiche={fiche} options={options} onChange={onFicheChange} />}
 
       <h3>Dates et références</h3>
       <div className="fiche-section__grid">

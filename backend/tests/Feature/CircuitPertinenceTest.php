@@ -122,15 +122,15 @@ class CircuitPertinenceTest extends TestCase
         $this->assertSame('OUVERT', $fiche->refresh()->statut_etape);
     }
 
-    public function test_pilot_builds_a_team_of_agents_and_pilots_after_the_relevance(): void
+    public function test_pilot_builds_a_team_of_agents_and_pilots_at_the_end_of_section_four(): void
     {
         $membre = $this->acteur('AGENT', null);
         $controle = $this->acteur('CONTROLE_GESTION', null);
-        $fiche = $this->ficheSoumise();
+        $fiche = $this->declarer();
+        $this->designerPilote($fiche);
+        $this->remplirPertinence($fiche);
 
-        $this->agir('PILOTE')->postJson("/api/fiches/{$fiche->id}/membres", ['user_id' => $membre[0]->id])->assertConflict();
-        $this->deciderPertinence($fiche);
-
+        // L'équipe se compose à la fin de la section 4, avant la soumission au chef.
         $this->agirComme($membre)->getJson("/api/fiches/{$fiche->id}")->assertNotFound();
         $this->assertNotContains($controle[0]->id, collect($this->agir('PILOTE')->getJson("/api/fiches/{$fiche->id}/options")->json('data.membres_possibles'))->pluck('id'));
         $this->agir('AGENT')->postJson("/api/fiches/{$fiche->id}/membres", ['user_id' => $membre[0]->id])->assertForbidden();
@@ -139,11 +139,21 @@ class CircuitPertinenceTest extends TestCase
         $this->agir('PILOTE')->postJson("/api/fiches/{$fiche->id}/membres", ['user_id' => $this->acteurs['PILOTE'][0]->id])->assertUnprocessable();
         $this->agir('PILOTE')->postJson("/api/fiches/{$fiche->id}/membres", ['user_id' => $membre[0]->id])
             ->assertOk()
-            ->assertJsonPath('data.membres.0.id', $membre[0]->id);
-        $this->assertTrue(NotificationInterne::where('user_id', $membre[0]->id)->where('type', 'AJOUT_MEMBRE')->exists());
+            ->assertJsonPath('data.membres.0.id', $membre[0]->id)
+            ->assertJsonPath('data.droits.peut_gerer_equipe', true);
+        $this->assertTrue(NotificationInterne::where('user_id', $membre[0]->id)->where('type', 'AJOUT_MEMBRE')->where('message', 'like', '%vous invite dans l’équipe%')->exists());
 
+        // Avant la pertinence, le membre voit la fiche sans rien modifier.
         $this->agirComme($membre)->getJson("/api/fiches/{$fiche->id}")->assertOk()
             ->assertJsonPath('data.droits.est_membre', true)
+            ->assertJsonPath('data.droits.sections_editables', []);
+        $this->agirComme($membre)->putJson("/api/fiches/{$fiche->id}/sections/4", ['objectif_smart' => 'Autre objectif'])->assertForbidden();
+
+        $this->transition($fiche, 'PILOTE', 'T0')->assertOk();
+        $this->deciderPertinence($fiche);
+        $this->assertTrue(NotificationInterne::where('user_id', $membre[0]->id)->where('type', 'CHANGEMENT_STATUT')->exists());
+
+        $this->agirComme($membre)->getJson("/api/fiches/{$fiche->id}")->assertOk()
             ->assertJsonPath('data.droits.sections_editables', [5, 6, 7]);
         $this->agirComme($membre)->putJson("/api/fiches/{$fiche->id}/sections/5", ['methode_analyse' => '5_POURQUOI', 'causes' => [
             ['categorie' => 'METHODE', 'libelle' => 'Purgeurs non inspectés', 'niveau' => 1, 'racine' => true],
@@ -151,8 +161,30 @@ class CircuitPertinenceTest extends TestCase
         $this->agirComme($membre)->putJson("/api/fiches/{$fiche->id}/sections/4", ['objectif_smart' => 'Autre objectif'])->assertForbidden();
         $this->agirComme($membre)->postJson("/api/fiches/{$fiche->id}/transitions", ['code' => 'T3'])->assertForbidden();
 
+        // Le registre et le tableau de bord montrent l'équipe.
+        $this->agirComme($membre)->getJson('/api/fiches?equipe=1')->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.est_membre', true)
+            ->assertJsonPath('data.0.membres.0', $membre[0]->nom_complet);
+        $this->agir('PILOTE')->getJson('/api/fiches?equipe=1')->assertOk()->assertJsonPath('meta.total', 0);
+        $this->assertSame(1, $this->agirComme($membre)->getJson('/api/tableau-de-bord')->json('data.fiches_equipe'));
+        $this->assertContains($membre[0]->id, collect($this->agir('PILOTE')->getJson("/api/fiches/{$fiche->id}/options")->json('data.responsables'))->pluck('id'));
+
         $this->agir('PILOTE')->deleteJson("/api/fiches/{$fiche->id}/membres/{$membre[0]->id}")->assertOk()->assertJsonPath('data.membres', []);
+        $this->assertTrue(NotificationInterne::where('user_id', $membre[0]->id)->where('type', 'RETRAIT_MEMBRE')->exists());
         $this->agirComme($membre)->getJson("/api/fiches/{$fiche->id}")->assertNotFound();
+    }
+
+    public function test_the_chosen_head_never_joins_the_team(): void
+    {
+        $fiche = $this->declarer();
+        $this->designerPilote($fiche);
+        $this->remplirPertinence($fiche);
+        Affectation::create(['user_id' => $this->chef[0]->id, 'role_id' => $this->roleId('AGENT'), 'unite_id' => $this->unite->id, 'actif' => true]);
+
+        $this->agir('PILOTE')->postJson("/api/fiches/{$fiche->id}/membres", ['user_id' => $this->chef[0]->id])
+            ->assertUnprocessable()
+            ->assertJsonFragment(['Cette personne valide la fiche (sponsor, chef de département ou valideur) : elle ne peut pas aussi la rédiger.']);
     }
 
     public function test_a_team_member_never_validates_the_fiche(): void

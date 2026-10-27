@@ -496,7 +496,7 @@ class FicheWorkflow
             1 => 'Validation du plan demandée',
             default => 'Validation de la clôture demandée',
         });
-        $this->notifications->notify($fiche->pilotesIds(), $fiche, 'APPROBATION', 'Approbation : '.$validation->role()->value('libelle'), 'validation', $validation->id);
+        $this->notifications->notify($fiche->redacteursIds(), $fiche, 'APPROBATION', 'Approbation : '.$validation->role()->value('libelle'), 'validation', $validation->id);
         $this->avancerSiPorteApprouvee($fiche, $validation->porte);
     }
 
@@ -519,7 +519,7 @@ class FicheWorkflow
             $this->changerEtape($fiche, $cible, $userId, 'T10 — Clôture refusée', $commentaire);
         }
 
-        $this->notifications->notify($fiche->pilotesIds(), $fiche, 'REFUS', 'Refus : '.$commentaire, 'validation', $validation->id, $userId);
+        $this->notifications->notify($fiche->redacteursIds(), $fiche, 'REFUS', 'Refus : '.$commentaire, 'validation', $validation->id, $userId);
     }
 
     /**
@@ -561,7 +561,7 @@ class FicheWorkflow
 
         $this->history->log($fiche, $auteurId, 'CHANGEMENT_STATUT', 'statut_etape', $ancienne, $nouvelle->value, trim($libelle.($commentaire ? ' : '.$commentaire : '')));
         $this->notifications->notify(
-            [...$fiche->pilotesIds(), $fiche->declarant_id],
+            [...$fiche->redacteursIds(), $fiche->declarant_id],
             $fiche,
             'CHANGEMENT_STATUT',
             'La fiche passe à l’étape « '.$nouvelle->libelle().' ».',

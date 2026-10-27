@@ -25,7 +25,7 @@ import './Fiches.css'
 
 const ETAPE_OPTIONS = Object.entries(ETAPES).map(([code, etape]) => [code, etape.label])
 const CONFIDENTIALITE_OPTIONS = [['NORMAL', 'Normal'], ['RESTREINT', 'Restreint']]
-const REGISTRE_FILTERS = { q: '', statut_etape: '', unite_id: '', equipement_id: '', type_amelioration: '', origine_id: '', confidentialite: '', date_debut: '', date_fin: '' }
+const REGISTRE_FILTERS = { q: '', statut_etape: '', unite_id: '', equipe: '', equipement_id: '', type_amelioration: '', origine_id: '', confidentialite: '', date_debut: '', date_fin: '' }
 const ADMIN_FILTERS = { q: '', statut_etape: '', confidentialite: '' }
 
 const personName = (pilote) => (pilote ? `${pilote.prenom} ${pilote.nom}` : null)
@@ -59,7 +59,7 @@ function useRegistre({ enabled, filters, sort, page, perPage }) {
   }
 
   return {
-    rows: result?.data.map((fiche) => ({ ...fiche, piloteNom: fiche.pilote ?? null })) ?? [],
+    rows: result?.data.map((fiche) => ({ ...fiche, piloteNom: fiche.pilote ?? null, equipe: fiche.membres ?? [] })) ?? [],
     total: result?.meta.total ?? 0,
     loading: !result && !error,
     error,
@@ -70,6 +70,7 @@ function useRegistre({ enabled, filters, sort, page, perPage }) {
       { label: 'Unité', value: (fiche) => fiche.unite },
       { label: 'Équipement', value: (fiche) => fiche.equipement ?? '—' },
       { label: 'Pilote', value: (fiche) => fiche.pilote ?? 'Non désigné' },
+      { label: 'Équipe', value: (fiche) => (fiche.membres ?? []).join(', ') },
       { label: 'Étape', value: (fiche) => fiche.statut_etape_libelle },
       { label: 'Date cible', value: (fiche) => fiche.date_cible ? formatDate(fiche.date_cible) : '—' },
       { label: 'Confidentialité', value: (fiche) => fiche.confidentialite },
@@ -96,14 +97,14 @@ function useAdminRegistre({ enabled, filters, page, perPage }) {
   }, [enabled])
 
   const filtered = useMemo(() => (fiches ?? []).filter((fiche) => (
-    matchesSearch([fiche.numero_a3, fiche.titre, fiche.unite?.libelle, personName(fiche.pilote), fiche.statut_etape, fiche.statut_general, fiche.confidentialite], filters.q)
+    matchesSearch([fiche.numero_a3, fiche.titre, fiche.unite?.libelle, personName(fiche.pilote), ...(fiche.membres ?? []).map(personName), fiche.statut_etape, fiche.statut_general, fiche.confidentialite], filters.q)
     && (!filters.statut_etape || fiche.statut_etape === filters.statut_etape)
     && (!filters.confidentialite || fiche.confidentialite === filters.confidentialite)
   )), [fiches, filters])
   const visible = paginate(filtered, page, perPage)
 
   return {
-    rows: visible.rows.map((fiche) => ({ ...fiche, unite: fiche.unite?.libelle ?? '—', piloteNom: [personName(fiche.pilote), ...(fiche.copilotes ?? []).map(personName)].filter(Boolean).join(', ') || null, source: fiche })),
+    rows: visible.rows.map((fiche) => ({ ...fiche, unite: fiche.unite?.libelle ?? '—', piloteNom: personName(fiche.pilote), equipe: (fiche.membres ?? []).map(personName), source: fiche })),
     total: filtered.length,
     currentPage: visible.page,
     loading: fiches === null && !error,
@@ -115,11 +116,22 @@ function useAdminRegistre({ enabled, filters, page, perPage }) {
       { label: 'Titre', value: (fiche) => fiche.titre },
       { label: 'Unité', value: (fiche) => fiche.unite?.libelle },
       { label: 'Pilote', value: (fiche) => personName(fiche.pilote) ?? 'Non désigné' },
+      { label: 'Équipe', value: (fiche) => (fiche.membres ?? []).map(personName).join(', ') },
       { label: 'Étape', value: (fiche) => fiche.statut_etape },
       { label: 'Confidentialité', value: (fiche) => fiche.confidentialite },
     ],
     replace: (updated) => setFiches((current) => current.map((fiche) => (fiche.id === updated.id ? updated : fiche))),
   }
+}
+
+/** « + équipe » : le survol affiche le nom des membres ; le lecteur d’écran les annonce. */
+function EquipeBadge({ membres }) {
+  const noms = membres.join(', ')
+  return (
+    <span aria-label={`Équipe : ${noms}`} className="fiches-page__equipe" tabIndex={0} title={noms}>
+      + équipe ({membres.length})
+    </span>
+  )
 }
 
 function SortHeader({ field, label, sort, onSort }) {
@@ -143,7 +155,7 @@ function Fiches() {
   const list = useListFilters(initialFilters, () => ({
     ...initialFilters,
     q: searchParams.get('q') ?? '',
-    ...(isAdmin ? {} : { unite_id: searchParams.get('unite_id') ?? '', equipement_id: searchParams.get('equipement_id') ?? '' }),
+    ...(isAdmin ? {} : { unite_id: searchParams.get('unite_id') ?? '', equipement_id: searchParams.get('equipement_id') ?? '', equipe: searchParams.get('equipe') ?? '' }),
   }))
   const { filters, page, pageSize: perPage, setFilter, setPage } = list
   const [sort, setSort] = useState({ tri: 'created_at', ordre: 'desc' })
@@ -205,12 +217,13 @@ function Fiches() {
     },
     {
       key: 'pilote',
-      label: 'Pilote',
-      width: '150px',
+      label: 'Pilote et équipe',
+      width: '240px',
       render: (fiche) => (
-        <span className="fiches-page__pilote" title={fiche.piloteNom ?? 'Non désigné'}>
+        <span className="fiches-page__pilote">
           <span aria-hidden="true" className="sar-avatar sar-avatar--sm">{initials(fiche.piloteNom)}</span>
-          <span className="data-table__cell-text">{fiche.piloteNom ?? <span className="sar-muted">Non désigné</span>}</span>
+          <span className="data-table__cell-text" title={fiche.piloteNom ?? 'Non désigné'}>{fiche.piloteNom ?? <span className="sar-muted">Non désigné</span>}</span>
+          {fiche.equipe.length > 0 && <EquipeBadge membres={fiche.equipe} />}
         </span>
       ),
     },
@@ -252,6 +265,7 @@ function Fiches() {
         {!isAdmin && (
           <>
             <FilterSelect label="Unité" options={(refs?.unites ?? []).map((unite) => [unite.id, unite.libelle])} value={filters.unite_id} onChange={(value) => list.updateFilters({ unite_id: value, equipement_id: '' })} />
+            <FilterSelect label="Équipe" options={[['1', 'Mes équipes']]} value={filters.equipe} onChange={setFilter('equipe')} />
             {plusDeFiltres ? (
               <>
                 <FilterSelect label="Équipement" options={equipementOptions} value={filters.equipement_id} onChange={setFilter('equipement_id')} />
@@ -319,7 +333,6 @@ function Fiches() {
           users={admin.users}
           onClose={() => setManaged(null)}
           onSaved={(updated) => { admin.replace(updated); setManaged(null); toast('Modifications enregistrées') }}
-          onShared={(updated) => { admin.replace(updated); setManaged(updated) }}
         />
       )}
     </section>

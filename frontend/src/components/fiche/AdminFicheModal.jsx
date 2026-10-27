@@ -8,7 +8,6 @@ import Icon from '../ui/Icon.jsx'
 import Modal from '../ui/Modal.jsx'
 import { TextArea } from '../ui/FormControls.jsx'
 import EtapeBadge from './EtapeBadge.jsx'
-import PartageFiche from './PartageFiche.jsx'
 import PartageValidations from './PartageValidations.jsx'
 import './AdminFicheModal.css'
 
@@ -21,13 +20,12 @@ function assignmentIsCurrent(assignment) {
 
 /**
  * Administrateur fonctionnel : pilote (à toute étape avant la clôture, avec motif après
- * l'étape Ouvert), partage de la fiche avec un second pilote, confidentialité et partage
- * des validations en attente.
+ * l'étape Ouvert), confidentialité et partage des validations en attente. L'équipe, composée
+ * par le pilote, est affichée en lecture seule.
  * Le serveur (FicheAdminController) reste seul juge des droits et des valeurs autorisées.
  */
-const userLabel = (user) => `${user.prenom} ${user.nom} — ${user.identifiant}`
 
-function AdminFicheModal({ fiche, users, onClose, onSaved, onShared }) {
+function AdminFicheModal({ fiche, users, onClose, onSaved }) {
   const [piloteId, setPiloteId] = useState(fiche?.pilote ? String(fiche.pilote.id) : '')
   const [confidentialite, setConfidentialite] = useState(fiche?.confidentialite ?? 'NORMAL')
   const [motif, setMotif] = useState('')
@@ -42,7 +40,7 @@ function AdminFicheModal({ fiche, users, onClose, onSaved, onShared }) {
       && assignmentIsCurrent(assignment)
     )))
   }, [fiche, users])
-  const piloteModifiable = fiche?.statut_etape !== 'CLOTURE'
+  const piloteModifiable = !['CLOTURE', 'CLASSE'].includes(fiche?.statut_etape)
   const piloteChange = Boolean(fiche && piloteModifiable && piloteId !== (fiche.pilote ? String(fiche.pilote.id) : ''))
   const motifRequis = piloteChange && fiche?.statut_etape !== 'OUVERT'
   const hasChanges = Boolean(fiche && (confidentialite !== fiche.confidentialite || piloteChange))
@@ -117,7 +115,7 @@ function AdminFicheModal({ fiche, users, onClose, onSaved, onShared }) {
               />
               {motifRequis && (
                 <TextArea
-                  hint="Départ définitif, mutation… Le motif est inscrit dans l’historique. Pour une absence, partagez plutôt la fiche ci-dessous."
+                  hint="Départ définitif, mutation… Le motif est inscrit dans l’historique. Pour une absence, le pilote peut ajouter un renfort à son équipe."
                   label="Motif du changement de pilote"
                   required
                   value={motif}
@@ -126,17 +124,14 @@ function AdminFicheModal({ fiche, users, onClose, onSaved, onShared }) {
               )}
             </>
           ) : (
-            <p className="admin-fiche-form__note">Le pilote d’une fiche clôturée ne change plus.</p>
+            <p className="admin-fiche-form__note">Le pilote d’une fiche clôturée ou classée ne change plus.</p>
           )}
-          {piloteModifiable && fiche.pilote && (
-            <PartageFiche
-              candidats={eligiblePilots.map((user) => [String(user.id), userLabel(user)])}
-              copilotes={(fiche.copilotes ?? []).map((user) => ({ id: user.id, label: userLabel(user) }))}
-              ficheId={fiche.id}
-              pilote={{ id: fiche.pilote.id, label: userLabel(fiche.pilote) }}
-              onChange={(updated) => onShared?.(updated.data ?? updated)}
-            />
-          )}
+          <div className="admin-fiche-form__equipe">
+            <span className="admin-fiche-form__label">Équipe</span>
+            {(fiche.membres ?? []).length === 0
+              ? <span className="sar-muted">Aucun membre : le pilote compose l’équipe à la fin de la section 4.</span>
+              : <span>{fiche.membres.map((user) => `${user.prenom} ${user.nom}`).join(', ')}</span>}
+          </div>
           {['EN_VALIDATION_PLAN', 'EN_VALIDATION_CLOTURE', 'EN_ATTENTE'].includes(fiche.statut_etape) && <PartageValidations ficheId={fiche.id} />}
           <p className="admin-fiche-form__note">
             <Icon name="info" size={16} />

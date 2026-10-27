@@ -63,6 +63,7 @@ export function AgentDashboard({ data, fiches, hello }) {
         <KpiCard icon="ok" label="Mes actions à faire" loading={loading} to="/fiches" tone="info" value={data?.mes_actions_a_faire} />
         <KpiCard icon="clock" label="Mes actions en retard" loading={loading} to="/fiches" tone={alertTone(data?.mes_actions_en_retard)} value={data?.mes_actions_en_retard} />
         <KpiCard icon="file" label="Mes fiches" loading={loading} to="/fiches" tone="brand" value={data?.mes_fiches} />
+        <KpiCard icon="users" label="Fiches de mes équipes" loading={loading} to="/fiches?equipe=1" tone="teal" value={data?.fiches_equipe} />
       </KpiRow>
       <div className="dash-grid">
         <Panel className="dash-span-6" title="À traiter">
@@ -88,6 +89,7 @@ export function PiloteDashboard({ data, fiches, hello }) {
         <KpiCard icon="clock" label="Actions en retard" loading={loading} to="/fiches" tone={alertTone(data?.actions_en_retard)} value={data?.actions_en_retard} />
         <KpiCard icon="ok" label="Contrôles disponibles" loading={loading} to="/fiches" tone="teal" value={data?.controles_disponibles} />
         <KpiCard icon="validation" label="Validations en attente" loading={loading} to="/fiches" tone="violet" value={data?.validations_en_attente_sur_mes_fiches} />
+        <KpiCard icon="users" label="Fiches de mes équipes" loading={loading} to="/fiches?equipe=1" tone="brand" value={data?.fiches_equipe} />
       </KpiRow>
       <div className="dash-grid">
         <Panel className="dash-span-6" title="Mes priorités">

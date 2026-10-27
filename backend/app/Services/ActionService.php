@@ -66,7 +66,7 @@ class ActionService
                 $this->controles->creerPourAction($action);
             }
 
-            $this->notifications->notify([...$fiche->pilotesIds(), $action->responsable_id], $fiche, 'STATUT_ACTION', 'Action « '.str($action->description)->limit(50).' » : '.$cible->libelle().'.', 'action', $action->id, $profile->userId());
+            $this->notifications->notify([$fiche->pilote_id, $action->responsable_id], $fiche, 'STATUT_ACTION', 'Action « '.str($action->description)->limit(50).' » : '.$cible->libelle().'.', 'action', $action->id, $profile->userId());
 
             return $action->refresh();
         });

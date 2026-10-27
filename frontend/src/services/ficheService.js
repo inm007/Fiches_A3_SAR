@@ -22,8 +22,6 @@ export const ficheService = {
   validationsEnAttente: (id) => apiRequest(`/admin/fiches/${id}/validations`).then((result) => result.data),
   partagerValidation: (validationId, valideurId, motif) => send(`/admin/validations/${validationId}/partages`, 'POST', { valideur_id: valideurId, motif }).then((result) => result.data),
   retirerPartageValidation: (validationId, userId) => send(`/admin/validations/${validationId}/partages/${userId}`, 'DELETE').then((result) => result.data),
-  partagerFiche: (id, userId, motif) => send(`/admin/fiches/${id}/copilotes`, 'POST', { user_id: userId, motif }).then((result) => result.data),
-  retirerCopilote: (id, userId) => send(`/admin/fiches/${id}/copilotes/${userId}`, 'DELETE').then((result) => result.data),
   confidentialiteAdmin: (id, confidentialite) => send(`/admin/fiches/${id}`, 'PATCH', { confidentialite }),
   versions: (id) => apiRequest(`/fiches/${id}/versions`).then((result) => result.data),
   historique: (id) => apiRequest(`/fiches/${id}/historique`).then((result) => result.data),

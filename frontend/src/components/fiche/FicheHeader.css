@@ -187,14 +187,21 @@
   text-decoration: underline;
 }
 
-.fiche-header__shared {
-  margin-left: 6px;
-  padding: 1px 8px;
-  border-radius: var(--radius-pill);
+.fiche-header__role {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-lg);
   color: var(--brand-700);
   background: var(--brand-50);
-  font-size: var(--text-xs);
-  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.fiche-header__role svg {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 /* Rappel compact : hauteur nulle dans le flux, collé sous la barre du haut. */

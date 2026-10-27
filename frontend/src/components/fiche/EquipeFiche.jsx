@@ -9,9 +9,10 @@ import './PartageValidations.css'
 const errorText = (error) => Object.values(error.data?.errors ?? {}).flat().join(' ') || error.data?.manques?.join(' ') || error.message
 
 /**
- * Équipe de la fiche, constituée après la validation de la pertinence : des agents et des
- * pilotes actifs, même d'une autre unité. Les membres voient la fiche et renseignent l'analyse
- * et le suivi (sections 5 à 11) ; ils ne valident jamais la fiche et seul le pilote change d'étape.
+ * Équipe de la fiche, composée par le pilote à la fin de la section 4, comme le choix du chef
+ * de département : des agents et des pilotes actifs, même d'une autre unité. Chaque membre
+ * ajouté reçoit une invitation ; il voit la fiche et renseigne les sections 5 à 11. Il ne
+ * valide jamais la fiche et seul le pilote la soumet.
  */
 function EquipeFiche({ fiche, options, onChange }) {
   const [userId, setUserId] = useState('')
@@ -23,7 +24,6 @@ function EquipeFiche({ fiche, options, onChange }) {
     fiche.pilote?.id,
     fiche.identification?.sponsor_id,
     fiche.objectif?.chef_pertinence_id,
-    ...(fiche.copilotes ?? []).map((person) => person.id),
     ...membres.map((person) => person.id),
   ].filter(Boolean).map(String))
   const candidats = (options?.membres_possibles ?? []).filter((person) => !exclus.has(String(person.id))).map((person) => [String(person.id), person.nom])
@@ -45,12 +45,12 @@ function EquipeFiche({ fiche, options, onChange }) {
     const updated = await ficheService.ajouterMembre(fiche.id, Number(userId))
     setUserId('')
     return updated
-  }, 'Membre ajouté : il est prévenu')
+  }, 'Membre ajouté : il reçoit une invitation')
 
   return (
     <section className="partage">
       <h3>Équipe de la fiche</h3>
-      <p className="partage__meta">Agents et pilotes, même d’une autre unité. Les membres voient la fiche et renseignent l’analyse et le suivi (sections 5 à 11). Ils ne la valident pas ; seul le pilote la soumet et change d’étape.</p>
+      <p className="partage__meta">Agents et pilotes, même d’une autre unité. Chaque membre ajouté reçoit une invitation : il voit la fiche et modifie les sections 5 à 11. Les autres sections restent en lecture seule pour lui ; il ne valide pas la fiche et seul le pilote la soumet.</p>
       {membres.length === 0
         ? <p className="partage__meta">Aucun membre pour l’instant.</p>
         : (

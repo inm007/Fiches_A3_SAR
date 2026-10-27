@@ -83,7 +83,6 @@ function FichePrintView({ fiche, refs, copie }) {
             ['Date cible', identification.date_cible],
             ['Déclarant', fiche.declarant?.nom ?? null],
             ['Pilote', fiche.pilote?.nom ?? null],
-            ['Équipe', (fiche.membres ?? []).map((membre) => membre.nom)],
           ]} />
         </Section>
         <Section number={2} title="Contexte, enjeu et problème">
@@ -107,6 +106,7 @@ function FichePrintView({ fiche, refs, copie }) {
             ['Périmètre', fiche.objectif.perimetre],
             ['Résultats attendus', fiche.objectif.resultats_attendus],
             ['Chef qui valide la pertinence', fiche.chef_pertinence?.nom ?? null],
+            ['Équipe', (fiche.membres ?? []).map((membre) => membre.nom)],
           ]} />
         </Section>
         <Section number={5} title="Analyse des causes racines">

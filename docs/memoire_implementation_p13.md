@@ -98,7 +98,7 @@ Mot de passe de tous les comptes de démonstration : `Azerty123` (liste en §6).
 | Domaine | Routes |
 |---|---|
 | Authentification | `POST /auth/connexion`, `/auth/deconnexion`, `/auth/profil-actif`, `/auth/mot-de-passe-oublie`, `/auth/mot-de-passe` ; `GET /auth/moi` |
-| Administration fonctionnelle (`ADMIN_FONCTIONNEL`) | `/admin/users`, `/admin/assignments`, `/admin/units`, `/admin/equipment`, `/admin/lists`, `/admin/settings`, `/admin/roles`, `/admin/fiches` (pilote et confidentialité seulement), `/admin/fiches/{id}/validations`, `POST/DELETE /admin/fiches/{id}/copilotes` (fiche partagée), `POST/DELETE /admin/validations/{id}/partages` (validation partagée) |
+| Administration fonctionnelle (`ADMIN_FONCTIONNEL`) | `/admin/users`, `/admin/assignments`, `/admin/units`, `/admin/equipment`, `/admin/lists`, `/admin/settings`, `/admin/roles`, `/admin/fiches` (pilote et confidentialité seulement), `/admin/fiches/{id}/validations`, `POST/DELETE /admin/validations/{id}/partages` (validation partagée) |
 | Administration technique (`ADMIN_TECHNIQUE`) | `GET /technique`, `PUT /technique/settings` |
 | Fiches | `GET/POST /fiches`, `GET /fiches/{id}`, `PUT /fiches/{id}/sections/{n}`, `POST /fiches/{id}/transitions`, `POST /fiches/{id}/confidentialite`, `GET /fiches/{id}/historique`, `GET /fiches/{id}/options`, `GET/POST /fiches/{id}/commentaires` |
 | Workflow | `GET /validations`, `POST /validations/{id}/decision`, `POST /actions/{id}/statut`, `PATCH /controles/{id}`, `POST /gains/{id}/decision` |
@@ -201,7 +201,7 @@ Refonte autour de la fiche A3 elle-même (`AuthPage`, `A3Sheet`, `Login`) :
 - Bilan d'expert du 19 octobre, puis corrections :
   - le pilote se change à toute étape avant la clôture, avec motif après l'étape Ouvert ; ses demandes de validation éventuelles passent au titulaire suivant (B8) ;
   - pendant la réalisation, le pilote reporte une échéance, change un responsable ou ajoute une action, avec motif et trace ;
-  - l'administrateur fonctionnel partage une fiche avec un second pilote et une demande de validation avec un second valideur (absence, maladie) : les deux voient et poursuivent le travail ; les demandes dont aucun valideur n'est disponible apparaissent dans « À régulariser » ;
+  - l'administrateur fonctionnel partage une demande de validation avec un second valideur (absence, maladie) : les deux la voient ; les demandes dont aucun valideur n'est disponible apparaissent dans « À régulariser » ;
   - chaque section indique pourquoi elle est modifiable ou non (crayon, cadenas, horloge) et qui l'a enregistrée en dernier ; l'en-tête de fiche n'est plus collant, un rappel compact le remplace au défilement ;
   - notifications : action attribuée (dès la validation du plan), échéance proche, contrôle disponible ; tous les rappels arrivent dans les notifications ;
   - tableau de bord : choix de l'année des indicateurs annuels, part des fiches avec vérification d'efficacité, répartition par unité, type et origine ;
@@ -268,7 +268,7 @@ Recréées par `php artisan migrate:fresh --seed` (environnement `local`).
 | `NotificationTest` | Compteur, lecture, isolation par utilisateur |
 | `CalculsTest` (5) | Formules et « Non calculable » |
 | `RelancesTest`, `PiecesJointesTest` | Relances manuelles et automatiques, dépôt et téléchargement des pièces jointes |
-| `SuiviTerrainTest` (12) | Changement de pilote, fiche partagée entre deux pilotes, validation partagée entre deux valideurs, état des sections (cadenas), replanification et ajout d'action, échéances proches et contrôles disponibles, année des indicateurs, recherche par équipement, lien à la création d'un compte |
+| `SuiviTerrainTest` (13) | Changement de pilote (un membre désigné pilote quitte l'équipe, retrait du pilote d'une fiche ouverte, sponsor jamais pilote), validation partagée entre deux valideurs, état des sections (cadenas), replanification et ajout d'action, échéances proches et contrôles disponibles, année des indicateurs, recherche par équipement, lien à la création d'un compte |
 
 Outil commun : trait `tests/Concerns/SimuleFiches` (acteurs par rôle, amener une fiche à une étape donnée).
 

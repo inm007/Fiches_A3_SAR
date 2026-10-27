@@ -75,8 +75,6 @@ Route::prefix('admin')
         Route::get('/fiches', [FicheAdminController::class, 'index']);
         Route::patch('/fiches/{fiche}', [FicheAdminController::class, 'update']);
         Route::get('/fiches/{fiche}/validations', [FicheAdminController::class, 'validations']);
-        Route::post('/fiches/{fiche}/copilotes', [FicheAdminController::class, 'partagerFiche']);
-        Route::delete('/fiches/{fiche}/copilotes/{user}', [FicheAdminController::class, 'retirerCopilote']);
         Route::post('/validations/{validation}/partages', [FicheAdminController::class, 'partagerValidation']);
         Route::delete('/validations/{validation}/partages/{user}', [FicheAdminController::class, 'retirerPartageValidation']);
     });

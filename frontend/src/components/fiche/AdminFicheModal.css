@@ -32,3 +32,14 @@
   color: var(--text-muted);
   font-size: var(--text-sm);
 }
+
+.admin-fiche-form__equipe {
+  display: grid;
+  gap: var(--space-05);
+  font-size: var(--text-sm);
+}
+
+.admin-fiche-form__label {
+  color: var(--text-muted);
+  font-weight: 600;
+}

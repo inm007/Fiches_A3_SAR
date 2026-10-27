@@ -278,7 +278,7 @@ class FicheSectionService
             return;
         }
 
-        foreach ($fiche->pilotesIds() as $piloteId) {
+        foreach (array_filter([$fiche->pilote_id]) as $piloteId) {
             $estPilote = Affectation::query()->enCours()->where('user_id', $piloteId)->where('unite_id', $uniteId)
                 ->whereHas('role', fn ($query) => $query->where('code', 'PILOTE'))->exists();
             if (! $estPilote) {
