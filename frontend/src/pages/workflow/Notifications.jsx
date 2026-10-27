@@ -48,12 +48,53 @@ function groupByDay(notifications) {
   }, [])
 }
 
+function groupByFiche(notifications) {
+  const groups = new Map()
+  notifications.forEach((notification) => {
+    const key = notification.fiche?.id ?? 'sans-fiche'
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        label: notification.fiche?.numero_a3 ?? 'Sans fiche',
+        items: [],
+        unread: 0,
+      })
+    }
+    const group = groups.get(key)
+    group.items.push(notification)
+    if (!notification.lu) group.unread += 1
+  })
+  return [...groups.values()]
+}
+
 function splitMessage(notification) {
   const numero = notification.fiche?.numero_a3
   const prefix = numero ? `${numero} — ` : ''
   return prefix && notification.message.startsWith(prefix)
     ? { numero, text: notification.message.slice(prefix.length) }
     : { numero, text: notification.message }
+}
+
+function NotificationRow({ notification, onOpen }) {
+  const { numero, text } = splitMessage(notification)
+  return (
+    <li>
+      <button className={`notifications-page__item${notification.lu ? '' : ' is-unread'}${notification.traite ? ' is-done' : ''}`} type="button" onClick={() => onOpen(notification)}>
+        <span aria-hidden="true" className="notifications-page__icon"><Icon name={iconFor(notification.message)} size={18} /></span>
+        <span className="notifications-page__body">
+          <span className="notifications-page__message">{text}</span>
+          <span className="notifications-page__meta">
+            {numero && <span className="notifications-page__numero">{numero}</span>}
+            <span className="sar-num">{formatDateTime(notification.created_at)}</span>
+          </span>
+        </span>
+        <span className={`notifications-page__state${notification.lu ? '' : ' is-unread'}${notification.traite ? ' is-done' : ''}`}>
+          {notification.traite ? 'Fait' : notification.lu ? 'Lu' : 'À lire'}
+        </span>
+        <Icon className="notifications-page__chevron" name="page-next" size={16} />
+      </button>
+    </li>
+  )
 }
 
 function Notifications() {
@@ -64,6 +105,8 @@ function Notifications() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
   const [markingAll, setMarkingAll] = useState(false)
+  const [groupedByFiche, setGroupedByFiche] = useState(false)
+  const [collapsedFiches, setCollapsedFiches] = useState({})
 
   const filters = useMemo(() => (readFilter ? { etat: readFilter } : {}), [readFilter])
   const load = useCallback(() => notificationService.list(page, pageSize, filters)
@@ -111,6 +154,17 @@ function Notifications() {
       {result && (
         <ListToolbar>
           <FilterSelect label="État" options={[['non_lu', 'À lire'], ['lu', 'Lues']]} value={readFilter} onChange={list.setFilter('etat')} />
+          <label className="notifications-page__group-toggle">
+            <span>Grouper par fiche</span>
+            <input
+              aria-label="Grouper par fiche"
+              checked={groupedByFiche}
+              role="switch"
+              type="checkbox"
+              onChange={(event) => setGroupedByFiche(event.target.checked)}
+            />
+            <span aria-hidden="true" className="notifications-page__switch"><span /></span>
+          </label>
           <ToolbarActions>
             <ResultCount count={result.meta.total} singular="notification" />
             {list.active && <Button onClick={list.reset} type="button" variant="secondary">Réinitialiser</Button>}
@@ -128,33 +182,58 @@ function Notifications() {
         </div>
       )}
       {result?.data.length > 0 && (
-        <div className="notifications-page__groups">
-          {groupByDay(result.data).map((group) => (
-            <section className="notifications-page__group" key={group.label}>
-              <h2>{group.label}</h2>
-              <ul className="notifications-page__list">
-                {group.items.map((notification) => {
-                  const { numero, text } = splitMessage(notification)
-                  return (
-                    <li key={notification.id}>
-                      <button className={`notifications-page__item${notification.lu ? '' : ' is-unread'}${notification.traite ? ' is-done' : ''}`} type="button" onClick={() => open(notification)}>
-                        <span aria-hidden="true" className="notifications-page__icon"><Icon name={iconFor(notification.message)} size={18} /></span>
-                        <span className="notifications-page__body">
-                          <span className="notifications-page__message">{text}</span>
-                          <span className="notifications-page__meta">
-                            {numero && <span className="notifications-page__numero">{numero}</span>}
-                            <span className="sar-num">{formatDateTime(notification.created_at)}</span>
-                          </span>
-                        </span>
-                        <span className={`notifications-page__state${notification.lu ? '' : ' is-unread'}${notification.traite ? ' is-done' : ''}`}>
-                          {notification.traite ? 'Fait' : notification.lu ? 'Lu' : 'À lire'}
-                        </span>
-                        <Icon className="notifications-page__chevron" name="page-next" size={16} />
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
+        <div className={`notifications-page__groups${groupedByFiche ? ' notifications-page__groups--by-fiche' : ''}`}>
+          {(groupedByFiche ? groupByFiche(result.data) : groupByDay(result.data)).map((group) => (
+            <section className={`notifications-page__group${groupedByFiche ? ' notifications-page__group--fiche' : ''}`} key={group.key ?? group.label}>
+              {groupedByFiche ? (
+                <>
+                  <header className="notifications-page__fiche-header">
+                    <span aria-hidden="true" className="notifications-page__fiche-icon">
+                      <Icon name={group.key === 'sans-fiche' ? 'bell' : 'file'} size={18} />
+                    </span>
+                    <span className="notifications-page__fiche-title">
+                      <span>{group.key === 'sans-fiche' ? 'Autres notifications' : 'Fiche'}</span>
+                      <strong>{group.label}</strong>
+                    </span>
+                    <span className="notifications-page__fiche-count">
+                      {group.items.length} notification{group.items.length === 1 ? '' : 's'}
+                    </span>
+                    {group.unread > 0 && (
+                      <span className="notifications-page__fiche-unread">
+                        {group.unread} non lue{group.unread === 1 ? '' : 's'}
+                      </span>
+                    )}
+                    <button
+                      aria-controls={`notifications-fiche-${group.key}`}
+                      aria-expanded={!collapsedFiches[group.key]}
+                      aria-label={`${collapsedFiches[group.key] ? 'Afficher' : 'Masquer'} les notifications de ${group.label}`}
+                      className="notifications-page__fiche-toggle"
+                      type="button"
+                      onClick={() => setCollapsedFiches((current) => ({ ...current, [group.key]: !current[group.key] }))}
+                    >
+                      <Icon className={collapsedFiches[group.key] ? '' : 'is-expanded'} name="chevron-down" size={18} />
+                    </button>
+                  </header>
+                  <div
+                    className={`notifications-page__fiche-content${collapsedFiches[group.key] ? ' is-collapsed' : ''}`}
+                    id={`notifications-fiche-${group.key}`}
+                    inert={collapsedFiches[group.key] || undefined}
+                  >
+                    <div className="notifications-page__fiche-content-inner">
+                      <ul className="notifications-page__list notifications-page__list--fiche">
+                        {group.items.map((notification) => <NotificationRow key={notification.id} notification={notification} onOpen={open} />)}
+                      </ul>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2>{group.label}</h2>
+                  <ul className="notifications-page__list">
+                    {group.items.map((notification) => <NotificationRow key={notification.id} notification={notification} onOpen={open} />)}
+                  </ul>
+                </>
+              )}
             </section>
           ))}
         </div>

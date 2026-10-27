@@ -1,6 +1,6 @@
 # Fiche A3 numérique SAR
 
-Outil de suivi des fiches A3 d'amélioration continue de la SAR : déclaration d'un problème, analyse en 12 sections, pertinence validée par un chef de département, plan d'actions validé par les directeurs concernés, clôture approuvée par le directeur sponsor, contrôles d'efficacité à J+30, J+60 et J+90, gains en FCFA et historique immuable.
+Outil de suivi des fiches A3 d'amélioration continue de la SAR : déclaration d'un problème, analyse en 12 sections, plan d'actions validé en deux portes, contrôles d'efficacité à J+30, J+60 et J+90, gains en FCFA et historique immuable.
 
 
 ## Démarrage rapide
@@ -25,15 +25,14 @@ npm run dev                   # http://127.0.0.1:5173
 Ouvrir http://127.0.0.1:5173 et se connecter avec un compte de démonstration, mot de passe `Azerty123` :
 
 | Déclarer une fiche | `agent.demo` |
-| Remplir les sections 1 à 4, constituer l'équipe, soumettre le plan et la clôture | `pilote.demo` (Distillation), `pilote2.demo` (Reformage, Utilités) |
-| Valider la pertinence (porte 0) | `chef.demo` (Exploitation), `chef2.demo` (Maintenance) |
-| Valider un plan (porte 1) | `valideur.demo`, `valideur-hse.demo`, `valideur-procede.demo`… |
+| Compléter une fiche, soumettre le plan et la clôture | `pilote.demo` |
+| Valider un plan | `valideur.demo`, `valideur-hse.demo` |
 | Valider les gains | `controle.demo` |
-| Approuver la clôture comme sponsor, vue globale | `direction.demo` |
-| Comptes, affectations, organigramme, référentiels, désignation du pilote | `admin-fonctionnel.demo` |
+| Approuver la clôture, vue globale | `direction.demo` |
+| Comptes, affectations, référentiels, désignation du pilote | `admin-fonctionnel.demo` |
 | État technique et journal d'administration | `admin-technique.demo` |
 
-Chaque rôle a deux comptes (`agent.demo` et `agent2.demo`, `controle.demo` et `controle2.demo`…). La base de démonstration contient 30 fiches réparties par compte : les deux agents et les deux pilotes en ont chacun plusieurs, à toutes les étapes du parcours (sans pilote, renvoyée ou classée par le chef, en cours, plan refusé, MOC bloqué, en attente, nouvelle boucle, contrôle non conforme, clôture refusée par le sponsor, clôturée…). Commentaires, pièces jointes, relances, notifications, partages et journal d'administration sont aussi remplis. Le détail est dans la section 20 de [DOCUMENTATION.md](DOCUMENTATION.md).
+La base de démonstration contient 15 fiches, une par étape du parcours.
 
 ## Mettre à jour une base existante
 
@@ -43,8 +42,6 @@ Les migrations de création ont été réécrites (colonnes fusionnées, tables 
 cd backend
 php artisan migrate:fresh --seed   # efface toutes les données puis recharge la démonstration
 ```
-
-Une base déjà à jour de la version précédente passe au circuit actuel (chef choisi par le pilote, gains saisis à la main, participants sans compte retirés) avec un simple `php artisan migrate` : les fiches déjà soumises gardent le chef de leur département. Les participants sans compte saisis auparavant sont supprimés.
 
 Le serveur de courriel se configure uniquement dans `backend/.env` (voir « Brancher l'annuaire, SAP et le courriel »).
 
@@ -74,15 +71,9 @@ Ces raccordements se font par configuration, dans `backend/.env`, sans toucher a
 | SAP (lecture) | `SAP_ENABLED=true` | `false` : les références SAP (équipement, avis, ordre) sont saisies à la main. |
 | Serveur de courriel | `MAIL_MAILER`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS` ; `APP_NAME` donne le nom de l'expéditeur | `log` : les liens de mot de passe sont écrits dans `storage/logs`. |
 
-En production, passer aussi `APP_DEBUG=false` et `APP_ENV=production`, sinon une erreur affiche les chemins et la pile d'appels. Derrière un reverse proxy, renseigner `TRUSTED_PROXIES` (adresses du proxy, ou `*`) : la limite de connexion par adresse voit alors l'adresse du poste et non celle du proxy.
+En production, passer aussi `APP_DEBUG=false` et `APP_ENV=production`, sinon une erreur affiche les chemins et la pile d'appels.
 
 ## Vérifier
-
-Les tests du serveur utilisent leur propre base, `fiche_a3_test`, recréée à chaque lancement : ils ne touchent pas la base de démonstration. La créer une fois :
-
-```bash
-createdb -U postgres fiche_a3_test
-```
 
 ```bash
 cd backend && php artisan test --compact && vendor/bin/pint --test

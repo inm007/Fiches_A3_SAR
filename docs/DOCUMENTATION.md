@@ -43,10 +43,10 @@ Un utilisateur peut porter plusieurs rôles, appelés affectations. Chaque affec
 
 | Profil | Ce qu'il fait |
 |---|---|
-| Agent | Déclare une fiche, suit ses déclarations, fait avancer les actions dont il est responsable ; membre d'une équipe, il renseigne l'analyse et le suivi. |
-| Pilote | Déclare une fiche, remplit les sections 1 à 4, choisit le sponsor et le chef qui valide la pertinence, constitue l'équipe, soumet le plan puis la clôture, pilote les actions, saisit la mesure et les contrôles. |
-| Chef de département | Valide la pertinence des fiches qui lui sont soumises (porte 0) : valider, renvoyer à refaire ou classer sans suite. Profil donné par l'organigramme. |
-| Directeurs (Production, HSE, Procédé / Technique, Maintenance, Inspection / Intégrité, DSI) | Valident le plan quand leur domaine est coché en section 7 (porte 1). Peuvent être choisis comme sponsor. |
+| Agent | Déclare une fiche, suit ses déclarations et fait avancer les actions dont il est responsable. |
+| Pilote | Rédige la fiche, soumet le plan puis la clôture, pilote les actions, saisit la mesure et les contrôles. |
+| Valideur Production / Exploitation | Valide le plan en premier, sur toutes les fiches de son unité. |
+| Valideurs HSE, Procédé / Technique, Maintenance, Inspection / Intégrité | Valident le plan quand leur domaine est coché en section 7. |
 | Contrôle de gestion | Valide ou refuse chaque ligne de gain, puis approuve la porte 2 si des gains sont chiffrés. |
 | Direction | Voit toutes les fiches, peut mettre en attente, reprendre et relancer. Peut être choisie comme sponsor. |
 | Sponsor (un directeur choisi en section 1) | Donne l'accord final à la clôture (porte 2) : valider ou renvoyer la fiche. |
@@ -61,16 +61,15 @@ Le serveur reste la source de vérité. Masquer un bouton n'est qu'un confort : 
 
 | Étape | Qui agit | Passage à l'étape suivante |
 |---|---|---|
-| 1. Ouvert | Agent ou pilote (déclaration) ; le pilote de l'unité se désigne lui-même, sinon l'administrateur fonctionnel, prévenu, désigne un pilote de l'unité. Le pilote remplit les sections 1 à 4, choisit le sponsor (section 1) et le chef qui valide (section 4) | T0 « Soumettre au chef de département », par le pilote |
-| 2. En validation de la pertinence | Chef de département choisi (porte 0) | Valider : passage à En cours ; À refaire : retour à Ouvert avec son commentaire ; Classer : Classée sans suite |
-| 3. En cours | Pilote et son équipe : sections 1 et 5 à 7 (2 à 4 sont figées) | T3 « Soumettre le plan », si les conditions B2 sont remplies |
-| 4. En validation du plan | Directeurs des domaines cochés, tous en même temps (porte 1) | T4 automatique quand tout est approuvé ; T5 retour à En cours en cas de refus |
-| 5. Réalisation des actions | Responsables des actions ; pilote | T6 « Terminer les actions » : toutes terminées, au moins une réalisée, chaque cause racine garde une action |
-| 6. Mesure des résultats | Pilote : section 8 | T7 « Passer à la vérification du maintien », seulement si l'objectif est atteint (oui ou partiellement) |
-| 7. Vérification du maintien | Pilote : contrôles J+30, J+60, J+90 des actions, maintien du KPI principal à J+30, J+60, J+90, sections 9 à 11 | T8 « Soumettre la clôture » |
-| 8. En validation de clôture | Contrôle de gestion (si des gains sont chiffrés), puis le directeur sponsor (porte 2) | T9 automatique vers Clôturé ; T10 renvoi en cas de refus |
-| 9. Clôturé | — | — |
-| Classée sans suite | Chef de département à la porte 0, Direction ou administrateur fonctionnel | Refus « classer » à la porte 0, ou T14 depuis Ouvert ou En cours, avec un motif (doublon, hors sujet…) |
+| 1. Ouvert | Agent ou pilote (déclaration) ; le pilote de l'unité se désigne lui-même, sinon l'administrateur fonctionnel désigne le pilote | T2 « Commencer l'analyse », par le pilote |
+| 2. En cours | Pilote : sections 1 à 7 | T3 « Soumettre le plan », si les conditions B2 sont remplies |
+| 3. En validation du plan | Valideurs de la porte 1 | T4 automatique quand tout est approuvé ; T5 retour à En cours en cas de refus |
+| 4. Réalisation des actions | Responsables des actions ; pilote | T6 « Terminer les actions » : toutes terminées, au moins une réalisée, chaque cause racine garde une action |
+| 5. Mesure des résultats | Pilote : section 8 | T7 « Passer à la vérification du maintien », seulement si l'objectif est atteint (oui ou partiellement) |
+| 6. Vérification du maintien | Pilote : contrôles J+30, J+60, J+90 des actions, maintien du KPI principal à J+30, J+60, J+90, sections 9 à 11 | T8 « Soumettre la clôture » |
+| 7. En validation de clôture | Contrôle de gestion (si des gains sont chiffrés), puis Direction | T9 automatique vers Clôturé ; T10 retour en cas de refus |
+| 8. Clôturé | — | — |
+| Classée sans suite | Direction ou administrateur fonctionnel | T14, depuis Ouvert ou En cours, avec un motif (doublon, hors sujet…) |
 
 Quatre opérations s'ajoutent au parcours :
 - **T11, nouvelle boucle** : depuis Mesure ou Vérification, si l'objectif n'est pas atteint ou si le gain n'est pas maintenu. La fiche repart à En cours avec une nouvelle boucle (numéro de version), et le motif est obligatoire. Les mesures Après et de maintien, l'objectif atteint et la date des résultats sont effacés : la boucle suivante se mesure à neuf. L'historique et la copie figée gardent les anciennes valeurs.
@@ -78,7 +77,7 @@ Quatre opérations s'ajoutent au parcours :
 - **T12, mise en attente** : bloque la fiche, avec un motif obligatoire.
 - **T13, levée du blocage** : la fiche revient exactement à l'étape où elle était.
 
-À la déclaration (T1), le numéro A3-AAAA-NNN est attribué automatiquement. La numérotation recommence chaque année. Un pilote qui déclare une fiche de son unité coche « Je pilote cette fiche » et en devient pilote tout de suite ; quand un agent, ou un pilote d'une autre unité, déclare, les administrateurs fonctionnels sont notifiés et l'un d'eux désigne un pilote de l'unité. Le déclarant ne remplit pas la fiche : c'est le pilote qui la rédige. Quand un équipement est choisi, l'écran signale les fiches encore ouvertes sur cet équipement, pour éviter un doublon.
+À la déclaration (T1), le numéro A3-AAAA-NNN est attribué automatiquement. La numérotation recommence chaque année. Un pilote qui déclare une fiche de son unité coche « Je pilote cette fiche » et en devient pilote tout de suite ; un agent, ou un pilote d'une autre unité, laisse l'administrateur désigner le pilote. Quand un équipement est choisi, l'écran signale les fiches encore ouvertes sur cet équipement, pour éviter un doublon.
 
 La date de lancement se remplit à la validation de la pertinence. À la fin de la section 4, comme pour le chef de département, le pilote compose son équipe : des agents et des pilotes actifs, même d'une autre unité. Chaque membre ajouté reçoit une invitation. Les membres voient la fiche ; après la pertinence, ils renseignent les sections 5 à 11 et déposent des pièces jointes. Les sections 1 à 4 restent en lecture seule pour eux, ils ne valident jamais la fiche et seul le pilote la soumet ou change d'étape. Une personne n'a qu'un rôle sur la fiche : un membre désigné pilote quitte l'équipe. Une copie figée de la fiche est enregistrée à chaque soumission du plan (T3) et à la clôture (T9) ; elle se consulte et s'imprime depuis la section 12.
 
@@ -98,10 +97,10 @@ Toutes les transitions passent par un seul service, `FicheWorkflow`, sous verrou
 | 6 | Plan de contre-mesures | Actions regroupées par cause : type, responsable, échéance, coût, MOC lié, critère d'efficacité obligatoire. Une action réalisée ou annulée ne se modifie plus | En cours |
 | 7 | Risques et MOC | Domaines concernés par pastilles, liste cochée des valideurs sollicités, risques (un risque coche son domaine), MOC requis, référence, statut et preuve | En cours, puis suivi du MOC en réalisation |
 | 8 | Résultats après action | Valeur Après de chaque indicateur avec écart et amélioration calculés, objectif atteint proposé d'après la cible ; puis maintien du KPI principal à J+30, J+60 et J+90 | Mesure ; en Vérification, seulement le maintien |
-| 9 | Gains économiques | Lignes de gain (catégorie, hypothèse, montant annuel en FCFA saisi à la main), coût de mise en œuvre facultatif, ou « sans gain chiffré ». L'application ne calcule rien | Réalisation à Vérification |
-| 10 | Standardisation et pérennisation | Actions de pérennisation ajoutées d'un geste par pastilles ; chacune doit être réalisée avant la clôture. La preuve est facultative : une référence écrite, et si on le souhaite un document ou une photo joints à la ligne | Réalisation à Vérification |
+| 9 | Gains économiques | Lignes de gain (catégorie, hypothèse, quantité, unité, coût unitaire), coût de mise en œuvre, ou « sans gain chiffré ». A, B, gain net et retour sur investissement se calculent pendant la saisie | Réalisation à Vérification |
+| 10 | Standardisation et pérennisation | Actions de pérennisation ajoutées d'un geste par pastilles ; chacune doit être réalisée avec sa preuve avant la clôture | Réalisation à Vérification |
 | 11 | Leçons apprises | Ce qui a marché, ce qui est à reproduire ailleurs | Mesure, Vérification |
-| 12 | Validation | Signatures des trois portes, section en cause d'un refus, copies figées imprimables (lecture seule) | — |
+| 12 | Validation | Signatures des deux portes, section en cause d'un refus, copies figées imprimables (lecture seule) | — |
 
 Chaque section indique pourquoi elle est modifiable ou non, par une icône dans la liste des sections et un message en tête de section :
 - **crayon** : modifiable maintenant ;
@@ -109,7 +108,7 @@ Chaque section indique pourquoi elle est modifiable ou non, par une icône dans 
 - **horloge** : s'ouvrira à une étape ultérieure, nommée dans le message ;
 - **coche** : section 12, remplie par les décisions des valideurs.
 
-Le pilote modifie toutes les sections ouvertes ; un membre de l'équipe modifie les sections 5 à 11. Un profil qui ne rédige pas la fiche la voit en lecture seule, sans cadenas. Chaque section affiche aussi son dernier enregistrement (auteur et date).
+Un profil qui ne rédige pas la fiche la voit en lecture seule, sans cadenas. Chaque section affiche aussi son dernier enregistrement (auteur et date).
 
 Chaque section commence par une **astuce** repliable qui explique quoi écrire, ouverte tant que la section est vide. Les listes de lignes (indicateurs, causes, actions, risques, mesures, gains, pérennisation) s'affichent en cartes : plus de tableau à faire défiler.
 
@@ -119,14 +118,12 @@ Chaque section s'enregistre explicitement avec le bouton « Enregistrer ». Chaq
 
 **Porte 0, la pertinence.** À la fin de la section 4, le pilote choisit le chef de département qui juge la pertinence (le chef de son département est proposé d'après l'organigramme). Le chef reçoit une notification et décide : **valider** (la fiche passe en cours, les sections 2 à 4 se figent et l'équipe rédige les sections 5 à 11), **à refaire** (la fiche revient au pilote avec son commentaire et, s'il le précise, la section à corriger), ou **classer sans suite** (motif obligatoire).
 
-**Porte 1, le plan.** Les directeurs des domaines cochés en section 7 sont notifiés en même temps et décident en parallèle ; le plan est approuvé quand tous ont dit oui. La correspondance domaine → directeurs se règle dans l'écran Circuit de validation (par exemple Procédé, Fiabilité et Intégrité → Direction technique ; QHSE → DHSE ; Sûreté-cybersécurité → Direction technique et DSI). Pour le domaine « Autres », le valideur est choisi dans la fiche.
-
-**Porte 2, la clôture.** Le Contrôle de gestion valide d'abord, si des gains sont chiffrés. Il valide ou refuse chaque ligne de gain, puis approuve la porte. Le directeur sponsor choisi en section 1 donne ensuite l'accord final : valider, ou renvoyer la fiche en indiquant ce qui est en cause.
+**Porte 2, la clôture.** Le Contrôle de gestion valide d'abord, si des gains sont chiffrés. Il valide ou refuse chaque ligne de gain, puis approuve la porte. La Direction approuve ensuite : la demande va au sponsor de la fiche quand il est titulaire du rôle Direction.
 
 Avant de décider, le valideur voit un résumé de la fiche (problème, KPI, objectif, plan ou résultats, gains). En cas de refus, il peut indiquer la section à corriger ; en porte 2, il choisit ce qui est en cause (la mesure, ou le maintien et la clôture), ce qui fixe l'étape de retour.
 
 Les règles du circuit sont les suivantes :
-- **Choix du valideur** : à la porte 0, le chef choisi ; à la porte 2, le sponsor ; sinon le titulaire du rôle dans l'unité de la fiche, puis un titulaire global. Ce n'est jamais le pilote ni un membre de l'équipe de la fiche (B8).
+- **Choix du valideur** : la demande va au titulaire du rôle dans l'unité de la fiche, sinon à un titulaire global. Ce n'est jamais le pilote de la fiche.
 - **Refus** : un commentaire est obligatoire (B6). La fiche retourne au pilote.
 - **Signatures conservées** : après un refus puis une nouvelle soumission, une signature déjà obtenue reste valable tant que le domaine du valideur n'a pas changé. On ne refait donc pas valider tout le monde.
 - **Validation partagée** : si un valideur est absent, malade, désactivé ou a perdu son affectation, sa demande apparaît dans « À régulariser » sur le tableau de bord de l'administrateur fonctionnel. Celui-ci la partage avec un autre titulaire du même rôle, avec un motif inscrit dans l'historique. Les deux valideurs voient la demande ; le premier qui décide la traite et signe, l'autre reste associé. Le partage se retire à tout moment.
@@ -134,7 +131,7 @@ Les règles du circuit sont les suivantes :
 
 ## 6. Actions, MOC et suivi
 
-Une action suit les statuts À faire, En cours, Réalisée, Bloquée et Annulée. Un blocage ou une annulation exige un motif. Passer une action à « Réalisée » propose une preuve facultative (référence écrite, et document ou photo joints) et programme automatiquement ses contrôles J+30, J+60 et J+90. Chaque action porte un critère d'efficacité, rappelé à chaque contrôle ; une action corrective reprend celui de l'action d'origine.
+Une action suit les statuts À faire, En cours, Réalisée, Bloquée et Annulée. Un blocage ou une annulation exige un motif. Passer une action à « Réalisée » exige une preuve (bon de travaux, photo, compte rendu) et programme automatiquement ses contrôles J+30, J+60 et J+90. Chaque action porte un critère d'efficacité, rappelé à chaque contrôle ; une action corrective reprend celui de l'action d'origine.
 
 **MOC (B1).** Une action liée à un risque qui exige un MOC ne démarre pas tant que trois conditions ne sont pas réunies : le MOC est référencé, il est clôturé, et sa preuve de clôture est jointe.
 
@@ -163,16 +160,18 @@ La clôture ne peut pas être soumise tant que les contrôles ne sont pas tous r
 
 ## 8. Gains économiques et formules
 
-Les gains se saisissent à la main : pour chaque ligne, le pilote donne la nature du gain, son hypothèse et le montant annuel en FCFA. L'application ne fait aucun calcul de gain (ni quantité × coût, ni gain net, ni délai de retour). Elle additionne seulement les montants pour afficher les gains enregistrés (hors refusés) et les gains validés.
-
-Les seules formules qui restent portent sur les indicateurs (classe `Calculs`) ; une valeur impossible à calculer s'affiche « Non calculable » :
+Les calculs sont centralisés dans la classe `Calculs`. Une valeur impossible à calculer (dénominateur nul ou donnée absente) s'affiche « Non calculable ».
 
 | Grandeur | Formule |
 |---|---|
-| Écart d'un indicateur | valeur mesurée − cible |
 | Amélioration d'un indicateur (%) | (après − avant) ÷ avant × 100 × s, avec s = +1 si la hausse est souhaitée, −1 si c'est la baisse |
+| Gain annuel d'une ligne (FCFA) | quantité × coût unitaire, arrondi à l'entier |
+| Total A | somme des gains annuels des lignes validées |
+| Coût B | coût de mise en œuvre |
+| Gain net annuel | A − B |
+| Délai de retour (années) | B ÷ A, seulement si A > 0 |
 
-Le Contrôle de gestion valide ou refuse chaque ligne de gain. Une fiche peut être clôturée « sans gain chiffré » : dans ce cas, la porte 2 ne passe que par le sponsor.
+Le Contrôle de gestion valide ou refuse chaque ligne de gain. Une fiche peut être clôturée « sans gain chiffré » : dans ce cas, la porte 2 ne passe que par la Direction.
 
 ## 9. Règles métier B1 à B8
 
@@ -181,8 +180,8 @@ Le Contrôle de gestion valide ou refuse chaque ligne de gain. Une fiche peut ê
 | B1 | Une action sous MOC ne démarre pas tant que le MOC n'est pas référencé, clôturé et prouvé. |
 | B2 | Le plan ne se soumet que complet : type et date cible, contexte, indicateur principal avec sa valeur actuelle et sa cible, objectif SMART, résultats attendus, méthode d'analyse, au moins une cause dont une cause racine, au moins une action dont une sur une cause racine, un critère d'efficacité sur chaque action, au moins un domaine, et un titulaire disponible pour chaque valideur. |
 | B3 | La mesure ne se valide qu'avec la valeur Après du KPI principal et des KPI à ne pas dégrader, et un objectif atteint (oui, ou partiellement avec l'écart expliqué). Un objectif non atteint impose une nouvelle boucle. |
-| B4 | Pas de clôture sans contrôles J+30, J+60 et J+90 renseignés pour chaque action non annulée, ni sans le maintien du KPI principal tenu à J+30, J+60 et J+90 ; un contrôle non conforme exige une action corrective et sa vérification. Chaque action de pérennisation doit être réalisée (la preuve est facultative). |
-| B5 | Pas de clôture sans l'approbation du directeur sponsor, et du Contrôle de gestion si des gains sont chiffrés (chaque ligne de gain doit d'abord être validée ou refusée). |
+| B4 | Pas de clôture sans contrôles J+30, J+60 et J+90 renseignés pour chaque action non annulée, ni sans le maintien du KPI principal tenu à J+30, J+60 et J+90 ; un contrôle non conforme exige une action corrective et sa vérification. Chaque action de pérennisation doit être réalisée avec sa preuve. |
+| B5 | Pas de clôture sans l'approbation de la Direction, et du Contrôle de gestion si des gains sont chiffrés (chaque ligne de gain doit d'abord être validée ou refusée). |
 | B6 | Tout refus et tout blocage exigent un commentaire ou un motif. |
 | B7 | Une décision n'est possible que sur une demande en attente, à l'étape active de sa porte, une fois les demandes prioritaires approuvées. |
 | B8 | Ni le pilote ni un membre de l'équipe ne valident la fiche, à aucune porte. Le sponsor et le chef choisis ne peuvent ni piloter la fiche ni faire partie de l'équipe. |
@@ -212,7 +211,6 @@ Toutes les notifications arrivent dans la cloche en haut à droite et sur la pag
 
 | Événement | Destinataire |
 |---|---|
-| Fiche déclarée sans pilote | Administrateurs fonctionnels |
 | Désignation ou changement de pilote | Nouveau pilote, ancien pilote |
 | Ajout à l'équipe (invitation), retrait de l'équipe | Membre concerné |
 | Demande de validation, partage d'une demande | Valideur, valideur associé |
@@ -235,23 +233,22 @@ La relance manuelle (bouton « Relancer ») est ouverte au pilote, à la Directi
 
 **Commentaires.** On peut les rattacher à la fiche, à une action ou à une validation.
 
-**Pièces jointes.** Les formats acceptés sont PDF, PNG, JPEG, DOCX, XLSX et PPTX. Le type réel du fichier est vérifié. La taille maximale (10 Mo par défaut) et le nombre maximal par fiche (20 par défaut) sont réglables. Le pilote et les membres de l'équipe déposent sur toute la fiche, et peuvent rattacher le fichier à une action ou à une ligne de pérennisation (preuve) ; un agent, ou un pilote hors de l'équipe, ne dépose que sur une action dont il est responsable. Les fichiers sont stockés sur un disque privé et téléchargés après authentification, sans adresse publique.
+**Pièces jointes.** Les formats acceptés sont PDF, PNG, JPEG, DOCX, XLSX et PPTX. Le type réel du fichier est vérifié. La taille maximale (10 Mo par défaut) et le nombre maximal par fiche (20 par défaut) sont réglables. Le pilote dépose sur toute sa fiche ; un agent, ou un pilote sur la fiche d'un autre, ne dépose que sur une action dont il est responsable. Les fichiers sont stockés sur un disque privé et téléchargés après authentification, sans adresse publique.
 
 ## 13. Tableaux de bord
 
 Chaque profil a son propre tableau de bord :
 - **Agent et pilote** : mes fiches, mes actions, les actions en retard, les contrôles à faire et la liste « À traiter ».
 - **Valideurs** : les demandes en attente, l'ancienneté de la plus vieille demande et les décisions récentes.
-- **Chef de département** : les fiches qui attendent sa décision de pertinence.
-- **Contrôle de gestion** : les gains à valider et les gains annuels validés de l'année choisie.
+- **Contrôle de gestion** : les gains à valider, les gains validés et le gain net annuel validé de l'année choisie.
 - **Direction** :
   - fiches ouvertes, fiches et actions en retard, fiches sans pilote ;
   - taux et délai moyen de clôture de l'année ;
   - part des fiches avec vérification d'efficacité renseignée ;
-  - gains annuels validés ;
+  - gain net annuel validé ;
   - répartition par unité, type d'amélioration et origine ;
   - portefeuille par étape et déclarations des six derniers mois.
-- **Administrateur fonctionnel** : les fiches déclarées sans pilote (« Désigner le pilote ») et les validations bloquées à partager, dans le bloc « À régulariser ».
+- **Administrateur fonctionnel** : les pilotes à désigner et les validations bloquées à partager, dans le bloc « À régulariser ».
 
 Le sélecteur d'année permet de consulter l'année en cours et les années précédentes. La consolidation de l'année écoulée reste donc accessible après le 1er janvier.
 
@@ -295,9 +292,7 @@ La page **État technique** affiche le fournisseur d'authentification, l'état d
 - Authentification par session (Laravel Sanctum, cookies et CSRF). Pas d'inscription publique.
 - Session fermée après 30 minutes sans activité. Une fenêtre prévient 2 minutes avant, avec un bouton « Rester connecté ».
 - Mot de passe d'au moins 8 caractères, avec au moins une majuscule et un chiffre. Réinitialisation par lien envoyé par courriel.
-- Connexion limitée à 5 échecs par identifiant et à 50 échecs par adresse IP en 15 minutes, avec un délai affiché avant de pouvoir réessayer. Un compte qui se connecte ne remet pas à zéro le compteur de l'adresse. Derrière un reverse proxy, renseigner `TRUSTED_PROXIES` (adresses du proxy, ou `*`) pour que la limite voie l'adresse du poste.
-- En-têtes de sécurité sur toutes les réponses : `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, et `Strict-Transport-Security` en HTTPS.
-- Un appel à l'API sans session répond 401, même sans en-tête `Accept: application/json`.
+- Nombre de tentatives de connexion limité, avec un délai affiché avant de pouvoir réessayer.
 
 ## 17. Architecture technique
 
@@ -311,13 +306,12 @@ Les règles métier vivent dans `backend/app/Services` :
 
 | Service | Rôle |
 |---|---|
-| `FicheWorkflow` | Seul service qui change l'étape (T0 à T14), sous verrou |
-| `ValidationCircuit` | Portes 0, 1 et 2, titulaires (chef choisi, directeurs, sponsor), signatures, partage des demandes |
-| `Organigramme` | Département d'un utilisateur, chef proposé, profils Chef de département |
+| `FicheWorkflow` | Seul service qui change l'étape (T1 à T13), sous verrou |
+| `ValidationCircuit` | Portes 1 et 2, titulaires, signatures, partage des demandes |
 | `FicheSectionService` | Enregistrement des sections selon l'étape |
 | `ActionService` | Statuts, MOC, replanification, ajout, actions correctives |
 | `ControleEfficaciteService` | Contrôles J+30/60/90 et contrôle correctif |
-| `Calculs` | Formules des indicateurs (écart, amélioration) et somme des gains saisis |
+| `Calculs` | Formules |
 | `FicheVisibility` | Portée des fiches par profil |
 | `RelanceService` | Relances manuelles et rappels quotidiens |
 | `NotificationService`, `HistoryLogger` | Notifications internes, historique immuable |
@@ -338,9 +332,9 @@ Toutes les routes sont préfixées par `/api`.
 | Domaine | Routes principales |
 |---|---|
 | Authentification | `POST /auth/connexion`, `/auth/deconnexion`, `/auth/profil-actif`, `/auth/mot-de-passe-oublie`, `/auth/mot-de-passe` ; `GET /auth/moi` |
-| Fiches | `GET/POST /fiches`, `GET /fiches/{id}`, `POST /fiches/{id}/me-designer`, `POST/DELETE /fiches/{id}/membres`, `PUT /fiches/{id}/sections/{n}`, `POST /fiches/{id}/transitions`, `POST /fiches/{id}/confidentialite`, `GET /fiches/{id}/historique`, `GET /fiches/{id}/versions` (copies figées), `GET /fiches/{id}/options` |
+| Fiches | `GET/POST /fiches`, `GET /fiches/{id}`, `POST /fiches/{id}/me-designer`, `PUT /fiches/{id}/sections/{n}`, `POST /fiches/{id}/transitions`, `POST /fiches/{id}/confidentialite`, `GET /fiches/{id}/historique`, `GET /fiches/{id}/versions` (copies figées), `GET /fiches/{id}/options` |
 | Workflow | `GET /validations`, `POST /validations/{id}/decision`, `POST /actions/{id}/statut`, `PATCH /actions/{id}`, `POST /fiches/{id}/actions`, `PATCH /controles/{id}`, `POST /gains/{id}/decision`, `POST /relances` |
-| Pièces jointes, commentaires | `GET/POST /fiches/{id}/pieces-jointes` (champ facultatif `action_id` ou `perennisation_id`), `GET /pieces-jointes/{id}/telechargement`, `GET/POST /fiches/{id}/commentaires` |
+| Pièces jointes, commentaires | `GET/POST /fiches/{id}/pieces-jointes`, `GET /pieces-jointes/{id}/telechargement`, `GET/POST /fiches/{id}/commentaires` |
 | Transversal | `GET /referentiels`, `GET /tableau-de-bord?annee=`, `GET /notifications`, `GET /notifications/non-lues`, `POST /notifications/{id}/lu`, `POST /notifications/tout-lu` |
 | Administration fonctionnelle | `/admin/entities` (organigramme), `/admin/circuit`, `/admin/users`, `/admin/assignments`, `GET/PUT /admin/permissions`, `/admin/units`, `/admin/equipment`, `/admin/lists`, `/admin/settings`, `/admin/roles`, `/admin/fiches`, `/admin/fiches/{id}/validations`, `POST/DELETE /admin/validations/{id}/partages` |
 | Administration technique | `GET /technique`, `GET /technique/logs` |
@@ -367,9 +361,12 @@ En production, passer aussi `APP_ENV=production` et `APP_DEBUG=false`. Il faut e
 
 ## 20. Données de démonstration et tests
 
-La commande `php artisan migrate:fresh --seed` garde les référentiels nécessaires à l'application (rôles, droits, listes de valeurs) et recrée la démonstration, décrite compte par compte. Tous les comptes ont le mot de passe `Azerty123`.
+La commande `php artisan migrate:fresh --seed` crée :
+- 3 unités et 10 équipements ;
+- 22 comptes, deux par rôle, tous avec le mot de passe `Azerty123` ;
+- 16 fiches, une par situation du parcours, dont une classée sans suite.
 
-**Référentiel** : 3 unités (DIST, REF, UTIL), 14 équipements, et un organigramme de 3 directions, 2 départements et 9 services. Chaque compte y est rattaché.
+Les fiches sont simulées à travers les vrais services. L'historique, les validations, les contrôles et les notifications sont donc cohérents.
 
 **Comptes** (`DemoAccountsSeeder`) : deux par rôle, 26 comptes actifs, plus un ancien agent désactivé.
 
@@ -405,16 +402,14 @@ Les comptes sont aussi créés en environnement `testing` ; les fiches et l'acti
 Les tests du serveur (PHPUnit sur PostgreSQL) tournent sur une base dédiée, `fiche_a3_test`, recréée à chaque lancement (`RefreshDatabase`) : ils ne touchent jamais la base de démonstration. Créer cette base une fois (`createdb fiche_a3_test`) ; son nom se change dans `backend/phpunit.xml`. Ils couvrent :
 - le parcours complet ;
 - les règles B1 à B8 ;
-- le circuit de pertinence : notification de l'administrateur, chef choisi, renvoi à refaire, classement, équipe d'agents et de pilotes, membres exclus des validations ;
 - la visibilité et les droits par profil ;
-- la connexion (seuils par identifiant et par adresse, 401, en-têtes de sécurité) ;
-- les calculs des indicateurs et la saisie manuelle des gains ;
+- les calculs ;
 - les relances ;
-- les pièces jointes, dont les preuves facultatives des actions et de la pérennisation ;
+- les pièces jointes ;
 - le suivi dans la durée ;
 - le cycle renforcé : auto-désignation, objectif non atteint, nouvelle boucle, maintien, classement sans suite, copies figées, sponsor et prochaine étape.
 
-Côté écran, `npm test` vérifie aussi les calculs d'indicateurs refaits pendant la saisie (`src/utils/a3Calculs.js`), qui reprennent les formules du serveur.
+Côté écran, `npm test` vérifie aussi les calculs refaits pendant la saisie (`src/utils/a3Calculs.js`), qui reprennent les formules du serveur.
 
 Pour les lancer :
 
