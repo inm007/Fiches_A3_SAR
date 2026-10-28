@@ -7,7 +7,8 @@ import Button from '../../components/ui/Button.jsx'
 import Icon from '../../components/ui/Icon.jsx'
 import PageBanner from '../../components/shared/PageBanner.jsx'
 import { Checkbox, Select, TextArea, TextInput } from '../../components/ui/FormControls.jsx'
-import { listOptions } from '../../components/fiche/sections/options.js'
+import ChampAutre from '../../components/fiche/sections/ChampAutre.jsx'
+import { avecOption } from '../../components/fiche/sections/options.js'
 import { ficheService } from '../../services/ficheService.js'
 import './FicheNouvelle.css'
 
@@ -18,7 +19,7 @@ const NEXT_STEPS = [
   { title: 'Validation et suivi', text: 'Vous êtes notifié à chaque étape franchie.' },
 ]
 
-const initial = { titre: '', unite_id: '', origine_id: '', origine_precision: '', enonce_probleme: '', equipement_id: '', restreint: false, piloter: true }
+const initial = { titre: '', unite_id: '', origine_id: '', enonce_probleme: '', equipement_id: '', restreint: false, piloter: true }
 
 /**
  * Déclaration en une étape (T1, PRD §4.1) : le pilote complète le reste ensuite.
@@ -53,7 +54,6 @@ function FicheNouvelle() {
   useEffect(() => { ficheService.referentiels().then(setRefs).catch(() => setMessage('Impossible de charger les listes de choix.')) }, [])
 
   const set = (field) => (value) => setForm((current) => ({ ...current, [field]: value, ...(field === 'unite_id' ? { equipement_id: '' } : {}) }))
-  const origineAutre = refs?.listes?.origine?.find((valeur) => String(valeur.id) === form.origine_id)?.code === 'AUTRE'
   const equipements = (refs?.equipements ?? []).filter((equipement) => String(equipement.unite_id) === form.unite_id).map((equipement) => [String(equipement.id), `${equipement.code} — ${equipement.libelle}`])
   const fieldError = (field) => errors[field]?.[0]
 
@@ -67,7 +67,6 @@ function FicheNouvelle() {
         titre: form.titre,
         unite_id: Number(form.unite_id) || null,
         origine_id: Number(form.origine_id) || null,
-        origine_precision: form.origine_precision || null,
         enonce_probleme: form.enonce_probleme,
         equipement_id: Number(form.equipement_id) || null,
         confidentialite: form.restreint ? 'RESTREINT' : 'NORMAL',
@@ -91,9 +90,19 @@ function FicheNouvelle() {
         <TextInput error={fieldError('titre')} label="Titre" required value={form.titre} wide onChange={set('titre')} />
         <div className="fiche-nouvelle-page__grid">
           <Select disabled={!refs} error={fieldError('unite_id')} label="Unité" options={(refs?.unites ?? []).map((unite) => [String(unite.id), unite.libelle])} required value={form.unite_id} onChange={set('unite_id')} />
-          <Select disabled={!refs} error={fieldError('origine_id')} label="Origine" options={listOptions(refs, 'origine', 'id')} required value={form.origine_id} onChange={set('origine_id')} />
+          <ChampAutre
+            error={fieldError('origine_id')}
+            label="Origine"
+            liste="origine"
+            refs={refs}
+            required
+            sousErreur={fieldError('origine_precision')}
+            value={form.origine_id}
+            valueKey="id"
+            onChange={set('origine_id')}
+            onOptionCreee={(liste, valeur) => setRefs((current) => avecOption(current, liste, valeur))}
+          />
         </div>
-        {origineAutre && <TextInput error={fieldError('origine_precision')} label="Précision de l’origine" required value={form.origine_precision} onChange={set('origine_precision')} />}
         <TextArea error={fieldError('enonce_probleme')} hint="Faits, lieu, période, fréquence." label="Énoncé du problème" required rows={5} value={form.enonce_probleme} onChange={set('enonce_probleme')} />
         <Select
           error={fieldError('equipement_id')}

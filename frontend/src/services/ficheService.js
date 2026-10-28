@@ -8,6 +8,8 @@ function send(path, method, body) {
 
 export const ficheService = {
   referentiels: () => apiRequest('/referentiels').then((result) => result.data),
+  // Option créée depuis la fiche, rangée sous « Autre » ; `existait` si elle était déjà là.
+  creerOptionAutre: (liste, libelle) => send(`/referentiels/${liste}/autres`, 'POST', { libelle }),
   list: (params) => apiRequest(`/fiches?${new URLSearchParams(params)}`),
   create: (data) => send('/fiches', 'POST', data).then((result) => result.data),
   get: (id) => apiRequest(`/fiches/${id}`).then((result) => result.data),

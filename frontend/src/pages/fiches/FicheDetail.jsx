@@ -17,6 +17,7 @@ import ControlesTab from '../../components/fiche/tabs/ControlesTab.jsx'
 import HistoriqueTab from '../../components/fiche/tabs/HistoriqueTab.jsx'
 import PiecesJointesTab from '../../components/fiche/tabs/PiecesJointesTab.jsx'
 import ValidationsTab from '../../components/fiche/tabs/ValidationsTab.jsx'
+import { avecOption } from '../../components/fiche/sections/options.js'
 import { ficheService } from '../../services/ficheService.js'
 import { setCrumb } from '../../utils/crumb.js'
 import PageLoader from '../../components/shared/PageLoader.jsx'
@@ -189,6 +190,7 @@ function FicheDetail() {
               onDirtyChange={setDirty}
               onError={onError}
               onNavigate={goToSection}
+              onOptionCreee={(liste, valeur) => setRefs((current) => avecOption(current, liste, valeur))}
               onPrintCopy={setCopie}
               onSaved={onChange}
             />

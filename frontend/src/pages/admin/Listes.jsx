@@ -20,7 +20,12 @@ const columns = [
     label: 'Valeur affichée',
     width: '36%',
     titleValue: (item) => item.libelle,
-    render: (item) => <span className="data-table__cell-text" title={item.libelle}>{item.libelle}</span>,
+    render: (item) => (
+      <>
+        <span className="data-table__cell-text" title={item.libelle}>{item.libelle}</span>
+        {item.parent_id && <> <Badge tone="neutral">Créée sous « Autre »</Badge></>}
+      </>
+    ),
   },
   { key: 'ordre', label: 'Rang', width: '12%' },
   {

@@ -1,10 +1,11 @@
 import { Select, TextInput } from '../../ui/FormControls.jsx'
 import { ConfidentialiteBadge } from '../EtapeBadge.jsx'
 import Astuce from './Astuce.jsx'
+import ChampAutre from './ChampAutre.jsx'
 import { listOptions, peopleOptions } from './options.js'
 import './FicheSection.css'
 
-export default function Section01Identification({ draft, set, fiche, refs, options, readOnly }) {
+export default function Section01Identification({ draft, set, fiche, refs, options, readOnly, onOptionCreee }) {
   const equipements = (refs?.equipements ?? [])
     .filter((equipement) => String(equipement.unite_id) === String(draft.unite_id))
     .map((equipement) => [String(equipement.id), `${equipement.code} — ${equipement.libelle}`])
@@ -28,8 +29,19 @@ export default function Section01Identification({ draft, set, fiche, refs, optio
         <Select label="Unité" options={(refs?.unites ?? []).map((unite) => [String(unite.id), unite.libelle])} readOnly={readOnly} required value={draft.unite_id} onChange={(value) => { set('unite_id', value); set('equipement_id', '') }} />
         <Select hint={draft.unite_id ? undefined : 'Choisissez d’abord l’unité.'} label="Équipement" options={equipements} readOnly={readOnly} value={draft.equipement_id} onChange={(value) => set('equipement_id', value)} />
         <Select label="Type d’amélioration" options={listOptions(refs, 'type_amelioration')} readOnly={readOnly} required value={draft.type_amelioration} onChange={(value) => set('type_amelioration', value)} />
-        <Select label="Origine" options={listOptions(refs, 'origine', 'id')} readOnly={readOnly} required value={draft.origine_id} onChange={(value) => set('origine_id', value)} />
-        {origineAutre && (
+        <ChampAutre
+          label="Origine"
+          liste="origine"
+          readOnly={readOnly}
+          refs={refs}
+          required
+          value={draft.origine_id}
+          valueKey="id"
+          onChange={(value) => { set('origine_id', value); set('origine_precision', '') }}
+          onOptionCreee={onOptionCreee}
+        />
+        {/* Précision libre des fiches saisies avant les options sous « Autre ». */}
+        {origineAutre && draft.origine_precision && (
           <TextInput label="Précision de l’origine" readOnly={readOnly} required wide value={draft.origine_precision} onChange={(value) => set('origine_precision', value)} />
         )}
       </div>

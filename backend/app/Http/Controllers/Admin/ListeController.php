@@ -16,7 +16,7 @@ use Illuminate\Validation\ValidationException;
  */
 class ListeController extends AdminController
 {
-    private const array CHAMPS_VALEUR = ['id', 'liste_id', 'code', 'libelle', 'ordre', 'actif'];
+    private const array CHAMPS_VALEUR = ['id', 'liste_id', 'parent_id', 'code', 'libelle', 'ordre', 'actif'];
 
     public function index(): JsonResponse
     {

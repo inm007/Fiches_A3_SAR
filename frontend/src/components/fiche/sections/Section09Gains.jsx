@@ -4,14 +4,13 @@ import { STATUTS_GAIN } from '../../../utils/constants.js'
 import { formatFcfa, formatNumber } from '../../../utils/format.js'
 import Astuce from './Astuce.jsx'
 import CardsEditor from './CardsEditor.jsx'
-import { CellInput, CellSelect } from './RowsEditor.jsx'
-import { listOptions } from './options.js'
+import ChampAutre from './ChampAutre.jsx'
+import { CellInput } from './RowsEditor.jsx'
 import './FicheSection.css'
 
 const gainTone = { PROPOSE: 'neutral', VALIDE: 'success', REFUSE: 'error' }
 
-export default function Section09Gains({ draft, set, fiche, refs, readOnly }) {
-  const categories = listOptions(refs, 'categorie_gain')
+export default function Section09Gains({ draft, set, fiche, refs, readOnly, onOptionCreee }) {
 
   return (
     <div className="fiche-section">
@@ -32,7 +31,7 @@ export default function Section09Gains({ draft, set, fiche, refs, readOnly }) {
           canRemove={(row) => row.statut !== 'VALIDE'}
           emptyLabel="Aucun gain chiffré."
           fields={[
-            { key: 'categorie', label: 'Nature du gain *', render: (row, setRow, _, locked) => <CellSelect options={categories} readOnly={locked} value={row.categorie} onChange={(value) => setRow('categorie', value)} /> },
+            { key: 'categorie', label: 'Nature du gain *', render: (row, setRow, _, locked) => <ChampAutre label="Nature du gain" liste="categorie_gain" readOnly={locked} refs={refs} value={row.categorie} variant="cell" onChange={(value) => setRow('categorie', value)} onOptionCreee={onOptionCreee} /> },
             { key: 'hypothese_calcul', label: 'Hypothèse *', wide: true, render: (row, setRow, _, locked) => <CellInput placeholder="Ex. : 20 t/h de vapeur économisées sur 8 400 h/an" readOnly={locked} value={row.hypothese_calcul} onChange={(value) => setRow('hypothese_calcul', value)} /> },
             { key: 'montant_annuel', label: 'Montant annuel (FCFA) *', render: (row, setRow, _, locked) => <CellInput min="0" readOnly={locked} type="number" value={row.montant_annuel} onChange={(value) => setRow('montant_annuel', value)} /> },
           ]}
@@ -41,7 +40,7 @@ export default function Section09Gains({ draft, set, fiche, refs, readOnly }) {
           newRow={() => ({ categorie: '', hypothese_calcul: '', montant_annuel: '', statut: 'PROPOSE' })}
           readOnly={readOnly}
           rows={draft.gains}
-          title={(row, index) => categories.find(([code]) => code === row.categorie)?.[1] ?? `Gain ${index + 1}`}
+          title={(row, index) => refs?.listes?.categorie_gain?.find((valeur) => valeur.code === row.categorie)?.libelle ?? `Gain ${index + 1}`}
           onChange={(rows) => set('gains', rows)}
         />
       )}
