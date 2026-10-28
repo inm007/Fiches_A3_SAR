@@ -89,6 +89,8 @@ Route::prefix('technique')
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/referentiels', [ReferentielController::class, 'index']);
+    Route::post('/referentiels/{liste:code}/autres', [ReferentielController::class, 'creerAutre'])
+        ->middleware(EnsureActiveRole::class.':AGENT,PILOTE');
     Route::get('/tableau-de-bord', [TableauDeBordController::class, 'index']);
     Route::get('/capitalisation', [CapitalisationController::class, 'index']);
 

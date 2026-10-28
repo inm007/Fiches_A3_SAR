@@ -4,6 +4,7 @@ import { ecart } from '../../../utils/a3Calculs.js'
 import { formatNumber } from '../../../utils/format.js'
 import Astuce from './Astuce.jsx'
 import CardsEditor from './CardsEditor.jsx'
+import ChampAutre from './ChampAutre.jsx'
 import { CellInput, CellSelect } from './RowsEditor.jsx'
 import { listOptions } from './options.js'
 import './FicheSection.css'
@@ -14,9 +15,8 @@ const roleTone = { PRINCIPAL: 'brand', A_NE_PAS_DEGRADER: 'warning', SUIVI: 'neu
 // Une valeur saisie avant la liste administrable reste proposée.
 const avecValeur = (options, value) => (value && !options.some(([code]) => code === value) ? [...options, [value, value]] : options)
 
-export default function Section03SituationActuelle({ draft, set, refs, readOnly }) {
+export default function Section03SituationActuelle({ draft, set, refs, readOnly, onOptionCreee }) {
   const unites = listOptions(refs, 'unite_mesure', 'libelle')
-  const sources = listOptions(refs, 'source_donnees', 'libelle')
   const principal = draft.indicateurs.find((indicateur) => indicateur.role === 'PRINCIPAL')
 
   // Un seul KPI principal : en choisir un nouveau repasse l'ancien en simple suivi.
@@ -55,7 +55,7 @@ export default function Section03SituationActuelle({ draft, set, refs, readOnly 
             const valeur = ecart(row.actuelle, row.cible === '' ? row.reference : row.cible)
             return <span className="cards-editor__value">{valeur === null ? '—' : `${formatNumber(valeur)} ${row.unite_mesure ?? ''}`}</span>
           } },
-          { key: 'source', label: 'Source', render: (row, setRow) => <CellSelect options={avecValeur(sources, row.source)} readOnly={readOnly} value={row.source} onChange={(value) => setRow('source', value)} /> },
+          { key: 'source', label: 'Source', render: (row, setRow) => <ChampAutre label="Source" liste="source_donnees" readOnly={readOnly} refs={refs} value={row.source} valueKey="libelle" variant="cell" onChange={(value) => setRow('source', value)} onOptionCreee={onOptionCreee} /> },
           { key: 'periode', label: 'Période de mesure', render: (row, setRow) => <CellInput placeholder="Ex. : moyenne de mars 2026" readOnly={readOnly} value={row.periode} onChange={(value) => setRow('periode', value)} /> },
         ]}
         newRow={() => ({ libelle: '', unite_mesure: '', sens: 'baisse', reference: '', cible: '', actuelle: '', source: '', periode: '', role: principal ? 'SUIVI' : 'PRINCIPAL' })}

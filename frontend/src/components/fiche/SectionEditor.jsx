@@ -38,7 +38,7 @@ const components = {
  * Carte d'une section : brouillon local, enregistrement explicite et état de sauvegarde.
  * Le succès n'est affiché qu'après la réponse positive du serveur (UX §10.1).
  */
-function SectionEditor({ fiche, section, refs, options, onSaved, onError, onNavigate, onDirtyChange, onPrintCopy }) {
+function SectionEditor({ fiche, section, refs, options, onSaved, onError, onNavigate, onDirtyChange, onPrintCopy, onOptionCreee }) {
   const [draft, setDraft] = useState(() => sectionModel[section].toDraft(fiche, options))
   const [state, setState] = useState('idle')
   const [failure, setFailure] = useState('')
@@ -93,7 +93,7 @@ function SectionEditor({ fiche, section, refs, options, onSaved, onError, onNavi
           {dernier && <span>Dernier enregistrement : {dernier.par ?? 'inconnu'}, le {formatDateTime(dernier.le)}.</span>}
         </p>
       )}
-      <Component draft={draft} fiche={fiche} options={options} readOnly={!editable} refs={refs} set={set} onFicheChange={onSaved} onPrintCopy={onPrintCopy} />
+      <Component draft={draft} fiche={fiche} options={options} readOnly={!editable} refs={refs} set={set} onFicheChange={onSaved} onOptionCreee={onOptionCreee} onPrintCopy={onPrintCopy} />
       <footer>
         {editable && state !== 'idle' && <SaveIndicator state={state === 'error' ? 'error' : state} />}
         {state === 'error' && failure && <span className="section-editor__failure">{failure}</span>}
