@@ -48,8 +48,9 @@ Un utilisateur peut porter plusieurs rôles, appelés affectations. Chaque affec
 | Valideur Production / Exploitation | Valide le plan en premier, sur toutes les fiches de son unité. |
 | Valideurs HSE, Procédé / Technique, Maintenance, Inspection / Intégrité | Valident le plan quand leur domaine est coché en section 7. |
 | Contrôle de gestion | Valide ou refuse chaque ligne de gain, puis approuve la porte 2 si des gains sont chiffrés. |
-| Direction | Approuve la clôture, voit toutes les fiches, peut mettre en attente, reprendre et relancer. |
-| Administrateur fonctionnel | Gère les comptes, les affectations et les référentiels. Désigne ou change le pilote, partage une fiche ou une validation, change la confidentialité. Ne modifie aucun autre contenu. |
+| Direction | Voit toutes les fiches, peut mettre en attente, reprendre et relancer. Peut être choisie comme sponsor. |
+| Sponsor (un directeur choisi en section 1) | Donne l'accord final à la clôture (porte 2) : valider ou renvoyer la fiche. |
+| Administrateur fonctionnel | Gère les comptes, les affectations, l'organigramme et les référentiels. Prévenu de chaque fiche déclarée sans pilote, il désigne un pilote de l'unité ; il change le pilote, partage une validation, change la confidentialité et voit l'équipe de chaque fiche. Ne modifie aucun autre contenu. |
 | Administrateur technique | Consulte l'état technique et le journal d'administration. N'a accès à aucune fiche. |
 
 Ce tableau est la matrice de départ : l'administrateur fonctionnel peut accorder ou retirer certains droits à un rôle depuis l'écran Droits des rôles (section 15).
@@ -78,7 +79,7 @@ Quatre opérations s'ajoutent au parcours :
 
 À la déclaration (T1), le numéro A3-AAAA-NNN est attribué automatiquement. La numérotation recommence chaque année. Un pilote qui déclare une fiche de son unité coche « Je pilote cette fiche » et en devient pilote tout de suite ; un agent, ou un pilote d'une autre unité, laisse l'administrateur désigner le pilote. Quand un équipement est choisi, l'écran signale les fiches encore ouvertes sur cet équipement, pour éviter un doublon.
 
-La date de lancement se remplit au démarrage de l'analyse (T2). Une copie figée de la fiche est enregistrée à chaque soumission du plan (T3) et à la clôture (T9) ; elle se consulte et s'imprime depuis la section 12.
+La date de lancement se remplit à la validation de la pertinence. À la fin de la section 4, comme pour le chef de département, le pilote compose son équipe : des agents et des pilotes actifs, même d'une autre unité. Chaque membre ajouté reçoit une invitation. Les membres voient la fiche ; après la pertinence, ils renseignent les sections 5 à 11 et déposent des pièces jointes. Les sections 1 à 4 restent en lecture seule pour eux, ils ne valident jamais la fiche et seul le pilote la soumet ou change d'étape. Une personne n'a qu'un rôle sur la fiche : un membre désigné pilote quitte l'équipe. Une copie figée de la fiche est enregistrée à chaque soumission du plan (T3) et à la clôture (T9) ; elle se consulte et s'imprime depuis la section 12.
 
 **Prochaine étape.** En haut de la fiche, le pilote voit l'étape suivante, la liste de ce qui manque encore (calculée par le serveur, avec un bouton vers la section ou l'onglet concerné) et le bouton pour avancer quand tout est prêt. L'en-tête n'affiche qu'un bouton principal ; les autres actions sont dans « Plus d'actions ». Quand l'objectif n'est pas atteint, le bouton principal devient « Nouvelle boucle ». L'en-tête indique aussi la date de clôture au plus tôt (derniers contrôles et mesure J+90).
 
@@ -88,10 +89,10 @@ Toutes les transitions passent par un seul service, `FicheWorkflow`, sous verrou
 
 | N° | Section | Contenu | Modifiable par le pilote |
 |---|---|---|---|
-| 1 | Identification | Titre, unité, équipement, origine, type d'amélioration, équipe (personnes qui travaillent avec le pilote), sponsor (responsable Direction qui porte le sujet et valide la clôture), dates, références SAP | En cours |
-| 2 | Contexte, enjeu et problème | Contexte, impacts choisis par pastilles (HSE, production, qualité, énergie, sûreté) puis décrits, impact financier estimé | En cours |
-| 3 | Situation actuelle | Indicateurs en cartes : rôle (KPI principal, à ne pas dégrader, suivi), sens, unité et source prises dans les listes administrables, valeur actuelle, cible, écart calculé pendant la saisie | En cours |
-| 4 | Objectif | Rappel du KPI principal, objectif SMART (une phrase est proposée à partir du KPI), périmètre, résultats attendus obligatoires | En cours |
+| 1 | Identification | Titre, unité, équipement, origine, type d'amélioration, sponsor choisi parmi les directeurs (il valide la clôture), dates, références SAP | Ouvert, En cours |
+| 2 | Contexte, enjeu et problème | Contexte, impacts choisis par pastilles (HSE, production, qualité, énergie, sûreté) puis décrits, impact financier estimé | Ouvert |
+| 3 | Situation actuelle | Indicateurs en cartes : rôle (KPI principal, à ne pas dégrader, suivi), sens, unité et source prises dans les listes administrables, valeur actuelle, cible, écart calculé pendant la saisie | Ouvert |
+| 4 | Objectif | Rappel du KPI principal, objectif SMART (une phrase est proposée à partir du KPI), périmètre, résultats attendus obligatoires, chef de département qui valide la pertinence (le chef du département du pilote est proposé) | Ouvert |
 | 5 | Analyse des causes racines | Méthode avec son aide, causes en cartes numérotées automatiquement, cause racine et preuve | En cours |
 | 6 | Plan de contre-mesures | Actions regroupées par cause : type, responsable, échéance, coût, MOC lié, critère d'efficacité obligatoire. Une action réalisée ou annulée ne se modifie plus | En cours |
 | 7 | Risques et MOC | Domaines concernés par pastilles, liste cochée des valideurs sollicités, risques (un risque coche son domaine), MOC requis, référence, statut et preuve | En cours, puis suivi du MOC en réalisation |
@@ -115,7 +116,7 @@ Chaque section s'enregistre explicitement avec le bouton « Enregistrer ». Chaq
 
 ## 5. Validations
 
-**Porte 1, le plan.** Production / Exploitation valide toujours en premier. Ensuite, les valideurs des domaines cochés en section 7 décident en parallèle : HSE pour QHSE, Procédé / Technique pour Procédé, Maintenance pour Fiabilité, Inspection / Intégrité pour Intégrité. Pour le domaine « Autres », le valideur est choisi dans la fiche.
+**Porte 0, la pertinence.** À la fin de la section 4, le pilote choisit le chef de département qui juge la pertinence (le chef de son département est proposé d'après l'organigramme). Le chef reçoit une notification et décide : **valider** (la fiche passe en cours, les sections 2 à 4 se figent et l'équipe rédige les sections 5 à 11), **à refaire** (la fiche revient au pilote avec son commentaire et, s'il le précise, la section à corriger), ou **classer sans suite** (motif obligatoire).
 
 **Porte 2, la clôture.** Le Contrôle de gestion valide d'abord, si des gains sont chiffrés. Il valide ou refuse chaque ligne de gain, puis approuve la porte. La Direction approuve ensuite : la demande va au sponsor de la fiche quand il est titulaire du rôle Direction.
 
@@ -141,7 +142,7 @@ Une action suit les statuts À faire, En cours, Réalisée, Bloquée et Annulée
 
 Le nouveau responsable est notifié à chaque attribution ou réattribution, et le responsable est notifié quand son échéance est reportée.
 
-**Fiche partagée.** Quand le pilote est malade, en congé ou a besoin de renfort, l'administrateur fonctionnel partage la fiche avec un second pilote de l'unité, avec un motif obligatoire. Les deux pilotes ont exactement les mêmes droits : ils voient tout ce que l'autre a fait (historique, dernier enregistrement de chaque section avec son auteur) et poursuivent la fiche ensemble. Les notifications destinées au pilote vont aux deux. Au retour du pilote, le partage peut rester ou être retiré. Un pilote associé ne valide jamais la fiche (B8).
+**Équipe.** Le registre affiche, pour chaque fiche, le pilote suivi de « + équipe (n) » : le survol montre le nom des membres ; le filtre « Équipe : Mes équipes » ne garde que les fiches dont on est membre, et le tableau de bord de l'agent et du pilote compte les « Fiches de mes équipes ». En ouvrant une fiche, un membre lit qui en est le pilote et ce qu'il peut modifier. Les membres reçoivent les approbations, refus et changements d'étape. Pour une absence du pilote, il ajoute un renfort à son équipe, ou l'administrateur change le pilote.
 
 **Auto-désignation.** Un pilote qui déclare une fiche de son unité peut la piloter dès la déclaration (« Je pilote cette fiche »), ou plus tard (« Me désigner comme pilote ») tant qu'elle est ouverte et que personne ne la pilote. Un agent ne pilote jamais : l'administrateur désigne un pilote de l'unité. C'est inscrit dans l'historique. Il peut ainsi déclarer une fiche Restreint et la voir jusqu'à sa désignation.
 
@@ -183,7 +184,7 @@ Le Contrôle de gestion valide ou refuse chaque ligne de gain. Une fiche peut ê
 | B5 | Pas de clôture sans l'approbation de la Direction, et du Contrôle de gestion si des gains sont chiffrés (chaque ligne de gain doit d'abord être validée ou refusée). |
 | B6 | Tout refus et tout blocage exigent un commentaire ou un motif. |
 | B7 | Une décision n'est possible que sur une demande en attente, à l'étape active de sa porte, une fois les demandes prioritaires approuvées. |
-| B8 | Le pilote ne valide jamais sa propre fiche. |
+| B8 | Ni le pilote ni un membre de l'équipe ne valident la fiche, à aucune porte. Le sponsor et le chef choisis ne peuvent ni piloter la fiche ni faire partie de l'équipe. |
 
 En cas de refus, le serveur renvoie toujours la liste exacte de ce qui manque. L'écran l'affiche dans un panneau « Conditions manquantes ». Quand un manque concerne une section, les actions, les contrôles ou les validations, un bouton « Ouvrir… » y mène directement, jusqu'à l'action concernée.
 
@@ -195,7 +196,9 @@ Une fiche est soit **Normal**, soit **Restreint**. Le pilote ou l'administrateur
 |---|---|
 | Direction, administrateur fonctionnel | Toutes |
 | Agent | Celles qu'il a déclarées et celles où il est responsable d'une action |
-| Pilote | Celles qu'il pilote, seul ou en partage, plus les fiches Normal qu'il a déclarées ou où il a une action, et les fiches Restreint qu'il a déclarées tant qu'elles sont ouvertes sans pilote |
+| Pilote | Celles qu'il pilote, celles dont il est membre de l'équipe, plus les fiches Normal qu'il a déclarées ou où il a une action, et les fiches Restreint qu'il a déclarées tant qu'elles sont ouvertes sans pilote |
+| Membre d'une équipe (agent ou pilote) | En plus de sa portée, les fiches de son équipe |
+| Chef de département | Les fiches qui lui sont soumises (porte 0) |
 | Valideur | Fiches Normal de son unité dont son domaine est concerné (Production voit toutes celles de son unité), plus toute fiche où il est sollicité, seul ou en partage |
 | Contrôle de gestion | Fiches Normal avec des gains, fiches avec des gains à valider, fiches où il est sollicité |
 | Administrateur technique | Aucune |
@@ -209,9 +212,9 @@ Toutes les notifications arrivent dans la cloche en haut à droite et sur la pag
 | Événement | Destinataire |
 |---|---|
 | Désignation ou changement de pilote | Nouveau pilote, ancien pilote |
-| Partage ou fin de partage d'une fiche | Pilote associé, pilote désigné |
+| Ajout à l'équipe (invitation), retrait de l'équipe | Membre concerné |
 | Demande de validation, partage d'une demande | Valideur, valideur associé |
-| Approbation, refus | Pilote |
+| Approbation, refus, renvoi à refaire, classement par le chef | Pilote et membres de l'équipe |
 | Plan approuvé, action attribuée ou réattribuée, échéance reportée | Responsable de l'action |
 | Changement de statut d'une action | Pilote et responsable |
 | Échéance proche (3 jours avant par défaut) | Responsable |
@@ -267,7 +270,9 @@ Le sélecteur d'année permet de consulter l'année en cours et les années pré
 | Unités, Équipements | Référentiels du site |
 | Listes | Origines, types d'action, catégories de gain, types de pérennisation…, avec ordre d'affichage et désactivation |
 | Paramètres fonctionnels | Délai des relances, préavis d'échéance, rappels de validation, limites des pièces jointes |
-| Fiches | Désigner ou changer le pilote, partager la fiche avec un second pilote, partager une validation, passer en Normal ou Restreint |
+| Organigramme | Directions, départements et services, avec leur responsable : le responsable d'un département reçoit le profil Chef de département, et il est proposé au pilote comme chef qui valide |
+| Circuit de validation | Directeurs qui valident chaque domaine coché en section 7 |
+| Fiches | Désigner ou changer le pilote, voir l'équipe, partager une validation, passer en Normal ou Restreint |
 
 Les données ne sont jamais supprimées, seulement désactivées. Chaque opération d'administration est inscrite au journal d'administration.
 
@@ -331,7 +336,7 @@ Toutes les routes sont préfixées par `/api`.
 | Workflow | `GET /validations`, `POST /validations/{id}/decision`, `POST /actions/{id}/statut`, `PATCH /actions/{id}`, `POST /fiches/{id}/actions`, `PATCH /controles/{id}`, `POST /gains/{id}/decision`, `POST /relances` |
 | Pièces jointes, commentaires | `GET/POST /fiches/{id}/pieces-jointes`, `GET /pieces-jointes/{id}/telechargement`, `GET/POST /fiches/{id}/commentaires` |
 | Transversal | `GET /referentiels`, `GET /tableau-de-bord?annee=`, `GET /notifications`, `GET /notifications/non-lues`, `POST /notifications/{id}/lu`, `POST /notifications/tout-lu` |
-| Administration fonctionnelle | `/admin/users`, `/admin/assignments`, `GET/PUT /admin/permissions`, `/admin/units`, `/admin/equipment`, `/admin/lists`, `/admin/settings`, `/admin/roles`, `/admin/fiches`, `/admin/fiches/{id}/validations`, `POST/DELETE /admin/fiches/{id}/copilotes`, `POST/DELETE /admin/validations/{id}/partages` |
+| Administration fonctionnelle | `/admin/entities` (organigramme), `/admin/circuit`, `/admin/users`, `/admin/assignments`, `GET/PUT /admin/permissions`, `/admin/units`, `/admin/equipment`, `/admin/lists`, `/admin/settings`, `/admin/roles`, `/admin/fiches`, `/admin/fiches/{id}/validations`, `POST/DELETE /admin/validations/{id}/partages` |
 | Administration technique | `GET /technique`, `GET /technique/logs` |
 
 Les codes d'erreur sont les suivants :
@@ -363,7 +368,38 @@ La commande `php artisan migrate:fresh --seed` crée :
 
 Les fiches sont simulées à travers les vrais services. L'historique, les validations, les contrôles et les notifications sont donc cohérents.
 
-Les tests du serveur (PHPUnit sur PostgreSQL) couvrent :
+**Comptes** (`DemoAccountsSeeder`) : deux par rôle, 26 comptes actifs, plus un ancien agent désactivé.
+
+| Rôle | Compte 1 | Compte 2 |
+|---|---|---|
+| Agent | `agent.demo` (DIST) | `agent2.demo` (REF, UTIL) |
+| Pilote | `pilote.demo` (DIST, REF) | `pilote2.demo` (REF, UTIL) |
+| Chef de département | `chef.demo` (Exploitation) | `chef2.demo` (Maintenance) |
+| Production / Exploitation | `valideur.demo` (DIST) | `valideur2.demo` (REF, UTIL) |
+| HSE, Procédé, Maintenance, Inspection, DSI | `valideur-hse.demo`, `valideur-procede.demo`… (DIST) | `valideur-hse2.demo`, `valideur-procede2.demo`… (REF, UTIL) |
+| Contrôle de gestion | `controle.demo` | `controle2.demo` |
+| Direction (sponsors) | `direction.demo` | `direction2.demo` |
+| Administrateur fonctionnel | `admin-fonctionnel.demo` | `admin-fonctionnel2.demo` |
+| Administrateur technique | `admin-technique.demo` | `admin-technique2.demo` |
+
+Le circuit de démonstration sollicite aussi la Maintenance pour la fiabilité et l'Inspection pour l'intégrité, pour que chaque directeur ait des demandes.
+
+**Fiches** (`DemoFichesSeeder`) : 30 fiches, rangées par compte déclarant. Le pilote de DIST est `pilote.demo`, celui de REF et UTIL `pilote2.demo` ; un pilote qui déclare pilote lui-même sa fiche.
+
+| Compte | Fiches et étapes |
+|---|---|
+| `agent.demo` (10) | 2 clôturées (dont une sans gain), en attente du sponsor (un gain refusé par le Contrôle de gestion), vérification J+90, nouvelle boucle (version 2), réalisation avec une action en retard relancée, en attente de la Production, renvoyée par le chef, sans pilote, classée comme doublon |
+| `agent2.demo` (12) | clôturée, clôture refusée par le sponsor, gains à valider (demande partagée avec `controle2.demo`), contrôle J+60 non conforme, mesure des résultats, MOC bloquant, en attente, plan refusé, en attente du directeur de domaine, soumise au chef, classée par le chef, sans pilote |
+| `pilote.demo` (5) | clôturée, réalisation (`pilote2.demo` dans l'équipe), plan prêt, analyse en cours avec l'équipe, soumise au chef |
+| `pilote2.demo` (3) | clôturée (`pilote.demo` dans l'équipe), vérification J+90, en rédaction |
+
+Les fiches sont simulées à travers les vrais services, en remontant jusqu'à 175 jours dans le temps : l'administrateur désigne le pilote, le pilote remplit les sections 1 à 4 avec le sponsor et le chef, le chef valide, puis le plan, les actions, les contrôles et la clôture suivent. L'historique, les validations, les versions figées, les relances et les notifications sont donc cohérents.
+
+**Activité** (`DemoActiviteSeeder`) : commentaires sur les fiches, les actions et les refus ; pièces jointes réelles (comptes rendus PDF sur les actions et la pérennisation, photos du constat) dans le stockage privé ; références SAP complétées ; paramètres ; journal d'administration (création des comptes, affectations, désignations, partages, réglages) ; rappels automatiques ; notifications de plus de trois jours marquées comme lues.
+
+Les comptes sont aussi créés en environnement `testing` ; les fiches et l'activité ne le sont qu'en `local`.
+
+Les tests du serveur (PHPUnit sur PostgreSQL) tournent sur une base dédiée, `fiche_a3_test`, recréée à chaque lancement (`RefreshDatabase`) : ils ne touchent jamais la base de démonstration. Créer cette base une fois (`createdb fiche_a3_test`) ; son nom se change dans `backend/phpunit.xml`. Ils couvrent :
 - le parcours complet ;
 - les règles B1 à B8 ;
 - la visibilité et les droits par profil ;

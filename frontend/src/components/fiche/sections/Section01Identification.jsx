@@ -1,11 +1,10 @@
 import { Select, TextInput } from '../../ui/FormControls.jsx'
 import { ConfidentialiteBadge } from '../EtapeBadge.jsx'
-import EquipeFiche from '../EquipeFiche.jsx'
 import Astuce from './Astuce.jsx'
 import { listOptions, peopleOptions } from './options.js'
 import './FicheSection.css'
 
-export default function Section01Identification({ draft, set, fiche, refs, options, readOnly, onFicheChange }) {
+export default function Section01Identification({ draft, set, fiche, refs, options, readOnly }) {
   const equipements = (refs?.equipements ?? [])
     .filter((equipement) => String(equipement.unite_id) === String(draft.unite_id))
     .map((equipement) => [String(equipement.id), `${equipement.code} — ${equipement.libelle}`])
@@ -18,7 +17,7 @@ export default function Section01Identification({ draft, set, fiche, refs, optio
           <li><strong>Déclarant</strong> : un agent ou un pilote. Quand un agent déclare, l’administrateur fonctionnel désigne un pilote de l’unité.</li>
           <li><strong>Pilote</strong> : il remplit les sections 1 à 4, choisit en section 4 le chef de département qui valide la pertinence, puis mène la fiche jusqu’à la clôture.</li>
           <li><strong>Sponsor</strong> : un directeur, choisi ici. Il soutient le sujet et donne l’accord final à la clôture (valider ou renvoyer).</li>
-          <li><strong>Équipe</strong> : après la validation de la pertinence, le pilote ajoute des agents et des pilotes. Ils voient la fiche et renseignent l’analyse et le suivi.</li>
+          <li><strong>Équipe</strong> : à la fin de la section 4, le pilote ajoute des agents et des pilotes, qui reçoivent une invitation. Ils voient la fiche et, après la pertinence, renseignent les sections 5 à 11 ; seul le pilote la soumet.</li>
         </ul>
       </Astuce>
 
@@ -47,7 +46,6 @@ export default function Section01Identification({ draft, set, fiche, refs, optio
           onChange={(value) => set('sponsor_id', value)}
         />
       </div>
-      {fiche.pertinence_validee_le && <EquipeFiche fiche={fiche} options={options} onChange={onFicheChange} />}
 
       <h3>Dates et références</h3>
       <div className="fiche-section__grid">

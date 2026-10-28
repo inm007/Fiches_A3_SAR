@@ -45,7 +45,7 @@ class FicheResource extends JsonResource
         /** @var FicheA3 $fiche */
         $fiche = $this->resource->loadMissing([
             'unite:id,code,libelle', 'equipement:id,code,libelle,reference_sap', 'origine:id,code,libelle', 'frequence:id,code,libelle',
-            'declarant:id,nom,prenom', 'pilote:id,nom,prenom', 'copilotes:id,nom,prenom', 'membres:id,nom,prenom', 'sponsor:id,nom,prenom', 'chefPertinence:id,nom,prenom', 'referenceSap',
+            'declarant:id,nom,prenom', 'pilote:id,nom,prenom', 'membres:id,nom,prenom', 'sponsor:id,nom,prenom', 'chefPertinence:id,nom,prenom', 'referenceSap',
             'impacts', 'indicateurs.mesures', 'causes', 'domaines.roleValideur:id,code,libelle', 'risques.responsable:id,nom,prenom',
             'actions.responsable:id,nom,prenom', 'actions.controles', 'actions.cause:id,numero', 'gains', 'perennisations.responsable:id,nom,prenom',
             'lecons', 'validations.role:id,code,libelle', 'validations.valideur:id,nom,prenom', 'validations.partages:id,nom,prenom',
@@ -78,11 +78,6 @@ class FicheResource extends JsonResource
             'motif_classement' => $fiche->motif_classement,
             'declarant' => $this->personne($fiche->declarant),
             'pilote' => $this->personne($fiche->pilote),
-            'copilotes' => $fiche->copilotes->sortBy('pivot.created_at')->values()->map(fn (User $user) => [
-                ...$this->personne($user),
-                'depuis' => $user->pivot->created_at?->toIso8601String(),
-                'motif' => $user->pivot->motif,
-            ]),
             'membres' => $fiche->membres->sortBy('pivot.created_at')->values()->map(fn (User $user) => $this->personne($user)),
             'chef_pertinence' => $this->personne($fiche->chefPertinence),
             'pertinence_validee_le' => $fiche->pertinence_validee_le?->toIso8601String(),
@@ -348,7 +343,7 @@ class FicheResource extends JsonResource
             'transitions' => array_values(array_unique($transitions)),
             'est_pilote' => $estPilote,
             'est_membre' => $fiche->estMembre($userId),
-            'peut_gerer_equipe' => $estPilote && $etape->estActive() && $fiche->pertinence_validee_le !== null,
+            'peut_gerer_equipe' => $estPilote && $etape->estActive(),
             'peut_designer_pilote' => $profile->is('ADMIN_FONCTIONNEL') && ! $etape->estFinale(),
             'peut_se_designer_pilote' => $profile->peutSeDesignerPilote($fiche),
             'peut_changer_confidentialite' => $estPilote || $profile->is('ADMIN_FONCTIONNEL'),
@@ -402,8 +397,8 @@ class FicheResource extends JsonResource
      * @return array{id: int, nom: string}|null
      */
     /**
-     * Dernier enregistrement de chaque section (auteur et date) : sur une fiche partagée,
-     * chaque pilote voit ce que l'autre a fait. Réservé aux profils qui voient l'historique.
+     * Dernier enregistrement de chaque section (auteur et date) : le pilote voit ce que
+     * chaque membre de l'équipe a fait. Réservé aux profils qui voient l'historique.
      *
      * @return array<int, array{numero: int, par: string|null, le: string|null}>
      */

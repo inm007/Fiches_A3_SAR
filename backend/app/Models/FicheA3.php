@@ -99,44 +99,19 @@ class FicheA3 extends Model
         return $this->belongsTo(User::class, 'pilote_id');
     }
 
-    /**
-     * Pilotes associés : la fiche est partagée, chacun voit et poursuit le travail de l'autre.
-     */
-    public function copilotes(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class, 'fiche_copilotes', 'fiche_id', 'user_id')
-            ->withPivot(['ajoute_par', 'motif'])
-            ->withTimestamps();
-    }
-
-    /**
-     * Pilote désigné puis pilotes associés.
-     *
-     * @return array<int, int>
-     */
-    public function pilotesIds(): array
-    {
-        return collect([$this->pilote_id])
-            ->merge($this->copilotes->pluck('id'))
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
-    }
-
     public function estPilote(?int $userId): bool
     {
-        return $userId !== null && in_array($userId, $this->pilotesIds(), true);
+        return $userId !== null && $userId === $this->pilote_id;
     }
 
     /**
-     * Pilotes et membres de l'équipe : ceux qui rédigent la fiche ne la valident pas (B8).
+     * Pilote et membres de l'équipe : ceux qui rédigent la fiche ne la valident pas (B8).
      *
      * @return array<int, int>
      */
     public function redacteursIds(): array
     {
-        return array_values(array_unique([...$this->pilotesIds(), ...$this->membresIds()]));
+        return collect([$this->pilote_id])->merge($this->membresIds())->filter()->unique()->values()->all();
     }
 
     public function estRedacteur(?int $userId): bool
@@ -145,19 +120,19 @@ class FicheA3 extends Model
     }
 
     /**
-     * Fiches pilotées par l'utilisateur, seul ou en partage.
+     * Fiches dont l'utilisateur fait partie de l'équipe.
      *
      * @param  Builder<FicheA3>  $query
      */
-    public function scopePilotePar(Builder $query, int $userId): void
+    public function scopeAvecMembre(Builder $query, int $userId): void
     {
-        $query->where(fn (Builder $q) => $q->where('pilote_id', $userId)
-            ->orWhereHas('copilotes', fn (Builder $c) => $c->where('users.id', $userId)));
+        $query->whereHas('membres', fn (Builder $membre) => $membre->where('users.id', $userId));
     }
 
     /**
-     * Équipe de la fiche, choisie par le pilote : les membres voient la fiche et
-     * renseignent l'analyse et le suivi ; seul le pilote soumet et change d'étape.
+     * Équipe de la fiche, choisie par le pilote à la fin de la section 4 : des agents et des
+     * pilotes qui voient la fiche et renseignent les sections 5 à 11 ; seul le pilote soumet
+     * et change d'étape.
      */
     public function membres(): BelongsToMany
     {

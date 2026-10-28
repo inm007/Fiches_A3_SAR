@@ -25,7 +25,9 @@ function useHorsEcran(ref) {
 function FicheHeader({ fiche, children }) {
   const headerRef = useRef(null)
   const horsEcran = useHorsEcran(headerRef)
-  const pilotes = [fiche.pilote, ...(fiche.copilotes ?? [])].filter(Boolean)
+  const membres = fiche.membres ?? []
+  const estMembre = fiche.droits?.est_membre && !fiche.droits?.est_pilote
+  const sectionsEquipeOuvertes = !['OUVERT', 'EN_VALIDATION_PERTINENCE'].includes(fiche.statut_etape)
   const etapeCourante = fiche.statut_etape === 'EN_ATTENTE' ? fiche.etape_avant_attente : fiche.statut_etape
   const position = PARCOURS.indexOf(etapeCourante)
   const identification = fiche.identification
@@ -48,11 +50,12 @@ function FicheHeader({ fiche, children }) {
         </div>
         <ul className="fiche-header__meta">
           <li><Icon name="unit" size={15} />{identification.unite?.libelle}</li>
-          <li>
-            <Icon name={pilotes.length > 1 ? 'users' : 'user'} size={15} />
-            {pilotes.length > 1 ? 'Pilotes' : 'Pilote'} : {pilotes.length ? pilotes.map((person) => person.nom).join(' et ') : 'non désigné'}
-            {pilotes.length > 1 && <span className="fiche-header__shared" title="Les pilotes voient ce que l’autre a fait et poursuivent la fiche ensemble.">fiche partagée</span>}
-          </li>
+          <li><Icon name="user" size={15} />Pilote : {fiche.pilote?.nom ?? 'non désigné'}</li>
+          {membres.length > 0 && (
+            <li>
+              <Icon name="users" size={15} />Équipe : {membres.map((person) => person.nom).join(', ')}
+            </li>
+          )}
           <li><Icon name="calendar" size={15} />Cible : {formatDate(identification.date_cible)}</li>
           {fiche.cloture_au_plus_tot && !['CLOTURE', 'CLASSE_SANS_SUITE'].includes(fiche.statut_etape) && (
             <li title="Après les derniers contrôles d’efficacité et la mesure de maintien J+90."><Icon name="clock" size={15} />Clôture au plus tôt : {formatDate(fiche.cloture_au_plus_tot)}</li>
@@ -65,6 +68,17 @@ function FicheHeader({ fiche, children }) {
           )}
           {sap.length > 0 && <li><Icon name="lists" size={15} />SAP : {sap.join(', ')}</li>}
         </ul>
+        {estMembre && (
+          <p className="fiche-header__role" role="status">
+            <Icon name="users" size={16} />
+            <span>
+              <strong>{fiche.pilote?.nom ?? 'Le pilote'}</strong> est le pilote de cette fiche ; vous faites partie de son équipe.
+              {' '}{sectionsEquipeOuvertes
+                ? 'Vous modifiez les sections 5 à 11. Les autres sections sont en lecture seule et seul le pilote soumet la fiche.'
+                : 'Vous modifierez les sections 5 à 11 après la validation de la pertinence. Les autres sections sont en lecture seule et seul le pilote soumet la fiche.'}
+            </span>
+          </p>
+        )}
         {fiche.statut_etape === 'EN_ATTENTE' && (
           <p className="fiche-header__hold" role="status">
             <Icon name="clock" size={16} />

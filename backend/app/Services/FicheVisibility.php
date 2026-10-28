@@ -51,7 +51,7 @@ class FicheVisibility
         return match (true) {
             $role === 'AGENT' => $query->where(fn (Builder $q) => $this->agentScope($q, $userId)),
             $role === 'PILOTE' => $query->where(function (Builder $q) use ($userId): void {
-                $q->pilotePar($userId)
+                $q->where('pilote_id', $userId)
                     ->orWhere(fn (Builder $normal) => $normal
                         ->where('confidentialite', 'NORMAL')
                         ->where(fn (Builder $agent) => $this->agentScope($agent, $userId)))

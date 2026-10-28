@@ -16,8 +16,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Registre des fiches pour l'administrateur fonctionnel : il ne modifie que le pilote (et le
- * partage de la fiche), la confidentialité et les valideurs d'une demande en attente,
+ * Registre des fiches pour l'administrateur fonctionnel : il ne modifie que le pilote, la
+ * confidentialité et les valideurs d'une demande en attente,
  * jamais le contenu métier (PRD §2.5).
  */
 class FicheAdminController extends AdminController
@@ -31,7 +31,7 @@ class FicheAdminController extends AdminController
     public function index(): JsonResponse
     {
         $fiches = FicheA3::query()
-            ->with(['unite:id,code,libelle', 'pilote:id,identifiant,nom,prenom,actif', 'copilotes:id,identifiant,nom,prenom,actif'])
+            ->with(['unite:id,code,libelle', 'pilote:id,identifiant,nom,prenom,actif', 'membres:id,identifiant,nom,prenom,actif'])
             ->orderByDesc('created_at')
             ->get();
 
@@ -65,79 +65,24 @@ class FicheAdminController extends AdminController
 
             $auteurId = $request->user()->id;
             if ($fiche->wasChanged('pilote_id')) {
-                // Un pilote associé qui devient pilote désigné quitte la liste des associés.
-                $fiche->copilotes()->detach($fiche->pilote_id);
                 $this->history->log($fiche, $auteurId, 'DESIGNATION_PILOTE', 'pilote_id', $before['pilote_id'], $fiche->pilote_id, $motif ?: null);
-                $this->notifications->notify([$fiche->pilote_id], $fiche, 'DESIGNATION_PILOTE', 'Vous êtes désigné pilote de cette fiche.', auteurId: $auteurId);
                 if ($before['pilote_id'] !== null) {
                     $this->notifications->notify([$before['pilote_id']], $fiche, 'DESIGNATION_PILOTE', 'Vous n’êtes plus pilote de cette fiche.', auteurId: $auteurId);
                 }
-                $this->reattribuerDemandesDe($fiche, $fiche->pilote_id, $auteurId);
+                // Une fiche ouverte peut redevenir sans pilote : rien d'autre à reprendre.
+                if ($fiche->pilote_id !== null) {
+                    // Un membre de l'équipe qui devient pilote la quitte : une personne, un seul rôle sur la fiche.
+                    if ($fiche->membres()->detach($fiche->pilote_id) > 0) {
+                        $this->history->log($fiche, $auteurId, 'RETRAIT_MEMBRE', 'equipe', $fiche->pilote_id, null, 'Devenu pilote de la fiche');
+                        $fiche->unsetRelation('membres');
+                    }
+                    $this->notifications->notify([$fiche->pilote_id], $fiche, 'DESIGNATION_PILOTE', 'Vous êtes désigné pilote de cette fiche.', auteurId: $auteurId);
+                    $this->reattribuerDemandesDe($fiche, $fiche->pilote_id, $auteurId);
+                }
             }
             if ($fiche->wasChanged('confidentialite')) {
                 $this->history->log($fiche, $auteurId, 'CHANGEMENT_CONFIDENTIALITE', 'confidentialite', $before['confidentialite'], $fiche->confidentialite);
             }
-        });
-
-        return response()->json(['data' => $this->ficheData($this->rechargerFiche($fiche))]);
-    }
-
-    /**
-     * Partage la fiche avec un second pilote (maladie, congé, renfort) : les deux pilotes
-     * voient tout ce que l'autre a fait et poursuivent la fiche ensemble. Le pilote
-     * désigné le reste ; le partage se retire quand il n'est plus utile.
-     */
-    public function partagerFiche(Request $request, FicheA3 $fiche): JsonResponse
-    {
-        $validated = $request->validate([
-            'user_id' => ['required', 'integer', 'exists:users,id'],
-            'motif' => ['required', 'string', 'max:500'],
-        ]);
-        $userId = (int) $validated['user_id'];
-        $motif = trim($validated['motif']);
-
-        if ($fiche->etape()->estFinale()) {
-            throw ValidationException::withMessages(['user_id' => 'Une fiche clôturée ou classée ne se partage plus.']);
-        }
-        if ($fiche->pilote_id === null) {
-            throw ValidationException::withMessages(['user_id' => 'Désignez d’abord le pilote de la fiche.']);
-        }
-        if ($fiche->estPilote($userId)) {
-            throw ValidationException::withMessages(['user_id' => 'Cette personne pilote déjà la fiche.']);
-        }
-        $this->verifierPiloteEligible($fiche, $userId, 'user_id');
-
-        $auteurId = $request->user()->id;
-        DB::transaction(function () use ($request, $fiche, $userId, $motif, $auteurId): void {
-            $fiche->copilotes()->attach($userId, ['ajoute_par' => $auteurId, 'motif' => $motif]);
-            $fiche->unsetRelation('copilotes');
-            $this->history->log($fiche, $auteurId, 'PARTAGE_FICHE', 'copilote', null, $userId, $motif);
-            $this->audit($request, 'PARTAGE_FICHE', 'fiche_a3', $fiche->id, ['copilote' => $userId, 'motif' => $motif]);
-
-            $nouveau = User::query()->find($userId)?->nom_complet;
-            $this->notifications->notify([$userId], $fiche, 'PARTAGE_FICHE', 'La fiche est partagée avec vous : vous la poursuivez avec '.$fiche->pilote?->nom_complet.'.', auteurId: $auteurId);
-            $this->notifications->notify(array_values(array_diff($fiche->pilotesIds(), [$userId])), $fiche, 'PARTAGE_FICHE', 'La fiche est maintenant partagée avec '.$nouveau.'.', auteurId: $auteurId);
-            $this->reattribuerDemandesDe($fiche, $userId, $auteurId);
-        });
-
-        return response()->json(['data' => $this->ficheData($this->rechargerFiche($fiche))]);
-    }
-
-    /**
-     * Retire un pilote associé : la fiche redevient pilotée par le seul pilote désigné.
-     */
-    public function retirerCopilote(Request $request, FicheA3 $fiche, User $user): JsonResponse
-    {
-        DB::transaction(function () use ($request, $fiche, $user): void {
-            if ($fiche->copilotes()->detach($user->id) === 0) {
-                return;
-            }
-            $auteurId = $request->user()->id;
-            $fiche->unsetRelation('copilotes');
-            $this->history->log($fiche, $auteurId, 'FIN_PARTAGE_FICHE', 'copilote', $user->id, null, null);
-            $this->audit($request, 'FIN_PARTAGE_FICHE', 'fiche_a3', $fiche->id, ['copilote' => $user->id]);
-            $this->notifications->notify([$user->id], $fiche, 'PARTAGE_FICHE', 'La fiche n’est plus partagée avec vous.', auteurId: $auteurId);
-            $this->notifications->notify($fiche->pilotesIds(), $fiche, 'PARTAGE_FICHE', $user->nom_complet.' ne pilote plus la fiche avec vous.', auteurId: $auteurId);
         });
 
         return response()->json(['data' => $this->ficheData($this->rechargerFiche($fiche))]);
@@ -223,8 +168,8 @@ class FicheAdminController extends AdminController
     }
 
     /**
-     * Pilote (désigné ou associé) : titulaire actif du rôle Pilote dans l'unité de la fiche, et
-     * jamais seul valideur disponible d'une demande en attente de cette fiche (B8).
+     * Pilote : titulaire actif du rôle Pilote dans l'unité de la fiche, ni sponsor ni chef choisi,
+     * et jamais seul valideur disponible d'une demande en attente de cette fiche (B8).
      */
     private function verifierPiloteEligible(FicheA3 $fiche, int $userId, string $champ): void
     {
@@ -237,6 +182,9 @@ class FicheAdminController extends AdminController
 
         if (! $estPiloteDeLUnite) {
             throw ValidationException::withMessages([$champ => 'Le pilote doit avoir une affectation active dans l’unité de la fiche.']);
+        }
+        if (in_array($userId, [$fiche->sponsor_id, $fiche->chef_pertinence_id], true)) {
+            throw ValidationException::withMessages([$champ => 'Cette personne valide la fiche (sponsor ou chef de département) : elle ne peut pas aussi la piloter.']);
         }
 
         $demandes = $fiche->validations()->where('decision', 'EN_ATTENTE')->pourValideur($userId)->with(['role:id,code,libelle', 'partages:id'])->get();
@@ -251,13 +199,12 @@ class FicheAdminController extends AdminController
     }
 
     /**
-     * Un utilisateur qui devient pilote (désigné ou associé) ne valide plus sa fiche (B8) :
+     * Un utilisateur qui devient pilote ne valide plus sa fiche (B8) :
      * il quitte les demandes partagées, et celles qu'il détient passent à un autre valideur
      * de la demande ou au titulaire suivant du rôle.
      */
     private function reattribuerDemandesDe(FicheA3 $fiche, int $userId, int $auteurId): void
     {
-        $fiche->unsetRelation('copilotes');
         $demandes = $fiche->validations()->where('decision', 'EN_ATTENTE')->pourValideur($userId)->with(['role:id,code', 'partages:id'])->get();
         foreach ($demandes as $demande) {
             if ($demande->valideur_id !== $userId) {
@@ -278,7 +225,7 @@ class FicheAdminController extends AdminController
 
     private function rechargerFiche(FicheA3 $fiche): FicheA3
     {
-        return $fiche->fresh()->load(['unite:id,code,libelle', 'pilote:id,identifiant,nom,prenom,actif', 'copilotes:id,identifiant,nom,prenom,actif']);
+        return $fiche->fresh()->load(['unite:id,code,libelle', 'pilote:id,identifiant,nom,prenom,actif', 'membres:id,identifiant,nom,prenom,actif']);
     }
 
     private function rechargerValidation(Validation $validation): Validation
@@ -317,7 +264,7 @@ class FicheAdminController extends AdminController
             ...$fiche->only(['id', 'numero_a3', 'titre', 'statut_etape', 'statut_general', 'confidentialite']),
             'unite' => $fiche->unite?->only(['id', 'code', 'libelle']),
             'pilote' => $fiche->pilote?->only(['id', 'identifiant', 'nom', 'prenom', 'actif']),
-            'copilotes' => $fiche->copilotes->map(fn (User $user) => $user->only(['id', 'identifiant', 'nom', 'prenom', 'actif']))->values()->all(),
+            'membres' => $fiche->membres->map(fn (User $user) => $user->only(['id', 'identifiant', 'nom', 'prenom', 'actif']))->values()->all(),
         ];
     }
 }

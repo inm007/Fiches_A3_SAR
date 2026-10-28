@@ -198,41 +198,46 @@ class SuiviTerrainTest extends TestCase
             ->assertJsonPath('data.partages', []);
     }
 
-    public function test_admin_shares_a_fiche_and_both_pilots_continue_it(): void
+    public function test_a_pilot_in_the_team_who_becomes_pilot_leaves_the_team(): void
     {
         $fiche = $this->declarer();
-        $ids = $this->amenerEnRealisation($fiche);
-        $titulaire = $this->acteurs['PILOTE'];
+        $this->amenerEnRealisation($fiche);
         $renfort = $this->acteur('PILOTE', $this->unite->id);
-        $url = "/api/admin/fiches/{$fiche->id}/copilotes";
-        $action = ActionA3::findOrFail($ids['action']);
 
-        $this->agirComme($renfort)->getJson("/api/fiches/{$fiche->id}")->assertNotFound();
-        $this->agir('PILOTE')->postJson($url, ['user_id' => $renfort[0]->id, 'motif' => 'Congé'])->assertForbidden();
-        $this->agir('ADMIN_FONCTIONNEL')->postJson($url, ['user_id' => $renfort[0]->id])->assertUnprocessable()->assertJsonValidationErrors('motif');
-        $this->agir('ADMIN_FONCTIONNEL')->postJson($url, ['user_id' => $titulaire[0]->id, 'motif' => 'Congé'])->assertUnprocessable();
+        // Plus de pilote associé : un renfort rejoint l'équipe, puis l'admin peut le désigner pilote.
+        $this->agir('ADMIN_FONCTIONNEL')->postJson("/api/admin/fiches/{$fiche->id}/copilotes", ['user_id' => $renfort[0]->id, 'motif' => 'Congé'])->assertNotFound();
+        $this->agir('PILOTE')->postJson("/api/fiches/{$fiche->id}/membres", ['user_id' => $renfort[0]->id])->assertOk();
+        $this->agirComme($renfort)->getJson("/api/fiches/{$fiche->id}")->assertOk()
+            ->assertJsonPath('data.droits.est_pilote', false)
+            ->assertJsonPath('data.droits.est_membre', true);
+        $this->agir('ADMIN_FONCTIONNEL')->getJson('/api/admin/fiches')->assertOk()
+            ->assertJsonPath('data.0.membres.0.id', $renfort[0]->id);
 
-        $this->agir('ADMIN_FONCTIONNEL')->postJson($url, ['user_id' => $renfort[0]->id, 'motif' => 'Arrêt maladie du pilote'])
+        $this->agir('ADMIN_FONCTIONNEL')->patchJson("/api/admin/fiches/{$fiche->id}", ['pilote_id' => $renfort[0]->id, 'motif' => 'Mutation du pilote'])
             ->assertOk()
-            ->assertJsonPath('data.pilote.id', $titulaire[0]->id)
-            ->assertJsonPath('data.copilotes.0.id', $renfort[0]->id);
-        $this->assertTrue(EvenementHistorique::where('fiche_id', $fiche->id)->where('type', 'PARTAGE_FICHE')->where('commentaire', 'Arrêt maladie du pilote')->exists());
-        $this->assertTrue(NotificationInterne::where('user_id', $renfort[0]->id)->where('type', 'PARTAGE_FICHE')->exists());
-        $this->assertTrue(NotificationInterne::where('user_id', $titulaire[0]->id)->where('type', 'PARTAGE_FICHE')->exists());
-
-        // Le pilote associé poursuit la fiche, le titulaire voit ce qu'il a fait à son retour.
+            ->assertJsonPath('data.pilote.id', $renfort[0]->id)
+            ->assertJsonPath('data.membres', []);
+        $this->assertTrue(EvenementHistorique::where('fiche_id', $fiche->id)->where('type', 'RETRAIT_MEMBRE')->where('commentaire', 'Devenu pilote de la fiche')->exists());
         $this->agirComme($renfort)->getJson("/api/fiches/{$fiche->id}")->assertOk()
             ->assertJsonPath('data.droits.est_pilote', true)
-            ->assertJsonPath('data.copilotes.0.id', $renfort[0]->id);
-        $this->agirComme($renfort)->patchJson("/api/actions/{$action->id}", ['echeance' => today()->addMonths(2)->toDateString(), 'motif' => 'Pièce en commande'])->assertOk();
-        $retour = $this->agirComme($titulaire)->getJson("/api/fiches/{$fiche->id}")->assertOk();
-        $this->assertSame(today()->addMonths(2)->toDateString(), $retour->json('data.actions.0.echeance'));
-        $this->agirComme($titulaire)->patchJson("/api/actions/{$action->id}", ['echeance' => today()->addMonths(3)->toDateString(), 'motif' => 'Retour de congé'])->assertOk();
-        $this->assertGreaterThanOrEqual(1, $this->agirComme($renfort)->getJson('/api/tableau-de-bord')->json('data.mes_fiches'));
-        $this->assertTrue(EvenementHistorique::where('fiche_id', $fiche->id)->where('type', 'REPORT_ECHEANCE')->where('user_id', $renfort[0]->id)->exists());
+            ->assertJsonPath('data.droits.est_membre', false);
+    }
 
-        $this->agir('ADMIN_FONCTIONNEL')->deleteJson("{$url}/{$renfort[0]->id}")->assertOk()->assertJsonPath('data.copilotes', []);
-        $this->agirComme($renfort)->getJson("/api/fiches/{$fiche->id}")->assertNotFound();
+    public function test_admin_can_leave_an_open_fiche_without_pilot_but_never_designates_its_sponsor(): void
+    {
+        $fiche = $this->declarer();
+        $this->designerPilote($fiche);
+        $url = "/api/admin/fiches/{$fiche->id}";
+
+        $this->agir('ADMIN_FONCTIONNEL')->patchJson($url, ['pilote_id' => null])
+            ->assertOk()
+            ->assertJsonPath('data.pilote', null);
+
+        $sponsor = $this->acteur('PILOTE', $this->unite->id);
+        $fiche->refresh()->update(['sponsor_id' => $sponsor[0]->id]);
+        $this->agir('ADMIN_FONCTIONNEL')->patchJson($url, ['pilote_id' => $sponsor[0]->id])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('pilote_id');
     }
 
     public function test_sections_explain_why_they_are_locked(): void

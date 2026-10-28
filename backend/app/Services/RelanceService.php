@@ -174,7 +174,7 @@ class RelanceService
                 ->where('cible_type', 'controle')
                 ->where('cible_id', $controle->id)
                 ->exists();
-            $pilotes = array_filter($fiche->pilotesIds(), fn (int $id) => $this->aAcces($id));
+            $pilotes = array_filter([$fiche->pilote_id], fn (?int $id) => $this->aAcces($id));
             if ($dejaPrevenu || $pilotes === []) {
                 continue;
             }
@@ -234,7 +234,7 @@ class RelanceService
         }
 
         [$destinataire, $copies, $message] = $cible instanceof ActionA3
-            ? [$cible->responsable_id, $fiche->pilotesIds(), 'Relance : action « '.str($cible->description)->limit(50).' » en retard (échéance du '.$cible->echeance->format('d/m/Y').').']
+            ? [$cible->responsable_id, array_filter([$fiche->pilote_id]), 'Relance : action « '.str($cible->description)->limit(50).' » en retard (échéance du '.$cible->echeance->format('d/m/Y').').']
             : [$cible->valideur_id, array_slice($cible->valideursIds(), 1), 'Relance : validation « '.$cible->role()->value('libelle').' » en attente depuis le '.$cible->demandee_le->format('d/m/Y').'.'];
 
         try {

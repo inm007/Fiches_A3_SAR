@@ -69,7 +69,7 @@ class DemoFichesSeeder extends Seeder
      * un pilote qui déclare pilote lui-même sa fiche.
      *
      * Options : gains [[montant, catégorie, hypothèse]], gains_refuses [index], sans_gain, restreint,
-     * sponsor, equipe [comptes], copilote, cg (partage|reattribution).
+     * sponsor, equipe [comptes, agents ou pilotes], cg (partage|reattribution).
      *
      * @var array<string, array<int, array<int|string, mixed>>>
      */
@@ -102,13 +102,13 @@ class DemoFichesSeeder extends Seeder
         ],
         'pilote.demo' => [
             ['Réduire le temps de démarrage du four F-101', 'DIST', 'F-101', 'RETOUR_D_EXPERIENCE', 'ENERGIE', 'INTEGRITE', 'CLOTURE', 165, 135, 'gains' => [[5_400_000, 'ENERGIE_ECONOMISEE', 'Deux heures de fuel gaz économisées par démarrage']], 'sponsor' => 'direction2.demo', 'equipe' => ['agent.demo']],
-            ['Fiabiliser le compresseur de recyclage K-301 au démarrage', 'REF', 'K-301', 'RETOUR_D_EXPERIENCE', 'FIABILITE', 'FIABILITE', 'REALISATION', 75, 0, 'equipe' => ['agent2.demo'], 'copilote' => 'pilote2.demo'],
+            ['Fiabiliser le compresseur de recyclage K-301 au démarrage', 'REF', 'K-301', 'RETOUR_D_EXPERIENCE', 'FIABILITE', 'FIABILITE', 'REALISATION', 75, 0, 'equipe' => ['agent2.demo', 'pilote2.demo']],
             ['Fiabiliser les purgeurs vapeur', 'DIST', 'E-104', 'SUGGESTION_TERRAIN', 'ENERGIE', 'QHSE', 'PLAN_PRET', 16, 0, 'equipe' => ['agent.demo']],
             ['Optimiser le lavage du dessaleur', 'DIST', 'D-120', 'ECART_KPI', 'COUT', 'PROCEDE', 'EQUIPE', 12, 0, 'equipe' => ['agent.demo']],
             ['Réduire les déchets d’emballage du magasin', 'DIST', null, 'SUGGESTION_TERRAIN', 'COUT', 'QHSE', 'PERTINENCE', 4, 0, 'restreint' => true],
         ],
         'pilote2.demo' => [
-            ['Réduire la perte de catalyseur au reformeur', 'REF', 'R-401', 'ECART_KPI', 'COUT', 'PROCEDE', 'CLOTURE', 168, 138, 'gains' => [[18_000_000, 'AUTRES', 'Appoint de catalyseur réduit de 30 %'], [2_500_000, 'MAINTENANCE_EVITEE', 'Un nettoyage du réacteur évité']], 'equipe' => ['agent2.demo'], 'copilote' => 'pilote.demo'],
+            ['Réduire la perte de catalyseur au reformeur', 'REF', 'R-401', 'ECART_KPI', 'COUT', 'PROCEDE', 'CLOTURE', 168, 138, 'gains' => [[18_000_000, 'AUTRES', 'Appoint de catalyseur réduit de 30 %'], [2_500_000, 'MAINTENANCE_EVITEE', 'Un nettoyage du réacteur évité']], 'equipe' => ['agent2.demo', 'pilote.demo']],
             ['Purges manuelles du ballon d’air comprimé B-07', 'UTIL', 'B-07', 'SUGGESTION_TERRAIN', 'ORGANISATION', 'QHSE', 'VERIF_J90', 100, 70, 'gains' => [[1_200_000, 'ENERGIE_ECONOMISEE', 'Fuites d’air réduites au compresseur']], 'equipe' => ['agent2.demo']],
             ['Démarrage difficile de la pompe P-650 après arrêt', 'UTIL', 'P-650', 'SUGGESTION_TERRAIN', 'FIABILITE', 'FIABILITE', 'REDACTION', 3, 0],
         ],
@@ -204,9 +204,6 @@ class DemoFichesSeeder extends Seeder
         $this->jour($debut - 1);
         if (! $parPilote) {
             $this->designerPilote($fiche, $pilote, $admin);
-        }
-        if (isset($s['copilote'])) {
-            $this->partagerFiche($fiche, $s['copilote'], $admin);
         }
         if ($cible === 'REDACTION') {
             $this->remplirDebut($fiche, $pilote, $type, $origine, $equipementCode, $s, partiel: true);
@@ -526,20 +523,6 @@ class DemoFichesSeeder extends Seeder
         $this->history->log($fiche, $adminId, 'DESIGNATION_PILOTE', 'pilote_id', null, $pilote->userId(), 'Pilote de l’unité désigné par l’administrateur fonctionnel');
         $this->notifications->notify([$pilote->userId()], $fiche, 'DESIGNATION_PILOTE', 'Vous êtes désigné pilote de cette fiche.', auteurId: $adminId);
         $this->journal($adminId, 'MODIFICATION', 'fiche_a3:'.$fiche->id, ['pilote_id' => $pilote->userId()]);
-    }
-
-    /**
-     * Partage de la fiche avec un second pilote de l'unité, comme depuis l'écran d'administration.
-     */
-    private function partagerFiche(FicheA3 $fiche, string $copilote, string $admin): void
-    {
-        $adminId = User::where('identifiant', $admin)->value('id');
-        $userId = User::where('identifiant', $copilote)->value('id');
-        $motif = 'Expertise du second pilote sur cet équipement.';
-        $fiche->copilotes()->attach($userId, ['ajoute_par' => $adminId, 'motif' => $motif]);
-        $this->history->log($fiche, $adminId, 'PARTAGE_FICHE', 'copilote', null, $userId, $motif);
-        $this->notifications->notify([$userId], $fiche, 'PARTAGE_FICHE', 'La fiche est partagée avec vous : vous la poursuivez avec le pilote.', auteurId: $adminId);
-        $this->journal($adminId, 'PARTAGE_FICHE', 'fiche_a3:'.$fiche->id, ['copilote' => $userId, 'motif' => $motif]);
     }
 
     /**

@@ -7,7 +7,6 @@ import { TRANSITIONS } from '../../utils/constants.js'
 import { toast } from '../../utils/toast.js'
 import { refreshCounters } from '../../hooks/useCounters.js'
 import { peopleOptions } from './sections/options.js'
-import PartageFiche from './PartageFiche.jsx'
 import PartageValidations from './PartageValidations.jsx'
 import './WorkflowActions.css'
 
@@ -72,7 +71,6 @@ function WorkflowActions({ fiche, options, onChange, onError, onExportPdf }) {
     ...secondaires.map((code) => ({ key: code, label: TRANSITIONS[code].label, danger: TRANSITIONS[code].danger || code === 'T12', onClick: () => startTransition(code) })),
     ...(droits.peut_designer_pilote && fiche.pilote ? [
       { key: 'pilote', label: 'Changer le pilote', onClick: () => setDialog({ type: 'pilote' }) },
-      { key: 'partage', label: 'Partager la fiche', onClick: () => setDialog({ type: 'partage' }) },
     ] : []),
     ...(droits.peut_designer_pilote && fiche.validations?.some((validation) => validation.decision === 'EN_ATTENTE')
       ? [{ key: 'partage-validation', label: 'Partager une validation', onClick: () => setDialog({ type: 'partage-validation' }) }] : []),
@@ -148,27 +146,8 @@ function WorkflowActions({ fiche, options, onChange, onError, onExportPdf }) {
           onChange={setPilote}
         />
         {fiche.statut_etape !== 'OUVERT' && (
-          <TextArea hint="Départ définitif, mutation… Inscrit dans l’historique. Pour une absence, préférez « Partager la fiche »." label="Motif du changement" required value={motif} onChange={setMotif} />
+          <TextArea hint="Départ définitif, mutation… Inscrit dans l’historique." label="Motif du changement" required value={motif} onChange={setMotif} />
         )}
-      </ConfirmDialog>
-
-      <ConfirmDialog
-        confirmLabel="Fermer"
-        hideCancel
-        open={dialog?.type === 'partage'}
-        wide
-        title="Partager la fiche"
-        variant="primary"
-        onCancel={() => setDialog(null)}
-        onConfirm={async () => { setDialog(null); onChange(await ficheService.get(fiche.id)) }}
-      >
-        <PartageFiche
-          candidats={peopleOptions(options?.pilotes)}
-          copilotes={(fiche.copilotes ?? []).map((person) => ({ id: person.id, label: person.nom }))}
-          ficheId={fiche.id}
-          pilote={fiche.pilote ? { id: fiche.pilote.id, label: fiche.pilote.nom } : null}
-          onChange={async () => onChange(await ficheService.get(fiche.id))}
-        />
       </ConfirmDialog>
 
       <ConfirmDialog

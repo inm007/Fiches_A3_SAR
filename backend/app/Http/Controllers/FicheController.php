@@ -58,25 +58,29 @@ class FicheController extends Controller
             'date_debut' => ['nullable', 'date'],
             'date_fin' => ['nullable', 'date'],
             'sans_pilote' => ['nullable', 'boolean'],
+            'equipe' => ['nullable', 'boolean'],
             'tri' => ['nullable', Rule::in(self::SORTS)],
             'ordre' => ['nullable', Rule::in(['asc', 'desc'])],
             'per_page' => ['nullable', 'integer', 'between:1,100'],
         ]);
 
         $query = $this->visibility->apply(FicheA3::query(), $profile)
-            ->with(['unite:id,code,libelle', 'pilote:id,nom,prenom', 'copilotes:id,nom,prenom', 'equipement:id,code,libelle'])
+            ->with(['unite:id,code,libelle', 'pilote:id,nom,prenom', 'membres:id,nom,prenom', 'equipement:id,code,libelle'])
             ->when($filters['date_debut'] ?? null, fn (Builder $q, string $date) => $q->whereDate('created_at', '>=', $date))
             ->when($filters['date_fin'] ?? null, fn (Builder $q, string $date) => $q->whereDate('created_at', '<=', $date))
-            ->when($filters['sans_pilote'] ?? false, fn (Builder $q) => $q->whereNull('pilote_id'));
+            ->when($filters['sans_pilote'] ?? false, fn (Builder $q) => $q->whereNull('pilote_id'))
+            // « Mes équipes » : les fiches dont l'utilisateur est membre.
+            ->when($filters['equipe'] ?? false, fn (Builder $q) => $q->avecMembre((int) $profile->userId()));
 
         $this->rechercherMots($query, $filters['q'] ?? null, fn (Builder $search, string $motif) => $search
             ->where('numero_a3', 'ilike', $motif)
             ->orWhere('titre', 'ilike', $motif)
             ->orWhereHas('unite', fn (Builder $unit) => $unit->where('libelle', 'ilike', $motif)->orWhere('code', 'ilike', $motif))
             ->orWhereHas('equipement', fn (Builder $equipement) => $equipement->where('code', 'ilike', $motif)->orWhere('libelle', 'ilike', $motif))
-            ->orWhereHas('pilote', fn (Builder $pilot) => $pilot->where('prenom', 'ilike', $motif)->orWhere('nom', 'ilike', $motif)));
+            ->orWhereHas('pilote', fn (Builder $pilot) => $pilot->where('prenom', 'ilike', $motif)->orWhere('nom', 'ilike', $motif))
+            ->orWhereHas('membres', fn (Builder $membre) => $membre->where('prenom', 'ilike', $motif)->orWhere('nom', 'ilike', $motif)));
 
-        $query->when($filters['pilote_id'] ?? null, fn (Builder $q, mixed $value) => $q->pilotePar((int) $value));
+        $query->when($filters['pilote_id'] ?? null, fn (Builder $q, mixed $value) => $q->where('pilote_id', (int) $value));
         foreach (['statut_etape', 'statut_general', 'unite_id', 'origine_id', 'type_amelioration', 'equipement_id', 'confidentialite'] as $field) {
             $query->when($filters[$field] ?? null, fn (Builder $q, mixed $value) => $q->where($field, $value));
         }
@@ -93,7 +97,9 @@ class FicheController extends Controller
                 'titre' => $fiche->titre,
                 'unite' => $fiche->unite?->libelle,
                 'equipement' => $fiche->equipement ? trim($fiche->equipement->code.' — '.$fiche->equipement->libelle, ' —') : null,
-                'pilote' => collect([$fiche->pilote?->nom_complet])->merge($fiche->copilotes->map->nom_complet)->filter()->join(', '),
+                'pilote' => $fiche->pilote?->nom_complet,
+                'membres' => $fiche->membres->sortBy('pivot.created_at')->map->nom_complet->values(),
+                'est_membre' => $fiche->estMembre($profile->userId()),
                 'statut_etape' => $fiche->statut_etape,
                 'statut_etape_libelle' => $fiche->etape()->libelle(),
                 'statut_general' => $fiche->statut_general,
@@ -161,9 +167,10 @@ class FicheController extends Controller
     }
 
     /**
-     * Le pilote ajoute un membre à l'équipe après la validation de la pertinence : un agent ou
-     * un pilote actif, même hors de son unité ; le membre voit la fiche et renseigne l'analyse
-     * et le suivi. Un membre ne valide pas la fiche (B8).
+     * Le pilote compose l'équipe à la fin de la section 4, comme il choisit le chef de
+     * département : des agents ou des pilotes actifs, même d'une autre unité. Le membre est
+     * invité par une notification ; il voit la fiche et renseigne les sections 5 à 11.
+     * Un membre ne valide pas la fiche (B8).
      */
     public function ajouterMembre(Request $request, FicheA3 $fiche, ActiveProfile $profile, HistoryLogger $history, NotificationService $notifications): FicheResource
     {
@@ -183,26 +190,29 @@ class FicheController extends Controller
             throw RegleMetierException::conditionsManquantes('Membre non ajouté.', ['Cette personne valide la fiche (sponsor, chef de département ou valideur) : elle ne peut pas aussi la rédiger.']);
         }
 
-        DB::transaction(function () use ($fiche, $data, $profile, $history, $notifications): void {
-            if ($fiche->membres()->whereKey($data['user_id'])->exists()) {
+        DB::transaction(function () use ($fiche, $userId, $profile, $history, $notifications): void {
+            if ($fiche->membres()->whereKey($userId)->exists()) {
                 return;
             }
-            $fiche->membres()->attach($data['user_id'], ['ajoute_par' => $profile->userId()]);
-            $history->log($fiche, $profile->userId(), 'AJOUT_MEMBRE', 'equipe', null, (int) $data['user_id']);
-            $notifications->notify([(int) $data['user_id']], $fiche, 'AJOUT_MEMBRE', 'Vous faites partie de l’équipe de cette fiche : vous pouvez renseigner l’analyse et le suivi.', auteurId: $profile->userId());
+            $fiche->membres()->attach($userId, ['ajoute_par' => $profile->userId()]);
+            $history->log($fiche, $profile->userId(), 'AJOUT_MEMBRE', 'equipe', null, $userId);
+            $notifications->notify([$userId], $fiche, 'AJOUT_MEMBRE', $profile->user()->nom_complet.' vous invite dans l’équipe de la fiche : vous la voyez et renseignez les sections 5 à 11.', auteurId: $profile->userId());
         });
 
         return new FicheResource($fiche->refresh());
     }
 
-    public function retirerMembre(FicheA3 $fiche, User $user, ActiveProfile $profile, HistoryLogger $history): FicheResource
+    public function retirerMembre(FicheA3 $fiche, User $user, ActiveProfile $profile, HistoryLogger $history, NotificationService $notifications): FicheResource
     {
         $this->visible($fiche, $profile);
         $this->exigerGestionEquipe($fiche, $profile);
 
-        if ($fiche->membres()->detach($user->id) > 0) {
-            $history->log($fiche, $profile->userId(), 'RETRAIT_MEMBRE', 'equipe', $user->id, null);
-        }
+        DB::transaction(function () use ($fiche, $user, $profile, $history, $notifications): void {
+            if ($fiche->membres()->detach($user->id) > 0) {
+                $history->log($fiche, $profile->userId(), 'RETRAIT_MEMBRE', 'equipe', $user->id, null);
+                $notifications->notify([$user->id], $fiche, 'RETRAIT_MEMBRE', 'Vous ne faites plus partie de l’équipe de cette fiche.', auteurId: $profile->userId());
+            }
+        });
 
         return new FicheResource($fiche->refresh());
     }
@@ -211,9 +221,6 @@ class FicheController extends Controller
     {
         if (! $profile->estPiloteDe($fiche)) {
             throw RegleMetierException::interdit('Seul le pilote de la fiche gère son équipe.');
-        }
-        if ($fiche->pertinence_validee_le === null) {
-            throw RegleMetierException::conflit('L’équipe se constitue après la validation de la pertinence par le chef de département.');
         }
         if (! $fiche->etape()->estActive()) {
             throw RegleMetierException::conflit('L’équipe ne change plus à cette étape.');
@@ -321,7 +328,10 @@ class FicheController extends Controller
         $estPilote = $profile->estPiloteDe($fiche);
 
         return response()->json(['data' => [
-            'responsables' => $this->titulaires(['AGENT', 'PILOTE'], $fiche->unite_id),
+            // Les membres de l'équipe, même d'une autre unité, peuvent porter une action.
+            'responsables' => collect($this->titulaires(['AGENT', 'PILOTE'], $fiche->unite_id))
+                ->merge($fiche->membres()->where('actif', true)->get(['users.id', 'nom', 'prenom'])->map(fn (User $user) => ['id' => $user->id, 'nom' => $user->nom_complet]))
+                ->unique('id')->sortBy('nom')->values()->all(),
             'sponsors' => $this->titulaires(ValidationCircuit::rolesDirecteurs(), null),
             'chefs' => $this->titulaires([Organigramme::ROLE_CHEF], null),
             'chef_propose' => $organigramme->chefPropose($fiche->pilote),

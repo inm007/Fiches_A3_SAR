@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import Button from '../../ui/Button.jsx'
+import EquipeFiche from '../EquipeFiche.jsx'
 import { Select, TextArea } from '../../ui/FormControls.jsx'
 import { proposerObjectif } from '../../../utils/a3Calculs.js'
 import { formatDate, formatNumber } from '../../../utils/format.js'
@@ -7,7 +8,7 @@ import Astuce from './Astuce.jsx'
 import { peopleOptions } from './options.js'
 import './FicheSection.css'
 
-export default function Section04Objectif({ draft, set, fiche, options, readOnly }) {
+export default function Section04Objectif({ draft, set, fiche, options, readOnly, onFicheChange }) {
   const principal = fiche.indicateurs.find((indicateur) => indicateur.principal)
   const aSurveiller = fiche.indicateurs.filter((indicateur) => indicateur.a_ne_pas_degrader)
   const proposition = proposerObjectif(principal, fiche.identification.date_cible)
@@ -23,7 +24,7 @@ export default function Section04Objectif({ draft, set, fiche, options, readOnly
       <Astuce ouvert={!readOnly && !draft.objectif_smart} titre="Astuce : un objectif SMART">
         <p>Spécifique, Mesurable, Atteignable, Réaliste et Temporel : <em>« Réduire la consommation de vapeur de 100 à 80 t/h d’ici le 31/01, et tenir ce niveau trois mois. »</em></p>
         <p>Les <strong>résultats attendus</strong> disent ce qu’il faudra constater pour clôturer : ce sont vos conditions de clôture.</p>
-        <p>Choisissez ensuite le <strong>chef de département</strong> qui jugera la pertinence : il pourra valider, renvoyer la fiche à refaire ou la classer sans suite.</p>
+        <p>Choisissez ensuite le <strong>chef de département</strong> qui jugera la pertinence : il pourra valider, renvoyer la fiche à refaire ou la classer sans suite. Ajoutez enfin les <strong>membres de votre équipe</strong> : ils reçoivent une invitation.</p>
       </Astuce>
 
       <div className="fiche-section__kpi">
@@ -74,6 +75,8 @@ export default function Section04Objectif({ draft, set, fiche, options, readOnly
           onChange={(value) => set('chef_pertinence_id', value)}
         />
       </div>
+
+      <EquipeFiche fiche={fiche} options={options} onChange={onFicheChange} />
     </div>
   )
 }
