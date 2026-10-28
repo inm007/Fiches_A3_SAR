@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { apiRequest } from '../../auth/api.js'
 import AdminEntityPage from '../../components/admin/AdminEntityPage.jsx'
+import UserCreationWizard from '../../components/admin/UserCreationWizard.jsx'
 import Badge from '../../components/ui/Badge.jsx'
 import { personName } from '../../utils/format.js'
 
@@ -139,13 +140,17 @@ function Utilisateurs() {
     <AdminEntityPage
       columns={columns}
       detailTitle={personName}
-      description="Un compte local reçoit son lien de mot de passe à la création. Ensuite, « Donner un rôle » lui ouvre l’application."
+      createDialog={(props) => <UserCreationWizard {...props} />}
+      description="« Créer un utilisateur » vous guide : annuaire LDAP ou compte local, puis rôle, affectation et responsabilité. « Donner un rôle » ajoute ensuite d’autres rôles."
       endpoint="/admin/users"
       exportColumns={exportColumns}
       extraActions={extraActions}
       fields={fields}
       related={related}
-      messages={{ created: (user) => (user?.lien_envoye ? 'Compte créé : le lien de définition du mot de passe est envoyé.' : 'Compte créé.') }}
+      messages={{
+        add: 'Créer un utilisateur',
+        created: (user) => (user?.lien_envoye ? 'Compte créé : le lien de définition du mot de passe est envoyé.' : 'Compte créé.'),
+      }}
       title="Utilisateurs"
     />
   )

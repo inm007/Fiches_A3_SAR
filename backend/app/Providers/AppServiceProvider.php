@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Services\Annuaire\Annuaire;
+use App\Services\Annuaire\DemoAnnuaire;
+use App\Services\Annuaire\LdapAnnuaire;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\ServiceProvider;
 
@@ -12,7 +15,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(Annuaire::class, fn () => config('a3.annuaire') === 'ldap' ? new LdapAnnuaire : new DemoAnnuaire);
     }
 
     /**

@@ -17,6 +17,34 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Annuaire
+    |--------------------------------------------------------------------------
+    |
+    | Où l'administrateur fonctionnel choisit la personne d'un compte annuaire.
+    | « demo » propose des personnes fictives ; « ldap » interroge le serveur
+    | ci-dessous avec un compte de service en lecture.
+    |
+    */
+
+    'annuaire' => env('ANNUAIRE', 'demo'),
+
+    'ldap' => [
+        'url' => env('LDAP_URL', 'ldap://127.0.0.1:389'),
+        'base_dn' => env('LDAP_BASE_DN', ''),
+        'bind_dn' => env('LDAP_BIND_DN', ''),
+        'bind_password' => env('LDAP_BIND_PASSWORD', ''),
+        'filtre' => env('LDAP_FILTRE', '(objectClass=person)'),
+        'attributs' => [
+            'identifiant' => env('LDAP_ATTR_IDENTIFIANT', 'uid'),
+            'nom' => env('LDAP_ATTR_NOM', 'sn'),
+            'prenom' => env('LDAP_ATTR_PRENOM', 'givenName'),
+            'email' => env('LDAP_ATTR_EMAIL', 'mail'),
+            'fonction' => env('LDAP_ATTR_FONCTION', 'title'),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Passerelle SAP
     |--------------------------------------------------------------------------
     |

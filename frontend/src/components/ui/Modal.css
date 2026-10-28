@@ -40,6 +40,10 @@
   --sar-modal-width: 640px;
 }
 
+.sar-modal--lg {
+  --sar-modal-width: 760px;
+}
+
 .sar-modal.is-open {
   opacity: 1;
   transform: translateY(0) scale(1);

@@ -54,6 +54,9 @@ const byOrder = (rows) => [...rows].sort((a, b) => a.ordre - b.ordre)
  *
  * @param {object} [props.createWith] Ouvre d'emblée le formulaire d'ajout, prérempli avec ces valeurs.
  * @param {(row: object) => string} [props.detailTitle] Titre de la fenêtre « Voir » d'une ligne.
+ * @param {(props: { open: boolean, onClose: () => void, onCreated: (row: object) => void }) => import('react').ReactNode} [props.createDialog]
+ *   Remplace le formulaire d'ajout par une fenêtre propre à la page (ex. l'assistant de création d'utilisateur),
+ *   montée seulement pendant son ouverture.
  */
 function AdminEntityPage({
   title,
@@ -72,6 +75,7 @@ function AdminEntityPage({
   pending = false,
   createWith,
   detailTitle = (row) => row.libelle ?? row.code ?? title,
+  createDialog,
 }) {
   const messages = { ...DEFAULT_MESSAGES, ...customMessages }
   const [rows, setRows] = useState([])
@@ -89,6 +93,7 @@ function AdminEntityPage({
   const [pendingDeactivation, setPendingDeactivation] = useState(null)
   const [deactivating, setDeactivating] = useState(false)
   const [viewed, setViewed] = useState(null)
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
   const fetchAll = useCallback(async () => {
     const [result, ...relatedResults] = await Promise.all([
@@ -159,7 +164,17 @@ function AdminEntityPage({
   }
 
   function openCreate() {
+    if (createDialog) {
+      setCreateDialogOpen(true)
+      return
+    }
     openForm(null, emptyValues(fields, rows))
+  }
+
+  async function handleDialogCreated(row) {
+    setCreateDialogOpen(false)
+    toast.success(typeof messages.created === 'function' ? messages.created(row) : messages.created)
+    await load()
   }
 
   // Arrivée depuis un autre écran (ex. « Donner un rôle » sur un utilisateur) : formulaire prérempli, une seule fois.
@@ -428,6 +443,7 @@ function AdminEntityPage({
         title={viewed ? detailTitle(viewed) : ''}
         onClose={() => setViewed(null)}
       />
+      {createDialogOpen && createDialog?.({ open: true, onClose: () => setCreateDialogOpen(false), onCreated: handleDialogCreated })}
       <ConfirmDialog
         busy={deactivating}
         confirmLabel="Désactiver"
