@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Affectation;
+use App\Models\Entite;
 use App\Models\FicheA3;
 use App\Models\Liste;
 use App\Models\Role;
@@ -137,7 +138,10 @@ class AdminAdministrationTest extends TestCase
         $this->getJson('/api/admin/roles')
             ->assertOk()
             ->assertJsonFragment(['id' => $role->id, 'code' => 'DIRECTION', 'libelle' => 'Direction']);
-        $this->assertSame(['id', 'code', 'libelle'], array_keys($this->getJson('/api/admin/roles')->json('data.0')));
+        $this->assertSame(['id', 'code', 'libelle', 'par_unite'], array_keys($this->getJson('/api/admin/roles')->json('data.0')));
+        $roles = collect($this->getJson('/api/admin/roles')->json('data'))->keyBy('code');
+        $this->assertTrue($roles['PILOTE']['par_unite']);
+        $this->assertFalse($roles['DIRECTION']['par_unite']);
     }
 
     public function test_reference_list_seeder_is_complete_and_idempotent(): void
@@ -495,6 +499,69 @@ class AdminAdministrationTest extends TestCase
         $this->putJson('/api/admin/permissions', ['role_id' => $roleId, 'permission' => $permission, 'accorde' => ! $cellule['accorde']])->assertOk();
         $relue = collect($this->getJson('/api/admin/permissions')->json('data.permissions'))->firstWhere('code', $permission);
         $this->assertSame(! $cellule['accorde'], $relue['roles'][$roleId]['accorde']);
+    }
+
+    public function test_directory_search_lists_people_and_flags_existing_accounts(): void
+    {
+        $this->asAdmin();
+
+        $this->getJson('/api/admin/annuaire?q=ndao')
+            ->assertOk()
+            ->assertJsonPath('meta.source', 'demo')
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.identifiant', 'modou.ndao')
+            ->assertJsonPath('data.0.ldap_dn', 'uid=modou.ndao,ou=personnel,dc=sar,dc=sn')
+            ->assertJsonPath('data.0.compte_id', null);
+        // Recherche sans accent : « Marème » est trouvée par « mareme ».
+        $this->getJson('/api/admin/annuaire?q=mareme')->assertOk()->assertJsonPath('data.0.prenom', 'Marème');
+
+        $user = User::create([
+            'identifiant' => 'modou.ndao', 'nom' => 'Ndao', 'prenom' => 'Modou', 'email' => 'modou.ndao@sar.sn',
+            'auth_source' => 'ldap', 'ldap_dn' => 'uid=modou.ndao,ou=personnel,dc=sar,dc=sn', 'actif' => true,
+        ]);
+        $this->getJson('/api/admin/annuaire?q=ndao')->assertOk()->assertJsonPath('data.0.compte_id', $user->id);
+    }
+
+    public function test_the_creation_wizard_creates_the_account_its_role_and_its_responsibility_at_once(): void
+    {
+        $this->asAdmin();
+        $unite = Unite::create(['code' => 'DA', 'libelle' => 'Distillation atmosphérique', 'actif' => true]);
+        $direction = Entite::create(['code' => 'DPROD', 'libelle' => 'Direction Production', 'type' => 'DIRECTION', 'actif' => true]);
+        $departement = Entite::create(['code' => 'DFAB', 'libelle' => 'Fabrication', 'type' => 'DEPARTEMENT', 'parent_id' => $direction->id, 'actif' => true]);
+        $pilote = Role::where('code', 'PILOTE')->firstOrFail();
+
+        $data = $this->postJson('/api/admin/users', [
+            'auth_source' => 'ldap', 'ldap_dn' => 'uid=yacine.wade,ou=personnel,dc=sar,dc=sn',
+            'identifiant' => 'yacine.wade', 'nom' => 'Wade', 'prenom' => 'Yacine', 'email' => 'yacine.wade@sar.sn',
+            'role_id' => (string) $pilote->id, 'unite_id' => (string) $unite->id,
+            'entite_id' => (string) $departement->id, 'responsable_entite_id' => (string) $departement->id,
+        ])->assertCreated()
+            ->assertJsonPath('data.lien_envoye', false)
+            ->json('data');
+
+        $this->assertDatabaseHas('users', ['id' => $data['id'], 'auth_source' => 'ldap', 'entite_id' => $departement->id, 'password' => null]);
+        $this->assertDatabaseHas('affectations', ['user_id' => $data['id'], 'role_id' => $pilote->id, 'unite_id' => $unite->id, 'actif' => true]);
+        $this->assertDatabaseHas('entites', ['id' => $departement->id, 'responsable_id' => $data['id']]);
+        // Responsable d'un département : le profil Chef de département lui est donné par l'organigramme.
+        $this->assertEqualsCanonicalizing(['PILOTE', 'CHEF_DEPARTEMENT'], collect($data['affectations'])->pluck('role.code')->all());
+        $this->assertDatabaseHas('journal_administration', ['objet' => 'entite:'.$departement->id, 'operation' => 'MODIFICATION']);
+    }
+
+    public function test_the_creation_wizard_checks_the_role_scope_before_creating_anything(): void
+    {
+        $this->asAdmin();
+        $unite = Unite::create(['code' => 'DA', 'libelle' => 'Distillation atmosphérique', 'actif' => true]);
+        $compte = ['identifiant' => 'ousmane.ba', 'nom' => 'Ba', 'prenom' => 'Ousmane', 'email' => 'ousmane.ba@example.test'];
+        $role = fn (string $code) => (string) Role::where('code', $code)->value('id');
+
+        $this->postJson('/api/admin/users', [...$compte, 'role_id' => $role('PILOTE')])->assertUnprocessable()->assertJsonValidationErrors('unite_id');
+        $this->postJson('/api/admin/users', [...$compte, 'role_id' => $role('DIRECTION'), 'unite_id' => (string) $unite->id])->assertUnprocessable()->assertJsonValidationErrors('unite_id');
+        $this->postJson('/api/admin/users', [...$compte, 'role_id' => $role('CHEF_DEPARTEMENT')])->assertUnprocessable()->assertJsonValidationErrors('role_id');
+        $this->postJson('/api/admin/users', [...$compte, 'unite_id' => (string) $unite->id])->assertUnprocessable()->assertJsonValidationErrors('role_id');
+        $this->assertDatabaseMissing('users', ['identifiant' => 'ousmane.ba']);
+
+        $this->postJson('/api/admin/users', [...$compte, 'role_id' => $role('DIRECTION')])->assertCreated();
+        $this->assertSame(1, User::where('identifiant', 'ousmane.ba')->firstOrFail()->affectations()->count());
     }
 
     private function asAdmin(): array

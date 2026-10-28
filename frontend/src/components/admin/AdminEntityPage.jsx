@@ -51,6 +51,9 @@ const byOrder = (rows) => [...rows].sort((a, b) => a.ordre - b.ordre)
  * @param {Partial<typeof DEFAULT_MESSAGES>} [props.messages] Libellés propres à la page.
  *
  * @param {object} [props.createWith] Ouvre d'emblée le formulaire d'ajout, prérempli avec ces valeurs.
+ * @param {(props: { open: boolean, onClose: () => void, onCreated: (row: object) => void }) => import('react').ReactNode} [props.createDialog]
+ *   Remplace le formulaire d'ajout par une fenêtre propre à la page (ex. l'assistant de création d'utilisateur),
+ *   montée seulement pendant son ouverture.
  */
 function AdminEntityPage({
   title,
@@ -68,6 +71,7 @@ function AdminEntityPage({
   messages: customMessages,
   pending = false,
   createWith,
+  createDialog,
 }) {
   const messages = { ...DEFAULT_MESSAGES, ...customMessages }
   const [rows, setRows] = useState([])
@@ -84,6 +88,7 @@ function AdminEntityPage({
   const [fieldErrors, setFieldErrors] = useState({})
   const [pendingDeactivation, setPendingDeactivation] = useState(null)
   const [deactivating, setDeactivating] = useState(false)
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
   const fetchAll = useCallback(async () => {
     const [result, ...relatedResults] = await Promise.all([
@@ -154,7 +159,17 @@ function AdminEntityPage({
   }
 
   function openCreate() {
+    if (createDialog) {
+      setCreateDialogOpen(true)
+      return
+    }
     openForm(null, emptyValues(fields, rows))
+  }
+
+  async function handleDialogCreated(row) {
+    setCreateDialogOpen(false)
+    toast.success(typeof messages.created === 'function' ? messages.created(row) : messages.created)
+    await load()
   }
 
   // Arrivée depuis un autre écran (ex. « Donner un rôle » sur un utilisateur) : formulaire prérempli, une seule fois.
@@ -417,6 +432,7 @@ function AdminEntityPage({
           {fields.map(renderField)}
         </form>
       </Modal>
+      {createDialogOpen && createDialog?.({ open: true, onClose: () => setCreateDialogOpen(false), onCreated: handleDialogCreated })}
       <ConfirmDialog
         busy={deactivating}
         confirmLabel="Désactiver"

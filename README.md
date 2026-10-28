@@ -71,6 +71,7 @@ Ces raccordements se font par configuration, dans `backend/.env`, sans toucher a
 | Raccordement | Variables | État livré |
 |---|---|---|
 | Annuaire LDAP | `AUTH_PROVIDER=ldap` | `local` : connexion par identifiant et mot de passe. Les comptes portent déjà `auth_source` et `ldap_dn`. |
+| Annuaire de création des comptes | `ANNUAIRE=ldap`, `LDAP_URL`, `LDAP_BASE_DN`, `LDAP_BIND_DN`, `LDAP_BIND_PASSWORD` (attributs lus : `LDAP_ATTR_*`, filtre : `LDAP_FILTRE`, voir `config/a3.php`) ; extension PHP `ldap` requise | `demo` : l'assistant « Créer un utilisateur » propose des personnes fictives. |
 | SAP (lecture) | `SAP_ENABLED=true` | `false` : les références SAP (équipement, avis, ordre) sont saisies à la main. |
 | Serveur de courriel | `MAIL_MAILER`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS` ; `APP_NAME` donne le nom de l'expéditeur | `log` : les liens de mot de passe sont écrits dans `storage/logs`. |
 

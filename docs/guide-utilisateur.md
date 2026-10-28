@@ -73,7 +73,7 @@ Une fiche peut être mise en attente avec un motif (« Mettre en attente »), pu
 
 ## Administrateur fonctionnel
 
-- **Comptes** : « Administration → Utilisateurs ». Un nouveau compte local reçoit aussitôt son lien de définition du mot de passe ; « Envoyer le lien » le renvoie.
+- **Comptes** : « Administration → Utilisateurs → Créer un utilisateur » guide en six étapes : annuaire LDAP (choix par défaut, la personne est choisie dans l'annuaire) ou compte local (saisie du nom, de l'identifiant et du courriel), puis le rôle, l'affectation (unité du rôle et rattachement dans l'organigramme), la responsabilité éventuelle d'un service, d'un département ou d'une direction, et une vérification avant création. Un nouveau compte local reçoit aussitôt son lien de définition du mot de passe ; « Envoyer le lien » le renvoie. « Donner un rôle » ajoute ensuite d'autres rôles.
 - **Affectations** : un rôle est porté par une affectation (rôle, unité ou périmètre global, dates).
 - **Référentiels** : unités, équipements, listes de choix, paramètres fonctionnels (délai des rappels, préavis d'échéance, limites des pièces jointes).
 - **Classer sans suite** : un doublon ou un sujet hors périmètre, avant la validation du plan, avec un motif.

@@ -36,6 +36,7 @@ Route::prefix('admin')
     ->middleware(['auth:sanctum', EnsureActiveRole::class.':ADMIN_FONCTIONNEL'])
     ->group(function (): void {
         Route::get('/users', [UserController::class, 'index']);
+        Route::get('/annuaire', [UserController::class, 'annuaire']);
         Route::post('/users', [UserController::class, 'store']);
         Route::patch('/users/{user}', [UserController::class, 'update']);
         Route::post('/users/{user}/password-link', [UserController::class, 'sendPasswordLink']);

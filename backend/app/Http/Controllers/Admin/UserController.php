@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Exceptions\RegleMetierException;
 use App\Http\Controllers\AuthController;
 use App\Models\Affectation;
+use App\Models\Entite;
 use App\Models\User;
+use App\Services\Annuaire\Annuaire;
+use App\Services\Organigramme;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,9 +20,13 @@ use Throwable;
 
 /**
  * Écran Utilisateurs : comptes métier créés sans mot de passe, puis lien de définition.
+ * L'assistant de création choisit la personne dans l'annuaire (ou la saisit pour un compte
+ * local), puis donne en un seul envoi son rôle, son rattachement et sa responsabilité éventuelle.
  */
 class UserController extends AdminController
 {
+    public function __construct(private readonly Organigramme $organigramme) {}
+
     public function index(): JsonResponse
     {
         $users = User::query()
@@ -29,6 +36,29 @@ class UserController extends AdminController
             ->get();
 
         return response()->json(['data' => $users->map(fn (User $user) => $this->userData($user))]);
+    }
+
+    /**
+     * Personnes de l'annuaire, avec le compte déjà ouvert pour elles s'il existe.
+     */
+    public function annuaire(Request $request, Annuaire $annuaire): JsonResponse
+    {
+        $validated = $request->validate(['q' => ['nullable', 'string', 'max:100']]);
+        $personnes = collect($annuaire->rechercher($validated['q'] ?? ''));
+
+        $comptes = User::query()
+            ->whereIn('ldap_dn', $personnes->pluck('ldap_dn'))
+            ->orWhereIn('identifiant', $personnes->pluck('identifiant'))
+            ->orWhereIn('email', $personnes->pluck('email')->filter())
+            ->get(['id', 'identifiant', 'email', 'ldap_dn']);
+        $compte = fn (array $personne) => $comptes->first(fn (User $user) => $user->ldap_dn === $personne['ldap_dn']
+            || $user->identifiant === $personne['identifiant']
+            || ($personne['email'] !== '' && $user->email === $personne['email']))?->id;
+
+        return response()->json([
+            'data' => $personnes->map(fn (array $personne) => [...$personne, 'compte_id' => $compte($personne)])->values(),
+            'meta' => ['source' => $annuaire->source()],
+        ]);
     }
 
     public function store(Request $request): JsonResponse
@@ -42,17 +72,44 @@ class UserController extends AdminController
             'ldap_dn' => ['nullable', 'string', 'max:255', 'unique:users,ldap_dn'],
             'actif' => ['sometimes', 'boolean'],
             'entite_id' => ['nullable', 'integer', 'exists:entites,id'],
+            // Étapes suivantes de l'assistant, facultatives : premier rôle et responsabilité.
+            'role_id' => ['nullable', 'required_with:unite_id', 'integer', 'exists:roles,id'],
+            'unite_id' => ['nullable', 'integer', 'exists:unites,id'],
+            'responsable_entite_id' => ['nullable', 'integer', Rule::exists('entites', 'id')->where('actif', true)],
         ]);
         $this->validerSourceLdap($validated['auth_source'] ?? 'local', $validated['ldap_dn'] ?? null);
+        $roleId = $validated['role_id'] ?? null;
+        $uniteId = $validated['unite_id'] ?? null;
+        $responsableDe = $validated['responsable_entite_id'] ?? null;
+        if ($roleId !== null) {
+            $this->validerPerimetre((int) $roleId, $uniteId);
+        }
+        if ($responsableDe !== null && ! ($validated['actif'] ?? true)) {
+            throw ValidationException::withMessages(['responsable_entite_id' => 'Un compte désactivé ne peut pas être responsable d’une entité.']);
+        }
+        $compte = collect($validated)->except(['role_id', 'unite_id', 'responsable_entite_id'])->all();
 
-        $user = DB::transaction(function () use ($validated, $request): User {
+        $user = DB::transaction(function () use ($compte, $request, $roleId, $uniteId, $responsableDe): User {
             $user = User::create([
-                ...$validated,
-                'auth_source' => $validated['auth_source'] ?? 'local',
-                'actif' => $validated['actif'] ?? true,
+                ...$compte,
+                'auth_source' => $compte['auth_source'] ?? 'local',
+                'actif' => $compte['actif'] ?? true,
                 'password' => null,
             ]);
             $this->audit($request, 'CREATION', 'user', $user->id, $this->auditData($user));
+
+            if ($roleId !== null) {
+                $affectation = Affectation::create(['user_id' => $user->id, 'role_id' => $roleId, 'unite_id' => $uniteId, 'actif' => true]);
+                $this->audit($request, 'CREATION', 'affectation', $affectation->id, $affectation->only(['user_id', 'role_id', 'unite_id', 'actif']));
+            }
+
+            if ($responsableDe !== null) {
+                $entite = Entite::query()->lockForUpdate()->findOrFail($responsableDe);
+                $avant = $entite->only(['responsable_id']);
+                $entite->update(['responsable_id' => $user->id]);
+                $this->audit($request, 'MODIFICATION', 'entite', $entite->id, ['avant' => $avant, 'apres' => $entite->only(['responsable_id'])]);
+                $this->organigramme->synchroniserChefs();
+            }
 
             return $user;
         });
