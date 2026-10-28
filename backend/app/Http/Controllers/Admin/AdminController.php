@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Affectation;
 use App\Models\JournalAdministration;
+use App\Models\Role;
 use App\Models\Unite;
+use App\Services\Organigramme;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -15,6 +17,11 @@ use Illuminate\Validation\ValidationException;
  */
 abstract class AdminController extends Controller
 {
+    /**
+     * Rôles rattachés à une unité ; les autres (Contrôle de gestion, Direction, administrateurs) sont globaux.
+     */
+    protected const array ROLES_PAR_UNITE = ['AGENT', 'PILOTE', 'VALIDEUR_PRODUCTION', 'VALIDEUR_HSE', 'VALIDEUR_PROCEDE', 'VALIDEUR_DSI', 'VALIDEUR_MAINTENANCE', 'VALIDEUR_INSPECTION'];
+
     /**
      * @param  array<string, mixed>  $detail
      */
@@ -55,6 +62,27 @@ abstract class AdminController extends Controller
     {
         if ($uniteId !== null && ! Unite::query()->whereKey($uniteId)->where('actif', true)->exists()) {
             throw ValidationException::withMessages(['unite_id' => 'L’unité sélectionnée n’existe pas ou est inactive.']);
+        }
+    }
+
+    /**
+     * Un rôle d'unité exige une unité active ; un rôle global n'en a pas.
+     */
+    protected function validerPerimetre(int $roleId, int|string|null $uniteId, bool $exigerUniteActive = true): void
+    {
+        $code = Role::query()->findOrFail($roleId)->code;
+        if ($code === Organigramme::ROLE_CHEF) {
+            throw ValidationException::withMessages(['role_id' => 'Le profil Chef de département suit l’organigramme : désignez le responsable du département dans l’écran Organigramme.']);
+        }
+        $parUnite = in_array($code, self::ROLES_PAR_UNITE, true);
+        if ($parUnite !== ($uniteId !== null)) {
+            throw ValidationException::withMessages(['unite_id' => $parUnite
+                ? 'Ce rôle nécessite une affectation à une unité.'
+                : 'Ce rôle est global et ne peut pas être rattaché à une unité.']);
+        }
+
+        if ($exigerUniteActive) {
+            $this->validerUniteActive($uniteId);
         }
     }
 }

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\Affectation;
 use App\Models\Role;
-use App\Services\Organigramme;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -17,16 +16,14 @@ use Illuminate\Validation\ValidationException;
 class AffectationController extends AdminController
 {
     /**
-     * Rôles rattachés à une unité ; les autres (Contrôle de gestion, Direction, administrateurs) sont globaux.
-     */
-    private const array ROLES_PAR_UNITE = ['AGENT', 'PILOTE', 'VALIDEUR_PRODUCTION', 'VALIDEUR_HSE', 'VALIDEUR_PROCEDE', 'VALIDEUR_DSI', 'VALIDEUR_MAINTENANCE', 'VALIDEUR_INSPECTION'];
-
-    /**
      * Rôles en lecture seule : leur définition est fixée par les seeders.
      */
     public function roles(): JsonResponse
     {
-        return response()->json(['data' => Role::query()->orderBy('id')->get(['id', 'code', 'libelle'])]);
+        return response()->json(['data' => Role::query()->orderBy('id')->get(['id', 'code', 'libelle'])->map(fn (Role $role) => [
+            ...$role->only(['id', 'code', 'libelle']),
+            'par_unite' => in_array($role->code, self::ROLES_PAR_UNITE, true),
+        ])]);
     }
 
     public function index(): JsonResponse
@@ -94,27 +91,6 @@ class AffectationController extends AdminController
         });
 
         return response()->json(['data' => $this->affectationData($affectation->fresh()->load(['user', 'role', 'unite']))]);
-    }
-
-    /**
-     * Un rôle d'unité exige une unité active ; un rôle global n'en a pas.
-     */
-    private function validerPerimetre(int $roleId, int|string|null $uniteId, bool $exigerUniteActive = true): void
-    {
-        $code = Role::query()->findOrFail($roleId)->code;
-        if ($code === Organigramme::ROLE_CHEF) {
-            throw ValidationException::withMessages(['role_id' => 'Le profil Chef de département suit l’organigramme : désignez le responsable du département dans l’écran Organigramme.']);
-        }
-        $parUnite = in_array($code, self::ROLES_PAR_UNITE, true);
-        if ($parUnite !== ($uniteId !== null)) {
-            throw ValidationException::withMessages(['unite_id' => $parUnite
-                ? 'Ce rôle nécessite une affectation à une unité.'
-                : 'Ce rôle est global et ne peut pas être rattaché à une unité.']);
-        }
-
-        if ($exigerUniteActive) {
-            $this->validerUniteActive($uniteId);
-        }
     }
 
     private function validerDates(?string $debut, ?string $fin): void
