@@ -24,7 +24,7 @@
 
 .sar-toast--error { background: var(--button-danger-solid); }
 .sar-toast--info .sar-icon { color: var(--info-border); }
-.sar-toast--progress { background: var(--info); font-weight: 500; }
+.sar-toast--progress { background: var(--ink); font-weight: 500; }
 .sar-toast--success { background: var(--success-solid); }
 .sar-toast--success .sar-icon { color: var(--white); }
 

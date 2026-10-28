@@ -76,30 +76,30 @@
   --info-solid:     #2563EB;
 
   /* ---------- Statuts de la fiche A3 ---------- */
-  --st-encours:       #1D4ED8;  --st-encours-bg:       #E8F0FE;
-  --st-validation:    #6D28D9;  --st-validation-bg:    #F1EAFE;
-  --st-realisation:   #0E7490;  --st-realisation-bg:   #E0F5F9;
-  --st-maintien:      #4338CA;  --st-maintien-bg:      #ECEBFD;
-  --st-attente:       #C2410C;  --st-attente-bg:       #FFEDE3;
+  --st-encours:       #D7000E;  --st-encours-bg:       #FDECEE;
+  --st-validation:    #BE185D;  --st-validation-bg:    #FCE7F3;
+  --st-realisation:   #C2410C;  --st-realisation-bg:   #FFEDE3;
+  --st-maintien:      #9F1239;  --st-maintien-bg:      #FBE4EA;
+  --st-attente:       #A16207;  --st-attente-bg:       #FEF6D3;
 
   /* ---------- Étapes de la fiche : une teinte distincte par étape ---------- */
-  --etape-ouvert:                #475569;  --etape-ouvert-bg:                #EEF2F6;
-  --etape-validation-pertinence: #7C3AED;  --etape-validation-pertinence-bg: #F1EAFE;
-  --etape-en-cours:              #1D4ED8;  --etape-en-cours-bg:              #E6EEFD;
-  --etape-validation-plan:       #A21CAF;  --etape-validation-plan-bg:       #FBE9FB;
-  --etape-realisation:           #B45309;  --etape-realisation-bg:           #FEF1D6;
-  --etape-mesure:                #0E7490;  --etape-mesure-bg:                #DFF4F9;
-  --etape-maintien:              #0F766E;  --etape-maintien-bg:              #DCF4EF;
-  --etape-validation-cloture:    #4338CA;  --etape-validation-cloture-bg:    #E9E8FD;
-  --etape-attente:               #C2410C;  --etape-attente-bg:               #FFE9DD;
+  --etape-ouvert:                #5B6575;  --etape-ouvert-bg:                #EEF0F3;
+  --etape-validation-pertinence: #BE185D;  --etape-validation-pertinence-bg: #FCE7F3;
+  --etape-en-cours:              #D7000E;  --etape-en-cours-bg:              #FDECEE;
+  --etape-validation-plan:       #9F1239;  --etape-validation-plan-bg:       #FBE4EA;
+  --etape-realisation:           #C2410C;  --etape-realisation-bg:           #FFEDE3;
+  --etape-mesure:                #B45309;  --etape-mesure-bg:                #FEF1D6;
+  --etape-maintien:              #8A4B0F;  --etape-maintien-bg:              #F8EBDD;
+  --etape-validation-cloture:    #7A0010;  --etape-validation-cloture-bg:    #F6E3E5;
+  --etape-attente:               #A16207;  --etape-attente-bg:               #FEF6D3;
   --etape-cloture:               #15803D;  --etape-cloture-bg:               #E1F4E7;
   --etape-sans-suite:            #6B6B76;  --etape-sans-suite-bg:            #EFEFF1;
 
-  /* ---------- Phases des 12 sections (fiche A3) ---------- */
-  --phase-probleme:    #1D4ED8;  --phase-probleme-bg:    #EEF3FE;  --phase-probleme-border:    #C9D8FB;
-  --phase-analyse:     #7C3AED;  --phase-analyse-bg:     #F4EFFE;  --phase-analyse-border:     #DCCCFB;
-  --phase-resultats:   #0E7490;  --phase-resultats-bg:   #E9F7FA;  --phase-resultats-border:   #B9E3EC;
-  --phase-perennite:   #15803D;  --phase-perennite-bg:   #EAF6EE;  --phase-perennite-border:   #BFE3CB;
+  /* ---------- Phases des 12 sections (fiche A3) : variantes du rouge SAR ---------- */
+  --phase-probleme:    #E3000F;  --phase-probleme-bg:    #FDF0F1;  --phase-probleme-border:    #FAD1D5;
+  --phase-analyse:     #A3123A;  --phase-analyse-bg:     #FCEEF2;  --phase-analyse-border:     #F4C7D4;
+  --phase-resultats:   #D2461B;  --phase-resultats-bg:   #FFF2EC;  --phase-resultats-border:   #FBD3C2;
+  --phase-perennite:   #7A0010;  --phase-perennite-bg:   #F8ECEE;  --phase-perennite-border:   #E6C3C8;
 
   /* ---------- Statuts des actions ---------- */
   --action-a-faire:      var(--gray-500);  --action-a-faire-bg:   var(--gray-100);

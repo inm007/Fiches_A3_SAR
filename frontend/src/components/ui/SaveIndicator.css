@@ -6,7 +6,7 @@
 }
 
 .save-indicator--dirty { color: var(--warning); }
-.save-indicator--saving { color: var(--info); }
+.save-indicator--saving { color: var(--brand-600); }
 .save-indicator--saved { color: var(--success); }
 .save-indicator--error { color: var(--error); }
 
@@ -26,6 +26,6 @@
 }
 
 .save-indicator--dirty { background: var(--warning-bg); }
-.save-indicator--saving { background: var(--info-bg); }
+.save-indicator--saving { background: var(--brand-50); }
 .save-indicator--saved { background: var(--success-bg); }
 .save-indicator--error { background: var(--error-bg); }
