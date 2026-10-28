@@ -28,38 +28,42 @@ export default function Section02Contexte({ draft, set, refs, readOnly }) {
         </ul>
       </Astuce>
 
-      <div className="fiche-section__grid">
-        <TextArea hint="Pourquoi ce sujet maintenant ? Événement déclencheur, enjeu pour l’unité." label="Contexte" readOnly={readOnly} required value={draft.contexte} onChange={(value) => set('contexte', value)} />
-        <TextArea label="Énoncé du problème" readOnly={readOnly} required rows={4} value={draft.enonce_probleme} onChange={(value) => set('enonce_probleme', value)} />
-        <Select label="Fréquence" options={listOptions(refs, 'frequence', 'id')} readOnly={readOnly} value={draft.frequence_id} onChange={(value) => set('frequence_id', value)} />
-        <TextInput
-          hint={draft.impact_financier_estime ? formatFcfa(draft.impact_financier_estime) : 'Montant entier en FCFA, par an.'}
-          label="Impact financier estimé (FCFA)"
-          min="0"
-          readOnly={readOnly}
-          type="number"
-          value={draft.impact_financier_estime}
-          onChange={(value) => set('impact_financier_estime', value)}
-        />
-      </div>
-
-      <h3>Impacts</h3>
-      <p className="fiche-section__help">Touchez les domaines concernés, puis décrivez l’impact de chacun en une ou deux phrases chiffrées.</p>
-      <Pastilles label="Domaines impactés" options={IMPACTS} readOnly={readOnly} value={choisis} onChange={choisir} />
-      {choisis.length === 0 && <p className="fiche-section__muted">Aucun impact choisi.</p>}
-      <div className="fiche-section__grid">
-        {IMPACTS.filter(([code]) => choisis.includes(code)).map(([code, label]) => (
-          <TextArea
-            key={code}
-            label={`Impact ${label}`}
-            placeholder={EXEMPLES[code]}
+      <section className="fiche-section__bloc">
+        <h3>Le problème</h3>
+        <div className="fiche-section__grid">
+          <TextArea hint="Pourquoi ce sujet maintenant ? Événement déclencheur, enjeu pour l’unité." label="Contexte" readOnly={readOnly} required value={draft.contexte} onChange={(value) => set('contexte', value)} />
+          <TextArea hint="Quoi, où, quand, combien de fois : sans supposer la cause." label="Énoncé du problème" readOnly={readOnly} required value={draft.enonce_probleme} onChange={(value) => set('enonce_probleme', value)} />
+          <Select label="Fréquence" options={listOptions(refs, 'frequence', 'id')} readOnly={readOnly} value={draft.frequence_id} onChange={(value) => set('frequence_id', value)} />
+          <TextInput
+            hint={draft.impact_financier_estime ? formatFcfa(draft.impact_financier_estime) : 'Montant entier en FCFA, par an.'}
+            label="Impact financier estimé (FCFA)"
+            min="0"
             readOnly={readOnly}
-            rows={2}
-            value={impacts[code]}
-            onChange={(value) => set('impacts', { ...impacts, [code]: value })}
+            type="number"
+            value={draft.impact_financier_estime}
+            onChange={(value) => set('impact_financier_estime', value)}
           />
-        ))}
-      </div>
+        </div>
+      </section>
+
+      <section className="fiche-section__bloc">
+        <h3>Impacts</h3>
+        <p className="fiche-section__help">Touchez les domaines concernés, puis décrivez l’impact de chacun en une ou deux phrases chiffrées.</p>
+        <Pastilles label="Domaines impactés" options={IMPACTS} readOnly={readOnly} value={choisis} onChange={choisir} />
+        {choisis.length === 0 && <p className="fiche-section__muted">Aucun impact choisi.</p>}
+        <div className="fiche-section__grid">
+          {IMPACTS.filter(([code]) => choisis.includes(code)).map(([code, label]) => (
+            <TextArea
+              key={code}
+              label={`Impact ${label}`}
+              placeholder={EXEMPLES[code]}
+              readOnly={readOnly}
+              value={impacts[code]}
+              onChange={(value) => set('impacts', { ...impacts, [code]: value })}
+            />
+          ))}
+        </div>
+      </section>
     </div>
   )
 }

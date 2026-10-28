@@ -22,8 +22,10 @@
   gap: 12px;
   padding: 14px 16px;
   border: 1px solid var(--border);
+  border-left: 4px solid var(--phase, var(--border-strong));
   border-radius: var(--radius-xl);
   background: var(--white);
+  box-shadow: 0 1px 2px rgb(26 26 31 / 4%);
 }
 
 .cards-editor__card.is-locked {
@@ -57,7 +59,7 @@
 
 .cards-editor__fields {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: 10px 14px;
 }
 
@@ -70,6 +72,16 @@
 
 .cards-editor__field--wide {
   grid-column: 1 / -1;
+}
+
+.cards-editor__field--half {
+  grid-column: span 2;
+}
+
+@media (max-width: 720px) {
+  .cards-editor__field--half {
+    grid-column: 1 / -1;
+  }
 }
 
 .cards-editor__label {
@@ -86,8 +98,9 @@
 }
 
 .cards-editor__field textarea.rows-editor__input {
-  min-height: 60px;
-  resize: vertical;
+  min-height: 34px;
+  overflow: hidden;
+  resize: none;
 }
 
 .cards-editor__value {

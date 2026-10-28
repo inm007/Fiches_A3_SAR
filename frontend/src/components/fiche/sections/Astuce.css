@@ -70,13 +70,13 @@
 }
 
 .pastille:hover:not(:disabled) {
-  border-color: var(--brand-500);
+  border-color: var(--phase, var(--brand-500));
 }
 
 .pastille.is-active {
-  border-color: var(--brand-500);
-  color: var(--brand-700);
-  background: var(--brand-50);
+  border-color: var(--phase, var(--brand-500));
+  color: var(--phase, var(--brand-700));
+  background: var(--phase-bg, var(--brand-50));
   font-weight: 600;
 }
 

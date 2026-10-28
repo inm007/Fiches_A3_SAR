@@ -1,0 +1,71 @@
+.preuve-jointe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  min-height: 34px;
+}
+
+.preuve-jointe__fichier,
+.preuve-jointe__ajouter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.preuve-jointe__fichier {
+  border: 1px solid var(--success-border);
+  color: var(--success);
+  background: var(--success-bg);
+  font-weight: 500;
+}
+
+.preuve-jointe__fichier span {
+  overflow: hidden;
+  max-width: 260px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preuve-jointe__fichier:hover {
+  text-decoration: underline;
+}
+
+.preuve-jointe__ajouter {
+  border: 1px dashed color-mix(in srgb, var(--phase, var(--brand-500)) 55%, transparent);
+  color: var(--phase, var(--brand-600));
+  background: var(--white);
+  font-weight: 600;
+}
+
+.preuve-jointe__ajouter:hover {
+  border-style: solid;
+  background: var(--phase-bg, var(--brand-50));
+}
+
+input:focus-visible + .preuve-jointe__ajouter {
+  box-shadow: var(--ring-focus);
+}
+
+.preuve-jointe__ajouter.is-busy {
+  cursor: progress;
+  opacity: 0.8;
+}
+
+.preuve-jointe__aide {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.preuve-jointe__erreur {
+  flex-basis: 100%;
+  color: var(--error);
+  font-size: var(--text-xs);
+}

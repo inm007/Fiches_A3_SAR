@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../../../auth/useAuth.js'
 import Button from '../../ui/Button.jsx'
 import EmptyState from '../../ui/EmptyState.jsx'
@@ -7,7 +7,7 @@ import { Select } from '../../ui/FormControls.jsx'
 import Skeleton from '../../ui/Skeleton.jsx'
 import { describeError, errorMessage, ficheService } from '../../../services/ficheService.js'
 import { formatDate } from '../../../utils/format.js'
-import { FICHIERS_ACCEPTES } from '../JoindrePreuve.jsx'
+import { FICHIERS_ACCEPTES, PiecesJointesContext, telechargerPiece } from '../preuves.js'
 import { toast } from '../../../utils/toast.js'
 import './FicheTab.css'
 import './PiecesJointesTab.css'
@@ -20,6 +20,7 @@ function formatSize(bytes) {
 
 export default function PiecesJointesTab({ fiche, onError }) {
   const { user } = useAuth()
+  const { recharger: rechargerPreuves } = useContext(PiecesJointesContext)
   const [attachments, setAttachments] = useState([])
   const [limits, setLimits] = useState({ attachment_max_size_mb: 10, attachment_max_files: 20 })
   const [cible, setCible] = useState('')
@@ -42,6 +43,7 @@ export default function PiecesJointesTab({ fiche, onError }) {
     const result = await ficheService.piecesJointes(fiche.id)
     setAttachments(result.data)
     setLimits(result.meta)
+    rechargerPreuves()
   }
 
   useEffect(() => {
@@ -68,7 +70,7 @@ export default function PiecesJointesTab({ fiche, onError }) {
     setBusy(true)
     try {
       const [type, id] = cible.split(':')
-      await ficheService.ajouterPieceJointe(fiche.id, file, type === 'action' ? { actionId: id } : { perennisationId: id })
+      await ficheService.ajouterPieceJointe(fiche.id, file, { objet: type, objetId: id })
       await reload()
       setFile(null)
       setCible('')
@@ -85,15 +87,7 @@ export default function PiecesJointesTab({ fiche, onError }) {
   async function download(attachment) {
     setMessage('')
     try {
-      const blob = await ficheService.telechargerPieceJointe(attachment.id)
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = attachment.nom
-      document.body.append(link)
-      link.click()
-      link.remove()
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+      await telechargerPiece(attachment)
     } catch (error) {
       setMessage(describeError(error).message)
     }

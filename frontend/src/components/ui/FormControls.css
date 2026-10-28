@@ -43,9 +43,10 @@
 }
 
 .sar-field textarea {
-  min-height: 88px;
+  min-height: 40px;
   line-height: 1.5;
-  resize: vertical;
+  overflow: hidden;
+  resize: none;
 }
 
 .sar-field input:focus,

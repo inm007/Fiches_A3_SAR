@@ -22,54 +22,60 @@ export default function Section01Identification({ draft, set, fiche, refs, optio
         </ul>
       </Astuce>
 
-      <h3>La fiche</h3>
-      <div className="fiche-section__grid">
-        <TextInput label="N° A3" readOnly value={fiche.numero_a3} />
-        <TextInput hint="Un titre court qui dit le problème, pas la solution." label="Titre" readOnly={readOnly} required value={draft.titre} onChange={(value) => set('titre', value)} />
-        <Select label="Unité" options={(refs?.unites ?? []).map((unite) => [String(unite.id), unite.libelle])} readOnly={readOnly} required value={draft.unite_id} onChange={(value) => { set('unite_id', value); set('equipement_id', '') }} />
-        <Select hint={draft.unite_id ? undefined : 'Choisissez d’abord l’unité.'} label="Équipement" options={equipements} readOnly={readOnly} value={draft.equipement_id} onChange={(value) => set('equipement_id', value)} />
-        <Select label="Type d’amélioration" options={listOptions(refs, 'type_amelioration')} readOnly={readOnly} required value={draft.type_amelioration} onChange={(value) => set('type_amelioration', value)} />
-        <ChampAutre
-          label="Origine"
-          liste="origine"
-          readOnly={readOnly}
-          refs={refs}
-          required
-          value={draft.origine_id}
-          valueKey="id"
-          onChange={(value) => { set('origine_id', value); set('origine_precision', '') }}
-          onOptionCreee={onOptionCreee}
-        />
-        {/* Précision libre des fiches saisies avant les options sous « Autre ». */}
-        {origineAutre && draft.origine_precision && (
-          <TextInput label="Précision de l’origine" readOnly={readOnly} required wide value={draft.origine_precision} onChange={(value) => set('origine_precision', value)} />
-        )}
-      </div>
-
-      <h3>Les personnes</h3>
-      <div className="fiche-section__grid">
-        <Select
-          hint="Un directeur : il soutient le sujet et donne l’accord final à la clôture."
-          label="Sponsor"
-          options={peopleOptions(options?.sponsors)}
-          readOnly={readOnly}
-          required
-          value={draft.sponsor_id}
-          onChange={(value) => set('sponsor_id', value)}
-        />
-      </div>
-
-      <h3>Dates et références</h3>
-      <div className="fiche-section__grid">
-        <TextInput hint="Remplie automatiquement à la validation de la pertinence." label="Date de lancement" readOnly={readOnly} type="date" value={draft.date_lancement} onChange={(value) => set('date_lancement', value)} />
-        <TextInput hint="Date à laquelle l’objectif doit être atteint." label="Date cible" readOnly={readOnly} required type="date" value={draft.date_cible} onChange={(value) => set('date_cible', value)} />
-        <TextInput hint="Saisie manuelle" label="N° d’avis SAP" readOnly={readOnly} value={draft.numero_avis_sap} onChange={(value) => set('numero_avis_sap', value)} />
-        <TextInput hint="Saisie manuelle" label="N° d’ordre SAP" readOnly={readOnly} value={draft.numero_ordre_sap} onChange={(value) => set('numero_ordre_sap', value)} />
-        <div className="sar-field">
-          <span className="sar-field__label">Confidentialité</span>
-          <ConfidentialiteBadge value={fiche.confidentialite} />
+      <section className="fiche-section__bloc">
+        <h3>La fiche</h3>
+        <div className="fiche-section__grid">
+          <TextInput hint="Un titre court qui dit le problème, pas la solution." label="Titre" readOnly={readOnly} required value={draft.titre} wide onChange={(value) => set('titre', value)} />
+          <TextInput label="N° A3" readOnly value={fiche.numero_a3} />
+          <Select label="Unité" options={(refs?.unites ?? []).map((unite) => [String(unite.id), unite.libelle])} readOnly={readOnly} required value={draft.unite_id} onChange={(value) => { set('unite_id', value); set('equipement_id', '') }} />
+          <Select hint={draft.unite_id ? undefined : 'Choisissez d’abord l’unité.'} label="Équipement" options={equipements} readOnly={readOnly} value={draft.equipement_id} onChange={(value) => set('equipement_id', value)} />
+          <Select label="Type d’amélioration" options={listOptions(refs, 'type_amelioration')} readOnly={readOnly} required value={draft.type_amelioration} onChange={(value) => set('type_amelioration', value)} />
+          <ChampAutre
+            label="Origine"
+            liste="origine"
+            readOnly={readOnly}
+            refs={refs}
+            required
+            value={draft.origine_id}
+            valueKey="id"
+            onChange={(value) => { set('origine_id', value); set('origine_precision', '') }}
+            onOptionCreee={onOptionCreee}
+          />
+          {/* Précision libre des fiches saisies avant les options sous « Autre ». */}
+          {origineAutre && draft.origine_precision && (
+            <TextInput label="Précision de l’origine" readOnly={readOnly} required wide value={draft.origine_precision} onChange={(value) => set('origine_precision', value)} />
+          )}
         </div>
-      </div>
+      </section>
+
+      <section className="fiche-section__bloc">
+        <h3>Le sponsor</h3>
+        <div className="fiche-section__grid">
+          <Select
+            hint="Un directeur : il soutient le sujet et donne l’accord final à la clôture."
+            label="Sponsor"
+            options={peopleOptions(options?.sponsors)}
+            readOnly={readOnly}
+            required
+            value={draft.sponsor_id}
+            onChange={(value) => set('sponsor_id', value)}
+          />
+        </div>
+      </section>
+
+      <section className="fiche-section__bloc">
+        <h3>Dates et références</h3>
+        <div className="fiche-section__grid">
+          <TextInput hint="Remplie automatiquement à la validation de la pertinence." label="Date de lancement" readOnly={readOnly} type="date" value={draft.date_lancement} onChange={(value) => set('date_lancement', value)} />
+          <TextInput hint="Date à laquelle l’objectif doit être atteint." label="Date cible" readOnly={readOnly} required type="date" value={draft.date_cible} onChange={(value) => set('date_cible', value)} />
+          <TextInput label="N° d’avis SAP" placeholder="Saisie manuelle" readOnly={readOnly} value={draft.numero_avis_sap} onChange={(value) => set('numero_avis_sap', value)} />
+          <TextInput label="N° d’ordre SAP" placeholder="Saisie manuelle" readOnly={readOnly} value={draft.numero_ordre_sap} onChange={(value) => set('numero_ordre_sap', value)} />
+          <div className="sar-field">
+            <span className="sar-field__label">Confidentialité</span>
+            <ConfidentialiteBadge value={fiche.confidentialite} />
+          </div>
+        </div>
+      </section>
     </div>
   )
 }

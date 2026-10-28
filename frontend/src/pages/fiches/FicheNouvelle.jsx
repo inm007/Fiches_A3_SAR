@@ -10,6 +10,7 @@ import { Checkbox, Select, TextArea, TextInput } from '../../components/ui/FormC
 import ChampAutre from '../../components/fiche/sections/ChampAutre.jsx'
 import { avecOption } from '../../components/fiche/sections/options.js'
 import { ficheService } from '../../services/ficheService.js'
+import { toast } from '../../utils/toast.js'
 import './FicheNouvelle.css'
 
 const NEXT_STEPS = [
@@ -72,6 +73,7 @@ function FicheNouvelle() {
         confidentialite: form.restreint ? 'RESTREINT' : 'NORMAL',
         piloter: peutPiloter && form.piloter,
       })
+      toast(`Fiche ${created.numero_a3} déclarée`)
       navigate(`/fiches/${created.id}`, { replace: true })
     } catch (error) {
       const fieldErrors = error.data?.errors ?? {}
@@ -86,6 +88,13 @@ function FicheNouvelle() {
       <PageBanner title="Déclarer une fiche" />
       <div className="fiche-nouvelle-page__layout">
       <form className="fiche-nouvelle-page__card" noValidate ref={formRef} onSubmit={submit}>
+        <header className="fiche-nouvelle-page__head">
+          <span aria-hidden="true">1</span>
+          <div>
+            <strong>Ce qui se passe</strong>
+            <p>Quelques lignes suffisent : le pilote complétera ensuite les 12 sections.</p>
+          </div>
+        </header>
         {message && <Alert severity="error">{message}</Alert>}
         <TextInput error={fieldError('titre')} label="Titre" required value={form.titre} wide onChange={set('titre')} />
         <div className="fiche-nouvelle-page__grid">
@@ -103,7 +112,7 @@ function FicheNouvelle() {
             onOptionCreee={(liste, valeur) => setRefs((current) => avecOption(current, liste, valeur))}
           />
         </div>
-        <TextArea error={fieldError('enonce_probleme')} hint="Faits, lieu, période, fréquence." label="Énoncé du problème" required rows={5} value={form.enonce_probleme} onChange={set('enonce_probleme')} />
+        <TextArea error={fieldError('enonce_probleme')} hint="Faits, lieu, période, fréquence." label="Énoncé du problème" required rows={3} value={form.enonce_probleme} onChange={set('enonce_probleme')} />
         <Select
           error={fieldError('equipement_id')}
           hint={form.unite_id ? 'Recommandé quand il est identifié.' : 'Choisissez d’abord l’unité.'}
@@ -132,7 +141,7 @@ function FicheNouvelle() {
           <p className="fiche-nouvelle-page__note">Cette unité n’est pas la vôtre : l’administrateur désignera un pilote de l’unité.</p>
         )}
         <Checkbox checked={form.restreint} label="Confidentialité Restreint (Normal par défaut)" onChange={set('restreint')} />
-        <div className="fiche-nouvelle-page__submit"><Button icon="plus" loading={saving} loadingLabel="Déclaration…" type="submit">Déclarer la fiche</Button></div>
+        <div className="fiche-nouvelle-page__submit"><Button icon="plus" loading={saving} loadingLabel="Déclaration en cours…" type="submit">Déclarer la fiche</Button></div>
       </form>
       <aside className="fiche-nouvelle-page__aside">
         <section className="fiche-nouvelle-page__help">

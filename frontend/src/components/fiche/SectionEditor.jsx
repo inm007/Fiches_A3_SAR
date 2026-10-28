@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import Button from '../ui/Button.jsx'
 import SaveIndicator from '../ui/SaveIndicator.jsx'
 import { describeError, ficheService } from '../../services/ficheService.js'
-import { SECTIONS } from '../../utils/constants.js'
+import { SECTIONS, SECTIONS_BUT, phaseDeSection } from '../../utils/constants.js'
 import { formatDateTime } from '../../utils/format.js'
 import Icon from '../ui/Icon.jsx'
-import { toast } from '../../utils/toast.js'
+import { avecSuivi } from '../../utils/toast.js'
 import Section01Identification from './sections/Section01Identification.jsx'
 import Section02Contexte from './sections/Section02Contexte.jsx'
 import Section03SituationActuelle from './sections/Section03SituationActuelle.jsx'
@@ -38,7 +38,7 @@ const components = {
  * Carte d'une section : brouillon local, enregistrement explicite et état de sauvegarde.
  * Le succès n'est affiché qu'après la réponse positive du serveur (UX §10.1).
  */
-function SectionEditor({ fiche, section, refs, options, onSaved, onError, onNavigate, onDirtyChange, onPrintCopy, onOptionCreee }) {
+function SectionEditor({ fiche, section, refs, options, onSaved, onError, onNavigate, onDirtyChange, onPrint, onOptionCreee }) {
   const [draft, setDraft] = useState(() => sectionModel[section].toDraft(fiche, options))
   const [state, setState] = useState('idle')
   const [failure, setFailure] = useState('')
@@ -68,11 +68,13 @@ function SectionEditor({ fiche, section, refs, options, onSaved, onError, onNavi
     setState('saving')
     setFailure('')
     try {
-      const saved = await ficheService.saveSection(fiche.id, section, sectionModel[section].toPayload(draft))
+      const saved = await avecSuivi(`Enregistrement de la section ${section} en cours…`, () => ficheService.saveSection(fiche.id, section, sectionModel[section].toPayload(draft)), {
+        succes: `Section ${section} enregistrée`,
+        echec: `La section ${section} n’a pas été enregistrée.`,
+      })
       setDraft(sectionModel[section].toDraft(saved, options))
       setState('saved')
       onSaved(saved)
-      toast(`Section ${section} enregistrée`)
     } catch (error) {
       const described = describeError(error)
       setFailure(described.message)
@@ -81,10 +83,17 @@ function SectionEditor({ fiche, section, refs, options, onSaved, onError, onNavi
     }
   }
 
+  const phase = phaseDeSection(section)
+
   return (
-    <section className={`section-editor${editable ? '' : ' section-editor--readonly'}`} aria-labelledby="section-editor-title" data-fiche-section={section}>
-      <header>
-        <h2 id="section-editor-title">{section}. {SECTIONS[section - 1]}</h2>
+    <section className={`section-editor section-editor--${phase.code}${editable ? '' : ' section-editor--readonly'}`} aria-labelledby="section-editor-title" data-fiche-section={section}>
+      <header className="section-editor__head">
+        <span aria-hidden="true" className="section-editor__numero">{section}</span>
+        <div className="section-editor__titles">
+          <span className="section-editor__phase">{phase.titre} · section {section} sur 12</span>
+          <h2 id="section-editor-title">{SECTIONS[section - 1]}</h2>
+          <p>{SECTIONS_BUT[section - 1]}</p>
+        </div>
         {badge && <span className="section-editor__readonly"><Icon name={badge.icon} size={13} />{badge.label}</span>}
       </header>
       {(etat?.raison || dernier) && (
@@ -93,14 +102,17 @@ function SectionEditor({ fiche, section, refs, options, onSaved, onError, onNavi
           {dernier && <span>Dernier enregistrement : {dernier.par ?? 'inconnu'}, le {formatDateTime(dernier.le)}.</span>}
         </p>
       )}
-      <Component draft={draft} fiche={fiche} options={options} readOnly={!editable} refs={refs} set={set} onFicheChange={onSaved} onOptionCreee={onOptionCreee} onPrintCopy={onPrintCopy} />
+      <div className="section-editor__body">
+        <Component draft={draft} fiche={fiche} options={options} readOnly={!editable} refs={refs} set={set} onFicheChange={onSaved} onOptionCreee={onOptionCreee} onPrint={onPrint} />
+      </div>
       <footer>
-        {editable && state !== 'idle' && <SaveIndicator state={state === 'error' ? 'error' : state} />}
-        {state === 'error' && failure && <span className="section-editor__failure">{failure}</span>}
-        <span className="section-editor__spacer" />
-        <Button disabled={section === 1} type="button" variant="secondary" onClick={() => onNavigate(section - 1)}>Précédent</Button>
-        {editable && <Button disabled={state === 'saving' || state === 'idle' || state === 'saved'} type="button" onClick={save}>Enregistrer</Button>}
-        <Button disabled={section === 12} type="button" variant="secondary" onClick={() => onNavigate(section + 1)}>Suivant</Button>
+        <Button disabled={section === 1} icon="page-previous" type="button" variant="secondary" onClick={() => onNavigate(section - 1)}>Précédent</Button>
+        <span className="section-editor__status">
+          {editable && state !== 'idle' && <SaveIndicator state={state === 'error' ? 'error' : state} />}
+          {state === 'error' && failure && <span className="section-editor__failure">{failure}</span>}
+        </span>
+        {editable && <Button disabled={state === 'idle' || state === 'saved'} icon="check" loading={state === 'saving'} loadingLabel="Enregistrement…" type="button" onClick={save}>Enregistrer</Button>}
+        <Button disabled={section === 12} type="button" variant="secondary" onClick={() => onNavigate(section + 1)}>Suivant<Icon name="page-next" size={16} /></Button>
       </footer>
     </section>
   )

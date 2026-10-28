@@ -29,11 +29,11 @@ export const ficheService = {
   versions: (id) => apiRequest(`/fiches/${id}/versions`).then((result) => result.data),
   historique: (id) => apiRequest(`/fiches/${id}/historique`).then((result) => result.data),
   piecesJointes: (id) => apiRequest(`/fiches/${id}/pieces-jointes`),
-  ajouterPieceJointe: (id, fichier, { actionId, perennisationId } = {}) => {
+  // `objet` : action, perennisation, cause, risque ou controle — la ligne dont le fichier est la preuve.
+  ajouterPieceJointe: (id, fichier, { objet, objetId } = {}) => {
     const body = new FormData()
     body.append('fichier', fichier)
-    if (actionId) body.append('action_id', actionId)
-    if (perennisationId) body.append('perennisation_id', perennisationId)
+    if (objet && objetId) body.append(`${objet}_id`, objetId)
     return apiRequest(`/fiches/${id}/pieces-jointes`, { method: 'POST', body })
   },
   telechargerPieceJointe: (id) => apiDownload(`/pieces-jointes/${id}/telechargement`),

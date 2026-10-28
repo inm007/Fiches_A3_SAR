@@ -82,6 +82,25 @@
   --st-maintien:      #4338CA;  --st-maintien-bg:      #ECEBFD;
   --st-attente:       #C2410C;  --st-attente-bg:       #FFEDE3;
 
+  /* ---------- Étapes de la fiche : une teinte distincte par étape ---------- */
+  --etape-ouvert:                #475569;  --etape-ouvert-bg:                #EEF2F6;
+  --etape-validation-pertinence: #7C3AED;  --etape-validation-pertinence-bg: #F1EAFE;
+  --etape-en-cours:              #1D4ED8;  --etape-en-cours-bg:              #E6EEFD;
+  --etape-validation-plan:       #A21CAF;  --etape-validation-plan-bg:       #FBE9FB;
+  --etape-realisation:           #B45309;  --etape-realisation-bg:           #FEF1D6;
+  --etape-mesure:                #0E7490;  --etape-mesure-bg:                #DFF4F9;
+  --etape-maintien:              #0F766E;  --etape-maintien-bg:              #DCF4EF;
+  --etape-validation-cloture:    #4338CA;  --etape-validation-cloture-bg:    #E9E8FD;
+  --etape-attente:               #C2410C;  --etape-attente-bg:               #FFE9DD;
+  --etape-cloture:               #15803D;  --etape-cloture-bg:               #E1F4E7;
+  --etape-sans-suite:            #6B6B76;  --etape-sans-suite-bg:            #EFEFF1;
+
+  /* ---------- Phases des 12 sections (fiche A3) ---------- */
+  --phase-probleme:    #1D4ED8;  --phase-probleme-bg:    #EEF3FE;  --phase-probleme-border:    #C9D8FB;
+  --phase-analyse:     #7C3AED;  --phase-analyse-bg:     #F4EFFE;  --phase-analyse-border:     #DCCCFB;
+  --phase-resultats:   #0E7490;  --phase-resultats-bg:   #E9F7FA;  --phase-resultats-border:   #B9E3EC;
+  --phase-perennite:   #15803D;  --phase-perennite-bg:   #EAF6EE;  --phase-perennite-border:   #BFE3CB;
+
   /* ---------- Statuts des actions ---------- */
   --action-a-faire:      var(--gray-500);  --action-a-faire-bg:   var(--gray-100);
   --action-realisee:     var(--success);    --action-realisee-bg: var(--success-bg);

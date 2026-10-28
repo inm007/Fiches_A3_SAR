@@ -62,3 +62,23 @@
 .status-badge--phase-verification:not(:has(svg))::before { background: var(--chart-phase-verification); }
 .status-badge--phase-closure:not(:has(svg))::before { background: var(--chart-phase-closure); }
 .status-badge--phase-waiting:not(:has(svg))::before { background: var(--chart-phase-waiting); }
+
+/* Étapes de la fiche : chaque étape a sa teinte (texte foncé, fond pâle, point plein). */
+[class*='status-badge--etape-'] {
+  font-weight: 600;
+  color: var(--etape);
+  background: var(--etape-bg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--etape) 18%, transparent);
+}
+.status-badge[class*='status-badge--etape-']:not(:has(svg))::before { background: var(--etape); }
+.status-badge--etape-ouvert { --etape: var(--etape-ouvert); --etape-bg: var(--etape-ouvert-bg); }
+.status-badge--etape-validation-pertinence { --etape: var(--etape-validation-pertinence); --etape-bg: var(--etape-validation-pertinence-bg); }
+.status-badge--etape-en-cours { --etape: var(--etape-en-cours); --etape-bg: var(--etape-en-cours-bg); }
+.status-badge--etape-validation-plan { --etape: var(--etape-validation-plan); --etape-bg: var(--etape-validation-plan-bg); }
+.status-badge--etape-realisation { --etape: var(--etape-realisation); --etape-bg: var(--etape-realisation-bg); }
+.status-badge--etape-mesure { --etape: var(--etape-mesure); --etape-bg: var(--etape-mesure-bg); }
+.status-badge--etape-maintien { --etape: var(--etape-maintien); --etape-bg: var(--etape-maintien-bg); }
+.status-badge--etape-validation-cloture { --etape: var(--etape-validation-cloture); --etape-bg: var(--etape-validation-cloture-bg); }
+.status-badge--etape-attente { --etape: var(--etape-attente); --etape-bg: var(--etape-attente-bg); }
+.status-badge--etape-cloture { --etape: var(--etape-cloture); --etape-bg: var(--etape-cloture-bg); }
+.status-badge--etape-sans-suite { --etape: var(--etape-sans-suite); --etape-bg: var(--etape-sans-suite-bg); }

@@ -43,38 +43,43 @@ export default function Section04Objectif({ draft, set, fiche, options, readOnly
         )}
       </div>
 
-      <div className="fiche-section__grid">
-        <TextArea label="Objectif SMART" readOnly={readOnly} required value={draft.objectif_smart} onChange={(value) => set('objectif_smart', value)} />
-        {!readOnly && proposition && proposition !== draft.objectif_smart && (
-          <div className="fiche-section__suggestion">
-            <span>Proposition à partir du KPI : « {proposition} »</span>
-            <Button size="small" type="button" variant="secondary" onClick={() => set('objectif_smart', proposition)}>Utiliser cette phrase</Button>
-          </div>
-        )}
-        <TextArea hint="Où s’applique l’amélioration : ligne, équipement, équipe, période." label="Périmètre" readOnly={readOnly} value={draft.perimetre} onChange={(value) => set('perimetre', value)} />
-        <TextArea
-          hint="Ce qu’il faudra constater pour clôturer la fiche."
-          label="Résultats attendus (conditions de clôture)"
-          placeholder="Ex. : consommation sous 80 t/h trois mois de suite, aucun purgeur fuyard à la ronde."
-          readOnly={readOnly}
-          required
-          value={draft.resultats_attendus}
-          onChange={(value) => set('resultats_attendus', value)}
-        />
-      </div>
+      <section className="fiche-section__bloc">
+        <h3>L’objectif</h3>
+        <div className="fiche-section__grid">
+          <TextArea label="Objectif SMART" readOnly={readOnly} required value={draft.objectif_smart} onChange={(value) => set('objectif_smart', value)} />
+          {!readOnly && proposition && proposition !== draft.objectif_smart && (
+            <div className="fiche-section__suggestion">
+              <span>Proposition à partir du KPI : « {proposition} »</span>
+              <Button size="small" type="button" variant="secondary" onClick={() => set('objectif_smart', proposition)}>Utiliser cette phrase</Button>
+            </div>
+          )}
+          <TextArea hint="Où s’applique l’amélioration : ligne, équipement, équipe, période." label="Périmètre" readOnly={readOnly} value={draft.perimetre} onChange={(value) => set('perimetre', value)} />
+          <TextArea
+            hint="Ce qu’il faudra constater pour clôturer la fiche."
+            label="Résultats attendus (conditions de clôture)"
+            placeholder="Ex. : consommation sous 80 t/h trois mois de suite, aucun purgeur fuyard à la ronde."
+            readOnly={readOnly}
+            required
+            value={draft.resultats_attendus}
+            onChange={(value) => set('resultats_attendus', value)}
+          />
+        </div>
+      </section>
 
-      <h3>Validation de la pertinence (porte 0)</h3>
-      <div className="fiche-section__grid">
-        <Select
-          hint={chefPropose ? 'Proposé : le chef de votre département. Vous pouvez en choisir un autre.' : 'Le chef qui recevra la fiche quand vous la soumettrez.'}
-          label="Chef de département qui valide"
-          options={peopleOptions(options?.chefs)}
-          readOnly={readOnly}
-          required
-          value={draft.chef_pertinence_id}
-          onChange={(value) => set('chef_pertinence_id', value)}
-        />
-      </div>
+      <section className="fiche-section__bloc">
+        <h3>Validation de la pertinence (porte 0)</h3>
+        <div className="fiche-section__grid">
+          <Select
+            hint={chefPropose ? 'Proposé : le chef de votre département. Vous pouvez en choisir un autre.' : 'Le chef qui recevra la fiche quand vous la soumettrez.'}
+            label="Chef de département qui valide"
+            options={peopleOptions(options?.chefs)}
+            readOnly={readOnly}
+            required
+            value={draft.chef_pertinence_id}
+            onChange={(value) => set('chef_pertinence_id', value)}
+          />
+        </div>
+      </section>
 
       <EquipeFiche fiche={fiche} options={options} onChange={onFicheChange} />
     </div>

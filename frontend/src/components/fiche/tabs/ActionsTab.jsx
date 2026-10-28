@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import Button from '../../ui/Button.jsx'
 import DataTable from '../../ui/DataTable.jsx'
 import DetailsModal from '../../ui/DetailsModal.jsx'
@@ -7,14 +7,14 @@ import ConfirmDialog from '../../ui/ConfirmDialog.jsx'
 import Badge from '../../ui/Badge.jsx'
 import FileInput from '../../ui/FileInput.jsx'
 import Modal from '../../ui/Modal.jsx'
-import { FICHIERS_ACCEPTES } from '../JoindrePreuve.jsx'
+import { FICHIERS_ACCEPTES, PiecesJointesContext } from '../preuves.js'
 import { Select, TextArea, TextInput } from '../../ui/FormControls.jsx'
 import { listOptions, peopleOptions } from '../sections/options.js'
 import { describeError, ficheService } from '../../../services/ficheService.js'
 import { STATUTS_ACTION } from '../../../utils/constants.js'
 import { detailItems } from '../../../utils/details.js'
 import { formatDate, formatDateTime, formatFcfa } from '../../../utils/format.js'
-import { toast } from '../../../utils/toast.js'
+import { avecSuivi, toast } from '../../../utils/toast.js'
 import Icon from '../../ui/Icon.jsx'
 import './FicheTab.css'
 
@@ -166,6 +166,7 @@ export default function ActionsTab({ fiche, options, refs, onChange, onError }) 
   const [preuve, setPreuve] = useState('')
   const [fichier, setFichier] = useState(null)
   const [busy, setBusy] = useState(false)
+  const { recharger } = useContext(PiecesJointesContext)
   const [replanifiee, setReplanifiee] = useState(null)
   const [ajout, setAjout] = useState(false)
   const [vue, setVue] = useState(null)
@@ -198,9 +199,12 @@ export default function ActionsTab({ fiche, options, refs, onChange, onError }) 
     setBusy(true)
     try {
       // Le fichier part d'abord : s'il est refusé (format, taille), l'action ne change pas de statut.
-      if (piece) await ficheService.ajouterPieceJointe(fiche.id, piece, { actionId: action.id })
-      onChange(await ficheService.actionStatut(action.id, { statut, ...extra }))
-      toast(`Action : ${stepLabels[statut].toLowerCase()} — enregistré`)
+      const updated = await avecSuivi(`Action « ${stepLabels[statut].toLowerCase()} » en cours d’enregistrement…`, async () => {
+        if (piece) await ficheService.ajouterPieceJointe(fiche.id, piece, { objet: 'action', objetId: action.id })
+        return ficheService.actionStatut(action.id, { statut, ...extra })
+      }, { succes: `Action : ${stepLabels[statut].toLowerCase()} — enregistré`, echec: 'L’action n’a pas changé de statut.' })
+      if (piece) recharger()
+      onChange(updated)
       setDialog(null)
       setMotif('')
       setDate('')
@@ -228,7 +232,7 @@ export default function ActionsTab({ fiche, options, refs, onChange, onError }) 
 
   // Voir, puis l'étape suivante la plus courante ; les autres choix passent dans « Plus ».
   function actionsDe(action) {
-    const boutons = [{ icon: 'eye', label: 'Voir', onClick: () => setVue(action) }]
+    const boutons = [{ label: 'Voir', onClick: () => setVue(action) }]
     if (modifiables.includes(action.id)) {
       (nextSteps[action.statut] ?? []).forEach((step) => boutons.push({
         disabled: busy,

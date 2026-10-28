@@ -299,12 +299,12 @@ function Fiches() {
           actions={(fiche) => (
             <RowActions
               actions={[
-                { icon: 'eye', label: 'Voir', onClick: () => navigate(`/fiches/${fiche.id}`) },
-                ...(isAdmin ? [{ icon: 'settings', label: 'Gérer', onClick: () => setManaged(fiche.source) }] : []),
+                { label: 'Voir', onClick: () => navigate(`/fiches/${fiche.id}`) },
+                ...(isAdmin ? [{ label: 'Gérer', onClick: () => setManaged(fiche.source) }] : []),
               ]}
             />
           )}
-          actionsWidth={isAdmin ? '184px' : '104px'}
+          actionsWidth={isAdmin ? '168px' : '96px'}
           columns={columns}
           emptyAction={list.active
             ? <Button type="button" variant="secondary" onClick={list.reset}>Réinitialiser les filtres</Button>
@@ -312,6 +312,7 @@ function Fiches() {
           emptyDescription={list.active ? 'Aucune fiche ne correspond à ces critères.' : 'Aucune fiche n’est visible pour ce profil.'}
           emptyMessage="Aucune fiche"
           loading={source.loading}
+          rowProps={(fiche) => ({ 'data-etape': fiche.statut_etape })}
           rows={source.rows}
           variant="compact"
           onRowClick={(fiche) => navigate(`/fiches/${fiche.id}`)}

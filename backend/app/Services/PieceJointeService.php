@@ -4,10 +4,13 @@ namespace App\Services;
 
 use App\Exceptions\RegleMetierException;
 use App\Models\ActionA3;
+use App\Models\Cause;
+use App\Models\Controle;
 use App\Models\FicheA3;
 use App\Models\Parametre;
 use App\Models\Perennisation;
 use App\Models\PieceJointe;
+use App\Models\Risque;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -17,6 +20,17 @@ use Throwable;
 
 class PieceJointeService
 {
+    /**
+     * Nom court, renvoyé au navigateur, des lignes auxquelles une preuve peut être jointe.
+     */
+    public const array OBJETS = [
+        ActionA3::class => 'action',
+        Perennisation::class => 'perennisation',
+        Cause::class => 'cause',
+        Risque::class => 'risque',
+        Controle::class => 'controle',
+    ];
+
     public const array MIME_EXTENSIONS = [
         'application/pdf' => 'pdf',
         'image/png' => 'png',
@@ -70,12 +84,13 @@ class PieceJointeService
     }
 
     /**
-     * Joint un fichier à la fiche, éventuellement comme preuve d'une action ou d'une
-     * action de pérennisation (la preuve écrite reste facultative).
+     * Joint un fichier à la fiche, éventuellement comme preuve d'une ligne : action, action de
+     * pérennisation, cause, risque (clôture du MOC) ou contrôle d'efficacité. La preuve écrite reste facultative.
      */
-    public function ajouter(FicheA3 $fiche, UploadedFile $file, ActionA3|Perennisation|null $objet, ActiveProfile $profile): PieceJointe
+    public function ajouter(FicheA3 $fiche, UploadedFile $file, ActionA3|Perennisation|Cause|Risque|Controle|null $objet, ActiveProfile $profile): PieceJointe
     {
-        if ($objet !== null && $objet->fiche_id !== $fiche->id) {
+        $ficheDeLObjet = $objet instanceof Controle ? $objet->action?->fiche_id : $objet?->fiche_id;
+        if ($objet !== null && $ficheDeLObjet !== $fiche->id) {
             abort(404, 'Élément introuvable.');
         }
 
@@ -152,6 +167,8 @@ class PieceJointeService
             'action' => $pieceJointe->objet instanceof ActionA3 ? $pieceJointe->objet->description : null,
             'action_id' => $pieceJointe->objet instanceof ActionA3 ? $pieceJointe->objet->id : null,
             'perennisation_id' => $pieceJointe->objet instanceof Perennisation ? $pieceJointe->objet->id : null,
+            'objet' => $pieceJointe->objet === null ? null : (self::OBJETS[$pieceJointe->objet::class] ?? null),
+            'objet_id' => $pieceJointe->objet?->getKey(),
             'auteur' => $pieceJointe->auteur?->nom_complet ?? 'Système',
             'created_at' => $pieceJointe->created_at?->toIso8601String(),
             'download_url' => '/api/pieces-jointes/'.$pieceJointe->id.'/telechargement',

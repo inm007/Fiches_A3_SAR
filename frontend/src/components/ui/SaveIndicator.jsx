@@ -1,8 +1,8 @@
 import './SaveIndicator.css'
 
 const labels = {
-  dirty: 'Modifications non enregistrées',
-  saving: 'Enregistrement…',
+  dirty: 'Modifications à enregistrer',
+  saving: 'Enregistrement en cours…',
   saved: 'Enregistré',
   error: 'Échec de l’enregistrement',
 }

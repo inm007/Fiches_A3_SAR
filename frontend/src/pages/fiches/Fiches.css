@@ -86,3 +86,20 @@
   white-space: nowrap;
   cursor: help;
 }
+
+/* Un liseré à la couleur de l'étape, à gauche de chaque ligne : le registre se lit d'un coup d'œil. */
+.fiches-page tr[data-etape] > td:first-child {
+  box-shadow: inset 4px 0 0 var(--ligne-etape, transparent);
+}
+
+.fiches-page tr[data-etape='OUVERT'] { --ligne-etape: var(--etape-ouvert); }
+.fiches-page tr[data-etape='EN_VALIDATION_PERTINENCE'] { --ligne-etape: var(--etape-validation-pertinence); }
+.fiches-page tr[data-etape='EN_COURS'] { --ligne-etape: var(--etape-en-cours); }
+.fiches-page tr[data-etape='EN_VALIDATION_PLAN'] { --ligne-etape: var(--etape-validation-plan); }
+.fiches-page tr[data-etape='REALISATION_ACTIONS'] { --ligne-etape: var(--etape-realisation); }
+.fiches-page tr[data-etape='MESURE_RESULTATS'] { --ligne-etape: var(--etape-mesure); }
+.fiches-page tr[data-etape='VERIFICATION_MAINTIEN'] { --ligne-etape: var(--etape-maintien); }
+.fiches-page tr[data-etape='EN_VALIDATION_CLOTURE'] { --ligne-etape: var(--etape-validation-cloture); }
+.fiches-page tr[data-etape='EN_ATTENTE'] { --ligne-etape: var(--etape-attente); }
+.fiches-page tr[data-etape='CLOTURE'] { --ligne-etape: var(--etape-cloture); }
+.fiches-page tr[data-etape='CLASSE_SANS_SUITE'] { --ligne-etape: var(--etape-sans-suite); }

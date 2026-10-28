@@ -1,44 +1,116 @@
 .section-stepper {
   display: grid;
-  gap: 4px;
+  gap: 12px;
+}
+
+.section-stepper__progress {
+  display: grid;
+  gap: 6px;
+  padding: 2px 4px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--gray-700);
+  font-size: var(--text-xs);
+}
+
+.section-stepper__progress strong {
+  color: var(--ink);
+  font-size: var(--text-md);
+}
+
+.section-stepper__bar {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--gray-100);
+}
+
+.section-stepper__bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--phase-probleme), var(--phase-analyse), var(--phase-resultats), var(--phase-perennite));
+  transition: width 0.3s ease;
+}
+
+.section-stepper__phase--probleme { --phase: var(--phase-probleme); --phase-bg: var(--phase-probleme-bg); }
+.section-stepper__phase--analyse { --phase: var(--phase-analyse); --phase-bg: var(--phase-analyse-bg); }
+.section-stepper__phase--resultats { --phase: var(--phase-resultats); --phase-bg: var(--phase-resultats-bg); }
+.section-stepper__phase--perennite { --phase: var(--phase-perennite); --phase-bg: var(--phase-perennite-bg); }
+
+.section-stepper__phase {
+  display: grid;
+  gap: 2px;
+}
+
+.section-stepper__phase-title {
+  padding: 0 8px 2px;
+  color: var(--phase);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .section-stepper button {
   display: flex;
+  width: 100%;
   align-items: center;
   gap: 10px;
-  min-height: 40px;
-  padding: 6px 10px;
+  min-height: 38px;
+  padding: 5px 8px;
   border: 0;
   border-radius: var(--radius-md);
   color: var(--gray-700);
   background: transparent;
+  font: inherit;
+  font-size: var(--text-sm);
   cursor: pointer;
   text-align: left;
 }
 
 .section-stepper button:hover,
 .section-stepper button:focus-visible {
-  color: var(--brand-600);
-  background: var(--brand-50);
-}
-
-.section-stepper button span {
-  display: grid;
-  width: 24px;
-  height: 24px;
-  flex: 0 0 auto;
-  place-items: center;
-  border: 1px solid var(--border-strong);
-  border-radius: 50%;
-  background: var(--white);
-  font-size: var(--text-xs);
+  color: var(--ink);
+  background: var(--phase-bg);
 }
 
 .section-stepper button.is-active {
-  color: var(--brand-500);
-  background: var(--brand-50);
+  color: var(--ink);
+  background: var(--phase-bg);
+  box-shadow: inset 3px 0 0 var(--phase);
   font-weight: 600;
+}
+
+.section-stepper__num {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  place-items: center;
+  border: 1.5px solid color-mix(in srgb, var(--phase) 45%, transparent);
+  border-radius: 50%;
+  color: var(--phase);
+  background: var(--white);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.section-stepper__num--partiel {
+  border-color: var(--warning-solid);
+  box-shadow: 0 0 0 2px var(--warning-bg);
+}
+
+.section-stepper__num--complet {
+  border-color: var(--phase);
+  color: var(--white);
+  background: var(--phase);
+}
+
+.section-stepper__label {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
 }
 
 .section-stepper button small {
@@ -47,32 +119,8 @@
   color: var(--text-muted);
 }
 
-.section-stepper__dot {
-  width: 9px;
-  height: 9px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: var(--gray-300);
-}
-
-.section-stepper__dot--partiel {
-  background: var(--warning-solid);
-}
-
-.section-stepper__dot--complet {
-  background: var(--success);
-}
-
-.section-stepper button {
-  width: 100%;
-}
-
-.section-stepper button span {
-  display: none;
-}
-
 .section-stepper__etat--editable {
-  color: var(--brand-500);
+  color: var(--phase);
 }
 
 .section-stepper__etat--a_venir,

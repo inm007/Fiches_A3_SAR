@@ -2,22 +2,25 @@ import Icon from '../ui/Icon.jsx'
 import Badge from '../ui/Badge.jsx'
 import { ETAPES } from '../../utils/constants.js'
 
+// Une teinte par étape (tableau des fiches, en-tête, tableaux de bord) : on repère l'état d'un coup d'œil.
+const ETAPE_TEINTE = {
+  OUVERT: 'ouvert',
+  EN_VALIDATION_PERTINENCE: 'validation-pertinence',
+  EN_COURS: 'en-cours',
+  EN_VALIDATION_PLAN: 'validation-plan',
+  REALISATION_ACTIONS: 'realisation',
+  MESURE_RESULTATS: 'mesure',
+  VERIFICATION_MAINTIEN: 'maintien',
+  EN_VALIDATION_CLOTURE: 'validation-cloture',
+  EN_ATTENTE: 'attente',
+  CLOTURE: 'cloture',
+  CLASSE_SANS_SUITE: 'sans-suite',
+}
+
 function EtapeBadge({ etape }) {
   const label = ETAPES[etape]?.label ?? etape
-  const phase = {
-    OUVERT: 'opening',
-    EN_VALIDATION_PERTINENCE: 'opening',
-    EN_COURS: 'planning',
-    EN_VALIDATION_PLAN: 'planning',
-    REALISATION_ACTIONS: 'realization',
-    MESURE_RESULTATS: 'verification',
-    VERIFICATION_MAINTIEN: 'verification',
-    EN_VALIDATION_CLOTURE: 'verification',
-    EN_ATTENTE: 'waiting',
-    CLOTURE: 'closure',
-  }[etape]
-  // La couleur suit la phase du parcours ; une fiche classée sans suite reste neutre.
-  return <Badge tone={phase ? `phase-${phase}` : 'neutral'}>{label}</Badge>
+  const teinte = ETAPE_TEINTE[etape]
+  return <Badge tone={teinte ? `etape-${teinte}` : 'neutral'}>{label}</Badge>
 }
 
 export function ConfidentialiteBadge({ value }) {

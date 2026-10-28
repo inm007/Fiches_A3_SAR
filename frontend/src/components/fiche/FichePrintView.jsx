@@ -1,4 +1,5 @@
-import { JALONS } from '../../utils/constants.js'
+import sarLogo from '../../assets/logo.jpg'
+import { DECISIONS, JALONS, phaseDeSection } from '../../utils/constants.js'
 import { formatDate } from '../../utils/format.js'
 import './FichePrintView.css'
 
@@ -14,12 +15,14 @@ function display(value) {
   if (typeof value === 'boolean') return value ? 'Oui' : 'Non'
   if (Array.isArray(value)) return value.length ? value.map(display).join(', ') : '—'
   if (typeof value === 'object') return Object.values(value).filter(Boolean).map(display).join(' · ') || '—'
+  // Dates ISO (« 2026-06-23 » ou avec l'heure) imprimées à la française.
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}(T|$)/.test(value)) return formatDate(value)
   return String(value)
 }
 
 function Section({ number, title, children }) {
   return (
-    <section className="fiche-print__section">
+    <section className={`fiche-print__section fiche-print__section--${phaseDeSection(number)?.code}`}>
       <h2><span>{String(number).padStart(2, '0')}</span>{title}</h2>
       {children}
     </section>
@@ -56,16 +59,18 @@ function FichePrintView({ fiche, refs, copie }) {
   return (
     <article className="fiche-print">
       <header className="fiche-print__header">
-        <div>
-          <p>Société Africaine de Raffinage · Amélioration continue</p>
+        <img alt="SAR" className="fiche-print__logo" src={sarLogo} />
+        <div className="fiche-print__heading">
+          <p>Société Africaine de Raffinage · Fiche A3 d’amélioration continue</p>
           <h1>{fiche.titre}</h1>
-          <strong>{fiche.numero_a3} · Boucle {fiche.version}</strong>
           {copie && <span>Copie figée du {new Date(copie.created_at).toLocaleDateString('fr-FR')} ({copie.evenement === 'CLOTURE' ? 'clôture' : 'soumission du plan'})</span>}
         </div>
-        <div className="fiche-print__status">
-          <b>{fiche.statut_etape_libelle}</b>
-          <span>{fiche.confidentialite === 'RESTREINT' ? 'Restreint' : 'Normal'}</span>
-        </div>
+        <dl className="fiche-print__status">
+          <div><dt>N° A3</dt><dd>{fiche.numero_a3}</dd></div>
+          <div><dt>Étape</dt><dd>{fiche.statut_etape_libelle}</dd></div>
+          <div><dt>Boucle</dt><dd>{fiche.version}</dd></div>
+          <div><dt>Confidentialité</dt><dd>{fiche.confidentialite === 'RESTREINT' ? 'Restreint' : 'Normal'}</dd></div>
+        </dl>
       </header>
 
       <div className="fiche-print__grid">
@@ -179,9 +184,9 @@ function FichePrintView({ fiche, refs, copie }) {
           <Fields values={Object.entries(fiche.lecons).map(([rubrique, texte]) => [rubrique.replaceAll('_', ' '), texte])} />
         </Section>
         <Section number={12} title="Validation">
-          <Table headers={['Porte', 'Rôle', 'Décision', 'Valideur', 'Demandée le', 'Décidée le', 'Commentaire']} rows={fiche.validations.map((item) => ({
+          <Table headers={['Porte', 'Rôle', 'Décision', 'Valideur', 'Décidée le', 'Commentaire']} rows={fiche.validations.filter((item) => item.decision !== 'ANNULE').map((item) => ({
             id: item.id,
-            values: [item.porte, item.role?.libelle, item.decision, item.valideur?.nom ?? null, item.demandee_le, item.decidee_le, item.commentaire],
+            values: [item.porte, item.role?.libelle, DECISIONS[item.decision] ?? item.decision, item.valideur?.nom ?? null, item.decidee_le ? formatDate(item.decidee_le) : null, item.commentaire],
           }))} />
         </Section>
       </div>
