@@ -9,6 +9,7 @@ import PageBanner from '../../components/shared/PageBanner.jsx'
 import Alert from '../../components/ui/Alert.jsx'
 import Button from '../../components/ui/Button.jsx'
 import DataTable from '../../components/ui/DataTable.jsx'
+import RowActions from '../../components/ui/RowActions.jsx'
 import Icon from '../../components/ui/Icon.jsx'
 import ListPagination from '../../components/ui/ListPagination.jsx'
 import { useListFilters } from '../../hooks/useListFilters.js'
@@ -295,13 +296,15 @@ function Fiches() {
 
       {!source.error && (
         <DataTable
-          actions={isAdmin ? (fiche) => (
-            <div className="sar-list-actions">
-              <Button size="small" type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); navigate(`/fiches/${fiche.id}`) }}>Ouvrir</Button>
-              <Button size="small" type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); setManaged(fiche.source) }}>Gérer</Button>
-            </div>
-          ) : undefined}
-          actionsWidth="168px"
+          actions={(fiche) => (
+            <RowActions
+              actions={[
+                { icon: 'eye', label: 'Voir', onClick: () => navigate(`/fiches/${fiche.id}`) },
+                ...(isAdmin ? [{ icon: 'settings', label: 'Gérer', onClick: () => setManaged(fiche.source) }] : []),
+              ]}
+            />
+          )}
+          actionsWidth={isAdmin ? '184px' : '104px'}
           columns={columns}
           emptyAction={list.active
             ? <Button type="button" variant="secondary" onClick={list.reset}>Réinitialiser les filtres</Button>

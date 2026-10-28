@@ -22,14 +22,14 @@ const columns = [
   {
     key: 'libelle',
     label: 'Désignation',
-    width: '28%',
+    width: '38%',
     titleValue: (equipment) => equipment.libelle,
     render: (equipment) => <span className="data-table__cell-text" title={equipment.libelle}>{equipment.libelle}</span>,
   },
   {
     key: 'reference_sap',
     label: 'Référence SAP',
-    width: '20%',
+    detailOnly: true,
     titleValue: (equipment) => equipment.reference_sap,
     render: (equipment) => <span className="data-table__cell-text" title={equipment.reference_sap}>{equipment.reference_sap ?? '—'}</span>,
   },
@@ -46,6 +46,7 @@ function Equipements() {
   return (
     <AdminEntityPage
       columns={columns}
+      detailTitle={(equipment) => `${equipment.code} — ${equipment.libelle}`}
       description="Équipements par unité, avec leur référence SAP."
       endpoint="/admin/equipment"
       fields={fields}

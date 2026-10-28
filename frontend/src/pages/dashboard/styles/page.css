@@ -65,3 +65,59 @@
   color: var(--brand-700, #b0000c);
   font-weight: 600;
 }
+
+/* Raccourcis : une ligne de liens sous l'en-tête, propres au profil. */
+.dash-raccourcis {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.dash-raccourcis__titre {
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dash-raccourcis ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-raccourcis__lien {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--border-card);
+  border-radius: 999px;
+  color: var(--ink);
+  background: var(--white);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-decoration: none;
+  transition: border-color var(--duration-fast), color var(--duration-fast), background-color var(--duration-fast);
+}
+
+.dash-raccourcis__lien svg {
+  color: var(--brand-500);
+}
+
+.dash-raccourcis__lien:hover {
+  border-color: var(--brand-500);
+  color: var(--brand-700);
+  background: var(--brand-50);
+}
+
+.dash-raccourcis__lien:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+}

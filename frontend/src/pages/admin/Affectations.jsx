@@ -17,6 +17,15 @@ const fields = [
   { name: 'date_fin', label: 'Date de fin', type: 'date' },
 ]
 
+// Une seule colonne pour les dates : « Depuis le … », « Jusqu’au … » ou « Du … au … ».
+function periode(assignment) {
+  const { date_debut: debut, date_fin: fin } = assignment
+  if (debut && fin) return `Du ${formatDate(debut)} au ${formatDate(fin)}`
+  if (fin) return `Jusqu’au ${formatDate(fin)}`
+  if (debut) return `Depuis le ${formatDate(debut)}`
+  return 'Sans limite'
+}
+
 const columns = [
   {
     key: 'user',
@@ -31,35 +40,42 @@ const columns = [
   {
     key: 'role',
     label: 'Rôle',
-    width: '17%',
+    width: '22%',
     value: (assignment) => assignment.role?.libelle ?? '—',
     render: (assignment) => <span className="data-table__cell-text" title={assignment.role?.libelle ?? '—'}>{assignment.role?.libelle ?? '—'}</span>,
   },
   {
     key: 'unite',
     label: 'Unité',
-    width: '230px',
+    width: '22%',
     value: (assignment) => assignment.unite?.libelle ?? 'Global',
     render: (assignment) => <span className="data-table__cell-text data-table__unit-name" title={assignment.unite?.libelle ?? 'Global'}>{assignment.unite?.libelle ?? 'Global'}</span>,
   },
   {
     key: 'date_debut',
     label: 'Début',
-    width: '13%',
+    detailOnly: true,
     value: (assignment) => assignment.date_debut ? formatDate(assignment.date_debut) : '—',
     render: (assignment) => formatDate(assignment.date_debut),
   },
   {
     key: 'date_fin',
     label: 'Fin',
-    width: '13%',
+    detailOnly: true,
     value: (assignment) => assignment.date_fin ? formatDate(assignment.date_fin) : '—',
     render: (assignment) => formatDate(assignment.date_fin),
   },
   {
+    key: 'periode',
+    label: 'Période',
+    width: '20%',
+    hideInDetails: true,
+    value: (assignment) => periode(assignment),
+  },
+  {
     key: 'actif',
     label: 'État',
-    width: '15%',
+    width: '12%',
     value: (assignment) => assignment.actif ? 'Actif' : 'Inactif',
     render: (assignment) => <Badge tone={assignment.actif ? 'active' : 'inactive'}>{assignment.actif ? 'Actif' : 'Inactif'}</Badge>,
   },
@@ -80,6 +96,7 @@ function Affectations() {
     <AdminEntityPage
       createWith={userId ? { user_id: userId } : undefined}
       columns={columns}
+      detailTitle={(assignment) => `${personName(assignment.user) ?? '—'} — ${assignment.role?.libelle ?? ''}`}
       description="Un rôle par ligne, sur une unité ou global. Une personne peut en cumuler plusieurs."
       endpoint="/admin/assignments"
       exportColumns={exportColumns}

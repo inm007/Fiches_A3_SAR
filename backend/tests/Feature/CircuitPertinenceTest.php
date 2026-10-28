@@ -95,6 +95,7 @@ class CircuitPertinenceTest extends TestCase
 
         // Oui : la fiche passe en cours et les sections 2 à 4 sont figées.
         $this->deciderPertinence($fiche);
+        $this->assertSame(2, $this->agirComme($this->chef)->getJson('/api/tableau-de-bord')->json('data.mes_decisions_30_jours'));
         $fiche->refresh();
         $this->assertNotNull($fiche->pertinence_validee_le);
         $this->assertSame('EN_COURS', $fiche->statut_etape);

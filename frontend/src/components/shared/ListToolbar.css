@@ -181,16 +181,4 @@
 }
 
 /* Boutons d'action dans les lignes de liste */
-.sar-list-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-}
 
-.sar-list-actions .sar-button {
-  min-height: 32px;
-  padding: 0 10px;
-  font-size: var(--text-xs);
-}

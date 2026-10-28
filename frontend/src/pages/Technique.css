@@ -38,3 +38,12 @@
   display: grid;
   gap: var(--space-15);
 }
+
+.technique-page__detail {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--gray-50);
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+}

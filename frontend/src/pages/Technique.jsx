@@ -5,20 +5,24 @@ import Badge from '../components/ui/Badge.jsx'
 import Button from '../components/ui/Button.jsx'
 import Card from '../components/ui/Card.jsx'
 import DataTable from '../components/ui/DataTable.jsx'
+import DetailsModal from '../components/ui/DetailsModal.jsx'
+import RowActions from '../components/ui/RowActions.jsx'
 import ListPagination from '../components/ui/ListPagination.jsx'
 import { FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../components/shared/ListToolbar.jsx'
 import PageBanner from '../components/shared/PageBanner.jsx'
 import PageLoader from '../components/shared/PageLoader.jsx'
+import { detailItems } from '../utils/details.js'
 import { formatDateTime } from '../utils/format.js'
 import { downloadExcel } from '../utils/listTools.js'
 import './Technique.css'
 
+// Le détail (JSON) est souvent long : il s'ouvre avec « Voir » au lieu d'élargir le tableau.
 const logColumns = [
-  { key: 'date', label: 'Date' },
-  { key: 'auteur', label: 'Auteur' },
-  { key: 'operation', label: 'Opération' },
+  { key: 'date', label: 'Date', width: '20%' },
+  { key: 'auteur', label: 'Auteur', width: '22%' },
+  { key: 'operation', label: 'Opération', width: '24%' },
   { key: 'objet', label: 'Objet' },
-  { key: 'detail', label: 'Détail' },
+  { key: 'detail', label: 'Détail', detailOnly: true },
 ]
 
 function Technique() {
@@ -32,6 +36,7 @@ function Technique() {
   const [exportingLogs, setExportingLogs] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [viewedLog, setViewedLog] = useState(null)
 
   useEffect(() => {
     apiRequest('/technique')
@@ -92,7 +97,7 @@ function Technique() {
     auteur: log.auteur,
     operation: log.operation,
     objet: log.objet,
-    detail: log.detail ? JSON.stringify(log.detail) : '—',
+    detail: log.detail ? <pre className="technique-page__detail">{JSON.stringify(log.detail, null, 2)}</pre> : '—',
   }))
 
   return (
@@ -132,7 +137,15 @@ function Technique() {
               <Button disabled={!logsResult?.meta.total} icon="download" loading={exportingLogs} loadingLabel="Préparation…" type="button" variant="secondary" onClick={exportLogs}>Exporter Excel</Button>
             </ToolbarActions>
           </ListToolbar>
-          <DataTable columns={logColumns} emptyMessage="Aucun événement enregistré." loading={!logsResult && !logsError} rows={logRows} />
+          <DataTable
+            actions={(log) => <RowActions actions={[{ icon: 'eye', label: 'Voir', onClick: () => setViewedLog(log) }]} />}
+            actionsWidth="104px"
+            columns={logColumns}
+            emptyMessage="Aucun événement enregistré."
+            loading={!logsResult && !logsError}
+            rows={logRows}
+            variant="compact"
+          />
           {logsResult?.meta.total > 0 && (
             <ListPagination
               page={logsResult.meta.page}
@@ -144,6 +157,12 @@ function Technique() {
           )}
         </div>
       </Card>
+      <DetailsModal
+        items={viewedLog ? detailItems(logColumns, viewedLog) : []}
+        open={Boolean(viewedLog)}
+        title={viewedLog ? `${viewedLog.operation} — ${viewedLog.objet}` : ''}
+        onClose={() => setViewedLog(null)}
+      />
     </section>
   )
 }

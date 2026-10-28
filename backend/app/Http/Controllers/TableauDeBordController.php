@@ -61,6 +61,9 @@ class TableauDeBordController extends Controller
             'mes_actions_en_retard' => (clone $actionsOuvertes)->where('responsable_id', $userId)->whereDate('echeance', '<', today())->count(),
             'validations_a_traiter' => $validations->count(),
             'plus_ancienne_demande_jours' => $validations->isEmpty() ? null : (int) $validations->first()->demandee_le->startOfDay()->diffInDays(today()),
+            // Le rythme du valideur : ses décisions des 30 derniers jours.
+            'mes_decisions_30_jours' => Validation::query()->where('valideur_id', $userId)->where('decision', '!=', 'EN_ATTENTE')
+                ->where('decidee_le', '>=', now()->subDays(30))->count(),
             'validations_en_attente_sur_mes_fiches' => Validation::query()->where('decision', 'EN_ATTENTE')
                 ->whereHas('fiche', fn (Builder $q) => $q->where('pilote_id', $userId))->count(),
             'controles_disponibles' => Controle::query()->whereNull('resultat')->whereDate('date_echeance', '<=', today())

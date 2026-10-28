@@ -2,14 +2,25 @@ import { useState } from 'react'
 import Alert from '../../ui/Alert.jsx'
 import Button from '../../ui/Button.jsx'
 import ConfirmDialog from '../../ui/ConfirmDialog.jsx'
+import DataTable from '../../ui/DataTable.jsx'
+import DetailsModal from '../../ui/DetailsModal.jsx'
+import RowActions from '../../ui/RowActions.jsx'
 import Badge from '../../ui/Badge.jsx'
 import { Select, TextArea } from '../../ui/FormControls.jsx'
 import { refreshCounters } from '../../../hooks/useCounters.js'
 import { describeError, ficheService } from '../../../services/ficheService.js'
 import { DECISIONS, SECTIONS, STATUTS_GAIN } from '../../../utils/constants.js'
 import { formatDate, formatDateTime, formatFcfa, formatNumber, plural } from '../../../utils/format.js'
+import { detailItems } from '../../../utils/details.js'
 import { toast } from '../../../utils/toast.js'
 import './FicheTab.css'
+
+const COLONNES_GAINS = [
+  { key: 'categorie_libelle', label: 'Catégorie', width: '22%' },
+  { key: 'hypothese_calcul', label: 'Hypothèse de calcul' },
+  { key: 'montant_annuel', label: 'Montant annuel', width: '150px', render: (gain) => <b>{formatFcfa(gain.montant_annuel)}</b> },
+  { key: 'statut', label: 'Statut', width: '110px', value: (gain) => STATUTS_GAIN[gain.statut] },
+]
 
 const tones = { EN_ATTENTE: 'warning', VALIDE: 'success', REFUSE: 'error', ANNULE: 'neutral' }
 const steps = { EN_ATTENTE: 'is-wait', VALIDE: 'is-ok', REFUSE: 'is-ko' }
@@ -78,6 +89,7 @@ export default function ValidationsTab({ fiche, onChange, onError }) {
   const [retour, setRetour] = useState('VERIFICATION_MAINTIEN')
   const [section, setSection] = useState('')
   const [busy, setBusy] = useState(false)
+  const [gainVu, setGainVu] = useState(null)
   const enAttente = fiche.validations.filter((validation) => validation.decision === 'EN_ATTENTE')
   const plusAncienne = enAttente.reduce((oldest, validation) => (validation.anciennete_jours > (oldest?.anciennete_jours ?? -1) ? validation : oldest), null)
   const porte2 = fiche.validations.some((validation) => validation.porte === 2)
@@ -120,23 +132,28 @@ export default function ValidationsTab({ fiche, onChange, onError }) {
       {fiche.droits.peut_decider_gains && (
         <div>
           <h3>Gains à valider</h3>
-          <table>
-            <thead><tr><th>Catégorie</th><th>Hypothèse</th><th>Montant annuel</th><th>Statut</th><th>Décision</th></tr></thead>
-            <tbody>
-              {fiche.gains.lignes.map((gain) => (
-                <tr key={gain.id}>
-                  <td>{gain.categorie_libelle}</td>
-                  <td>{gain.hypothese_calcul}</td>
-                  <td><b>{formatFcfa(gain.montant_annuel)}</b></td>
-                  <td>{STATUTS_GAIN[gain.statut]}</td>
-                  <td className="fiche-tab__buttons">
-                    <Button disabled={busy || gain.statut === 'VALIDE'} size="small" type="button" variant="success" onClick={() => run(() => ficheService.decisionGain(gain.id, 'VALIDE'), 'Gain validé')}>Valider</Button>
-                    <Button disabled={busy || gain.statut === 'REFUSE'} size="small" type="button" variant="danger" onClick={() => run(() => ficheService.decisionGain(gain.id, 'REFUSE'), 'Gain refusé')}>Refuser</Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+            actions={(gain) => (
+              <RowActions
+                actions={[
+                  { icon: 'eye', label: 'Voir', onClick: () => setGainVu(gain) },
+                  { icon: 'check', label: 'Valider', variant: 'success', disabled: busy || gain.statut === 'VALIDE', onClick: () => run(() => ficheService.decisionGain(gain.id, 'VALIDE'), 'Gain validé') },
+                  { icon: 'x', label: 'Refuser', variant: 'danger', disabled: busy || gain.statut === 'REFUSE', onClick: () => run(() => ficheService.decisionGain(gain.id, 'REFUSE'), 'Gain refusé') },
+                ]}
+                maxVisible={3}
+              />
+            )}
+            actionsWidth="300px"
+            columns={COLONNES_GAINS}
+            rows={fiche.gains.lignes}
+            variant="compact"
+          />
+          <DetailsModal
+            items={gainVu ? detailItems(COLONNES_GAINS, gainVu) : []}
+            open={Boolean(gainVu)}
+            title="Détail du gain"
+            onClose={() => setGainVu(null)}
+          />
         </div>
       )}
 

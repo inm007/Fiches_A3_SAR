@@ -5,12 +5,14 @@ import Alert from '../ui/Alert.jsx'
 import Button from '../ui/Button.jsx'
 import ConfirmDialog from '../ui/ConfirmDialog.jsx'
 import DataTable from '../ui/DataTable.jsx'
+import DetailsModal from '../ui/DetailsModal.jsx'
 import { Checkbox, Select, TextInput } from '../ui/FormControls.jsx'
 import Modal from '../ui/Modal.jsx'
 import { ListToolbar, ResultCount, SearchField, ToolbarActions } from '../shared/ListToolbar.jsx'
 import PageBanner from '../shared/PageBanner.jsx'
 import RowActions from '../ui/RowActions.jsx'
 import ListPagination from '../ui/ListPagination.jsx'
+import { detailItems } from '../../utils/details.js'
 import { downloadExcel, matchesSearch, paginate } from '../../utils/listTools.js'
 import { toast } from '../../utils/toast.js'
 import './AdminEntityPage.css'
@@ -51,6 +53,7 @@ const byOrder = (rows) => [...rows].sort((a, b) => a.ordre - b.ordre)
  * @param {Partial<typeof DEFAULT_MESSAGES>} [props.messages] Libellés propres à la page.
  *
  * @param {object} [props.createWith] Ouvre d'emblée le formulaire d'ajout, prérempli avec ces valeurs.
+ * @param {(row: object) => string} [props.detailTitle] Titre de la fenêtre « Voir » d'une ligne.
  */
 function AdminEntityPage({
   title,
@@ -68,6 +71,7 @@ function AdminEntityPage({
   messages: customMessages,
   pending = false,
   createWith,
+  detailTitle = (row) => row.libelle ?? row.code ?? title,
 }) {
   const messages = { ...DEFAULT_MESSAGES, ...customMessages }
   const [rows, setRows] = useState([])
@@ -84,6 +88,7 @@ function AdminEntityPage({
   const [fieldErrors, setFieldErrors] = useState({})
   const [pendingDeactivation, setPendingDeactivation] = useState(null)
   const [deactivating, setDeactivating] = useState(false)
+  const [viewed, setViewed] = useState(null)
 
   const fetchAll = useCallback(async () => {
     const [result, ...relatedResults] = await Promise.all([
@@ -287,8 +292,20 @@ function AdminEntityPage({
     )
   }
 
+  // Même ordre sur tous les écrans : Voir, Modifier, puis le reste dans « Plus ».
   function renderRowActions(row) {
-    const actions = []
+    const actions = [
+      { icon: 'eye', label: 'Voir', onClick: () => setViewed(row) },
+      { icon: 'edit', label: 'Modifier', onClick: () => openEdit(row) },
+    ]
+    extraActions?.forEach((action) => {
+      actions.push({
+        disabled: action.disabled?.(row),
+        icon: action.icon ?? 'mail',
+        label: action.label,
+        onClick: () => runExtraAction(action, row),
+      })
+    })
     if (reorderEndpoint) {
       // Le classement n'a de sens que sur la liste complète, sans filtre.
       const index = rows.findIndex((item) => item.id === row.id)
@@ -298,19 +315,6 @@ function AdminEntityPage({
         { icon: 'arrow-down', label: 'Descendre', disabled: movementDisabled || index === rows.length - 1, onClick: () => move(row, 1) },
       )
     }
-    actions.push({
-      icon: 'edit',
-      label: 'Modifier',
-      onClick: () => openEdit(row),
-    })
-    extraActions?.forEach((action) => {
-      actions.push({
-        disabled: action.disabled?.(row),
-        icon: action.icon ?? 'mail',
-        label: action.label,
-        onClick: () => runExtraAction(action, row),
-      })
-    })
     if (typeof row.actif === 'boolean') {
       actions.push({
         icon: row.actif ? 'disable' : 'enable',
@@ -322,7 +326,7 @@ function AdminEntityPage({
         tone: row.actif ? 'danger' : 'success',
       })
     }
-    return <RowActions actions={actions} maxVisible={reorderEndpoint ? 4 : undefined} />
+    return <RowActions actions={actions} />
   }
 
   function renderField(field) {
@@ -417,6 +421,13 @@ function AdminEntityPage({
           {fields.map(renderField)}
         </form>
       </Modal>
+      <DetailsModal
+        actions={viewed && <Button icon="edit" type="button" onClick={() => { const row = viewed; setViewed(null); openEdit(row) }}>Modifier</Button>}
+        items={viewed ? detailItems(columns, viewed, relatedData) : []}
+        open={Boolean(viewed)}
+        title={viewed ? detailTitle(viewed) : ''}
+        onClose={() => setViewed(null)}
+      />
       <ConfirmDialog
         busy={deactivating}
         confirmLabel="Désactiver"
