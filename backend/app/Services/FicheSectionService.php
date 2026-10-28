@@ -28,6 +28,7 @@ class FicheSectionService
 {
     public function __construct(
         private readonly HistoryLogger $history,
+        private readonly FicheWorkflow $workflow,
     ) {}
 
     /**
@@ -505,10 +506,13 @@ class FicheSectionService
                 throw RegleMetierException::conditionsManquantes('Indicateur invalide.', ['Les mesures portent sur les indicateurs de la section 3.']);
             }
 
-            $this->enregistrerMesure($indicateur, 'APRES', $item['valeur'] ?? null, $item['date_mesure'] ?? null, $item['periode_verification'] ?? null);
+            $this->enregistrerMesure($indicateur, 'APRES', $item['valeur'] ?? null, $item['date_mesure'] ?? null, $item['periode_verification'] ?? null, $item['commentaire'] ?? null);
         }
 
         $fiche->fill(collect($data)->only(['objectif_atteint', 'ecart_objectif'])->all());
+        if ($fiche->objectif_atteint === 'OUI' && $this->workflow->cibleTenueApres($fiche) === false) {
+            throw RegleMetierException::conditionsManquantes('Objectif incohérent.', ['« Oui » est impossible : la valeur Après du KPI principal n’atteint pas sa cible. Choisissez « Partiellement » ou « Non ».']);
+        }
         $this->enregistrerMaintien($fiche, $data['maintien'] ?? []);
     }
 
@@ -577,6 +581,9 @@ class FicheSectionService
 
         $fiche->sans_gain_chiffre = $sansGain;
         $fiche->cout_mise_en_oeuvre_b = (int) ($data['cout_mise_en_oeuvre_b'] ?? 0);
+        // Gain net et délai de retour saisis par le pilote, comme sur la fiche papier : aucun calcul.
+        $fiche->gain_net_annuel = $sansGain ? null : ($data['gain_net_annuel'] ?? null);
+        $fiche->payback_mois = $sansGain ? null : ($data['payback_mois'] ?? null);
     }
 
     /**
@@ -623,7 +630,7 @@ class FicheSectionService
         return $relation->create($attributes);
     }
 
-    private function enregistrerMesure(FicheA3Indicateur $indicateur, string $type, mixed $valeur, ?string $date = null, ?string $periode = null): void
+    private function enregistrerMesure(FicheA3Indicateur $indicateur, string $type, mixed $valeur, ?string $date = null, ?string $periode = null, ?string $commentaire = null): void
     {
         if ($valeur === null || $valeur === '') {
             $indicateur->mesures()->where('type', $type)->delete();
@@ -635,6 +642,7 @@ class FicheSectionService
             'valeur' => $valeur,
             'date_mesure' => $date,
             'periode_verification' => $periode,
+            'commentaire' => $commentaire,
         ]);
     }
 

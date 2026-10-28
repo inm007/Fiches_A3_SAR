@@ -30,6 +30,7 @@ class FicheWorkflow
         private readonly NotificationService $notifications,
         private readonly ActionService $actions,
         private readonly FicheVersions $versions,
+        private readonly Calculs $calculs,
     ) {}
 
     /**
@@ -426,13 +427,14 @@ class FicheWorkflow
     }
 
     /**
-     * T7 : B3, objectif renseigné ; un objectif non atteint impose une nouvelle boucle.
+     * T7 : B3, objectif renseigné et cohérent avec la mesure ; un objectif non atteint
+     * impose une nouvelle boucle ; un KPI à ne pas dégrader qui recule doit être expliqué.
      *
      * @return array<int, string|Manque>
      */
     private function manquesT7(FicheA3 $fiche): array
     {
-        return [...$this->manquesB3($fiche), ...$this->manquesObjectif($fiche)];
+        return [...$this->manquesB3($fiche), ...$this->manquesObjectif($fiche), ...$this->manquesDegradation($fiche)];
     }
 
     /**
@@ -444,8 +446,45 @@ class FicheWorkflow
             $fiche->objectif_atteint === null => [Manque::section(8, 'Section 8 : indiquer si l’objectif est atteint.')],
             $fiche->objectif_atteint === 'NON' => [Manque::section(8, 'Objectif non atteint : la fiche ne peut pas avancer. Lancez une nouvelle boucle pour reprendre l’analyse.')],
             $fiche->objectif_atteint === 'PARTIELLEMENT' && blank($fiche->ecart_objectif) => [Manque::section(8, 'Section 8 : objectif partiellement atteint, préciser l’écart et la suite donnée.')],
+            $fiche->objectif_atteint === 'OUI' && $this->cibleTenueApres($fiche) === false => [Manque::section(8, 'Section 8 : « Oui » est impossible, la valeur Après du KPI principal n’atteint pas sa cible. Choisissez « Partiellement » ou « Non ».')],
             default => [],
         };
+    }
+
+    /**
+     * La valeur Après du KPI principal tient-elle la cible ? Null si l'une des deux manque.
+     */
+    public function cibleTenueApres(FicheA3 $fiche): ?bool
+    {
+        $principal = $fiche->indicateurs()->where('principal', true)->with('mesures')->first();
+        if ($principal === null) {
+            return null;
+        }
+
+        $valeur = fn (string $type): ?float => ($mesure = $principal->mesures->firstWhere('type', $type)) ? (float) $mesure->valeur : null;
+
+        return $this->calculs->cibleTenue($valeur('APRES'), $valeur('CIBLE'), $principal->sens);
+    }
+
+    /**
+     * KPI à ne pas dégrader qui ont reculé depuis la valeur avant action sans commentaire.
+     *
+     * @return array<int, Manque>
+     */
+    private function manquesDegradation(FicheA3 $fiche): array
+    {
+        $manques = [];
+        foreach ($fiche->indicateurs()->where('a_ne_pas_degrader', true)->with('mesures')->get() as $indicateur) {
+            $actuelle = $indicateur->mesures->firstWhere('type', 'ACTUELLE');
+            $apres = $indicateur->mesures->firstWhere('type', 'APRES');
+            $degrade = $this->calculs->degrade($actuelle ? (float) $actuelle->valeur : null, $apres ? (float) $apres->valeur : null, $indicateur->sens);
+
+            if ($degrade === true && blank($apres->commentaire)) {
+                $manques[] = Manque::section(8, 'Section 8 : « '.$indicateur->libelle.' » s’est dégradé alors qu’il ne devait pas l’être. Expliquez pourquoi et ce qui est décidé.');
+            }
+        }
+
+        return $manques;
     }
 
     /**
@@ -459,18 +498,22 @@ class FicheWorkflow
         $manques = [
             ...$this->manquesB3($fiche),
             ...$this->manquesObjectif($fiche),
+            ...$this->manquesDegradation($fiche),
             ...$this->controles->manques($fiche),
             ...$this->controles->manquesMaintien($fiche),
         ];
 
-        $perennisations = $fiche->perennisations()->get(['type', 'statut']);
+        $perennisations = $fiche->perennisations()->withCount('piecesJointes')->get(['id', 'type', 'statut', 'preuve']);
         $types = ValeurListe::query()->deLaListe('type_perennisation')->pluck('libelle', 'code');
         if ($perennisations->isEmpty()) {
             $manques[] = Manque::section(10, 'Section 10 : enregistrer au moins une action de pérennisation.');
         }
         foreach ($perennisations as $ligne) {
+            $libelle = $types[$ligne->type] ?? $ligne->type;
             if ($ligne->statut !== 'REALISE') {
-                $manques[] = Manque::section(10, 'Section 10 : l’action de pérennisation « '.($types[$ligne->type] ?? $ligne->type).' » doit être réalisée.');
+                $manques[] = Manque::section(10, 'Section 10 : l’action de pérennisation « '.$libelle.' » doit être réalisée.');
+            } elseif (! $ligne->aUnePreuve()) {
+                $manques[] = Manque::section(10, 'Section 10 : l’action de pérennisation « '.$libelle.' » est réalisée sans preuve. Indiquez la référence ou joignez un document.');
             }
         }
         if (! $fiche->lecons()->exists()) {

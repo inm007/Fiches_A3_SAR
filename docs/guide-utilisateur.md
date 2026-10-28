@@ -8,14 +8,15 @@ Les notifications arrivent dans la cloche, en haut à droite, et sur la page Not
 
 ## Parcours d'une fiche
 
-1. **Ouvert** : un agent ou un pilote déclare le problème.
-2. **En cours** : le pilote désigné rédige l'analyse et le plan (sections 1 à 7).
-3. **En validation du plan** : Production / Exploitation valide d'abord, puis les valideurs des domaines cochés.
-4. **Réalisation des actions** : chaque responsable fait avancer ses actions.
-5. **Mesure des résultats** : le pilote saisit la mesure après action (section 8). Un objectif non atteint ne passe pas : il faut une nouvelle boucle.
-6. **Vérification du maintien** : contrôles d'efficacité à J+30, J+60 et J+90 après chaque action, et remesure du KPI principal à J+30, J+60 et J+90.
-7. **En validation de clôture** : Contrôle de gestion (si des gains sont chiffrés), puis Direction.
-8. **Clôturé**.
+1. **Ouvert** : un agent ou un pilote déclare le problème. Le pilote désigné remplit les sections 1 à 4 (identification, contexte, situation actuelle, objectif).
+2. **En validation de la pertinence** : le chef de département choisi juge l'idée (porte 0) : il la valide, la renvoie à refaire ou la classe sans suite.
+3. **En cours** : le pilote et son équipe rédigent l'analyse et le plan (sections 5 à 7).
+4. **En validation du plan** : les directeurs des domaines cochés en section 7 valident, tous en même temps (porte 1).
+5. **Réalisation des actions** : chaque responsable fait avancer ses actions.
+6. **Mesure des résultats** : le pilote saisit la mesure après action (section 8). « Oui » n'est possible que si la cible est atteinte. Un objectif non atteint ne passe pas : il faut une nouvelle boucle.
+7. **Vérification du maintien** : contrôles d'efficacité à J+30, J+60 et J+90 après chaque action, et remesure du KPI principal à J+30, J+60 et J+90.
+8. **En validation de clôture** : Contrôle de gestion (si des gains sont chiffrés), puis le directeur sponsor (porte 2).
+9. **Clôturé**.
 
 Une fiche peut être mise en attente avec un motif (« Mettre en attente »), puis reprise à l'étape où elle était (« Lever le blocage »). Un doublon ou un sujet hors périmètre est « classé sans suite » par la Direction ou l'administrateur fonctionnel, avant la validation du plan, avec un motif.
 
@@ -42,17 +43,23 @@ Une fiche peut être mise en attente avec un motif (« Mettre en attente »), pu
   - « Replanifier » une action pour reporter son échéance ou changer son responsable, avec un motif ;
   - « Ajouter une action » oubliée, rattachée à une cause, avec un motif ;
   - « Relancer » un responsable en retard (une fois par 24 h).
-- **Mesurer et vérifier** : section 8 (mesure après action ; l'outil propose « objectif atteint » d'après la cible, vous confirmez), puis « Passer à la vérification du maintien ». Remesurez ensuite le KPI principal à J+30, J+60 et J+90 en section 8, et renseignez l'onglet Contrôles : une notification prévient quand un contrôle est disponible. Un contrôle conforme demande un constat ou une preuve ; un contrôle non conforme demande une action corrective, vérifiée 30 jours après sa réalisation.
-- **Soumettre la clôture** : sections 9 (gains ou « sans gain chiffré », totaux calculés pendant la saisie), 10 (pérennisation, chaque action réalisée avec sa preuve) et 11 (leçons apprises). L'en-tête donne la date de clôture au plus tôt. Tant qu'un contrôle J+30, J+60 ou J+90 n'est pas encore arrivé à sa date, il est signalé « à venir » et la clôture l'attend.
+- **Mesurer et vérifier** : section 8 (mesure après action ; l'outil propose « objectif atteint » d'après la cible, vous confirmez). « Oui » est refusé si la cible n'est pas atteinte : choisissez alors « Partiellement » en expliquant l'écart et la suite donnée, ou « Non ». Si un KPI à ne pas dégrader a reculé, un champ s'ouvre sous sa valeur : expliquez pourquoi et ce qui est décidé. Puis « Passer à la vérification du maintien ». Remesurez ensuite le KPI principal à J+30, J+60 et J+90 en section 8 : il doit tenir la cible, ou le niveau atteint si l'objectif n'est que partiellement atteint, et renseignez l'onglet Contrôles : une notification prévient quand un contrôle est disponible. Un contrôle conforme demande un constat ou une preuve ; un contrôle non conforme demande une action corrective, vérifiée 30 jours après sa réalisation.
+- **Soumettre la clôture** : sections 9 (gains ou « sans gain chiffré » ; saisissez le montant annuel de chaque gain avec son hypothèse, le coût de mise en œuvre, puis le gain net annuel et le délai de retour en mois, calculés par vos soins : l'application ne fait aucun calcul financier), 10 (pérennisation : chaque action réalisée avec sa preuve, soit une référence écrite, soit un document ou une photo joints avec « Joindre » une fois la ligne enregistrée) et 11 (leçons apprises). L'en-tête donne la date de clôture au plus tôt. Tant qu'un contrôle J+30, J+60 ou J+90 n'est pas encore arrivé à sa date, il est signalé « à venir » et la clôture l'attend.
 - **Nouvelle boucle** : si l'objectif n'est pas atteint ou le résultat ne tient pas, « Nouvelle boucle » (bouton principal dans ce cas) renvoie la fiche à En cours. Les mesures de la boucle précédente sont effacées ; une copie figée les garde, visible en section 12.
 - **Imprimer** : « Exporter en PDF A3 » ouvre l'impression ; choisir « Enregistrer au format PDF ». Les copies figées (plan soumis, clôture) s'impriment depuis la section 12.
 - **Autres actions** : « Plus d'actions » regroupe la mise en attente, la confidentialité et les actions moins courantes.
 
-## Valideurs métier
+## Chef de département
+
+- Une notification et la page **Validations** présentent les fiches que les pilotes vous soumettent (porte 0).
+- Décidez sur les sections 1 à 4 : « Valider » (l'analyse commence), « À refaire » (commentaire obligatoire, la fiche revient au pilote) ou « Classer sans suite » (motif obligatoire).
+- Vous ne voyez que les fiches qui vous sont soumises.
+
+## Directeurs de domaine (porte 1)
 
 - La page **Validations** liste les demandes adressées au profil actif, avec leur ancienneté.
 - Ouvrir la fiche, onglet Validations : « Approuver » ou « Refuser ». La fenêtre de décision résume la fiche. Un refus exige un commentaire, peut indiquer la section à corriger, et renvoie la fiche au pilote.
-- Un valideur ne valide jamais une fiche dont il est le pilote.
+- Un valideur ne valide jamais une fiche dont il est le pilote ou un membre de l'équipe.
 
 ## Contrôle de gestion
 
@@ -61,8 +68,8 @@ Une fiche peut être mise en attente avec un motif (« Mettre en attente »), pu
 
 ## Direction
 
-- Approuve la clôture (la demande va au sponsor de la fiche) ; peut mettre en attente, reprendre, relancer et classer sans suite une fiche ouverte ou en cours.
-- Le tableau de bord montre les fiches ouvertes et en retard, le taux et le délai de clôture de l'année choisie, la part des fiches avec vérification d'efficacité renseignée, le gain net annuel validé et la répartition des fiches par unité, type d'amélioration et origine.
+- Le directeur choisi comme sponsor d'une fiche donne l'accord final à sa clôture ; la Direction peut mettre en attente, reprendre, relancer et classer sans suite une fiche ouverte ou en cours.
+- Le tableau de bord montre les fiches ouvertes et en retard, le taux et le délai de clôture de l'année choisie, la part des fiches dont l'efficacité est vérifiée (fiches arrivées à la mesure des résultats dont tous les contrôles échus sont renseignés), le gain net annuel validé (gains validés moins coût de mise en œuvre, une fois par fiche, quand tous ses gains sont décidés) et la répartition des fiches par unité, type d'amélioration et origine.
 
 ## Administrateur fonctionnel
 

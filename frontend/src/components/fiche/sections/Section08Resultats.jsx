@@ -2,16 +2,16 @@ import Badge from '../../ui/Badge.jsx'
 import Button from '../../ui/Button.jsx'
 import { TextArea } from '../../ui/FormControls.jsx'
 import { MAINTIEN_JALONS, OBJECTIF_ATTEINT } from '../../../utils/constants.js'
-import { ameliorationPourcent, cibleTenue, ecart, objectifSuggere } from '../../../utils/a3Calculs.js'
+import { ameliorationPourcent, cibleTenue, degrade, ecart, objectifSuggere } from '../../../utils/a3Calculs.js'
 import { formatDate, formatNumber, formatPercent } from '../../../utils/format.js'
 import Astuce, { Pastilles } from './Astuce.jsx'
 import CardsEditor from './CardsEditor.jsx'
 import { CellInput } from './RowsEditor.jsx'
 import './FicheSection.css'
 
-const tenueBadge = (tenue) => {
+const tenueBadge = (tenue, niveau = 'Cible tenue', manque = 'Cible non tenue') => {
   if (tenue === null || tenue === undefined) return null
-  return tenue ? <Badge tone="success">Cible tenue</Badge> : <Badge tone="error">Cible non tenue</Badge>
+  return tenue ? <Badge tone="success">{niveau}</Badge> : <Badge tone="error">{manque}</Badge>
 }
 
 export default function Section08Resultats({ draft, set, fiche, readOnly }) {
@@ -23,6 +23,11 @@ export default function Section08Resultats({ draft, set, fiche, readOnly }) {
   const suggestion = principal ? objectifSuggere({ actuelle: principal.actuelle, cible: principal.cible, apres: apresPrincipal, sens: principal.sens }) : null
   const libelleObjectif = (code) => OBJECTIF_ATTEINT.find(([value]) => value === code)?.[1]
   const jalons = Object.fromEntries((fiche.maintien ?? []).map((jalon) => [jalon.jalon, jalon]))
+  // Objectif partiellement atteint : le maintien porte sur le niveau atteint (valeur Après), pas sur la cible.
+  const surNiveauAtteint = fiche.maintien?.[0]?.reference_type === 'APRES'
+  const referenceMaintien = surNiveauAtteint ? fiche.maintien[0].reference : principal?.cible
+  const ouiIncoherent = draft.objectif_atteint === 'OUI' && cibleTenue(apresPrincipal, principal?.cible, principal?.sens) === false
+  const estDegrade = (row) => indicateurs[row.indicateur_id]?.a_ne_pas_degrader && degrade(indicateurs[row.indicateur_id]?.actuelle, row.valeur, indicateurs[row.indicateur_id]?.sens)
   const setMaintien = (code, field, value) => set('maintien', draft.maintien.map((jalon) => (jalon.jalon === code ? { ...jalon, [field]: value } : jalon)))
 
   return (
@@ -30,8 +35,9 @@ export default function Section08Resultats({ draft, set, fiche, readOnly }) {
       <Astuce ouvert={mesureOuverte && !draft.objectif_atteint} titre="Astuce : mesurer et vérifier">
         <ul>
           <li>Mesurez le KPI principal et les indicateurs à ne pas dégrader <strong>après</strong> les actions, dans les mêmes conditions que la valeur de départ.</li>
-          <li>L’outil propose « objectif atteint » d’après la cible ; vous confirmez. Un objectif non atteint ne se clôture pas : lancez une nouvelle boucle.</li>
-          <li>Le résultat doit ensuite <strong>tenir</strong> : vous remesurez le KPI principal à J+30, J+60 et J+90.</li>
+          <li>L’outil propose « objectif atteint » d’après la cible ; vous confirmez. « Oui » n’est possible que si la cible est atteinte. Un objectif non atteint ne se clôture pas : lancez une nouvelle boucle.</li>
+          <li>Un indicateur à ne pas dégrader qui recule doit être expliqué dans son commentaire.</li>
+          <li>Le résultat doit ensuite <strong>tenir</strong> : vous remesurez le KPI principal à J+30, J+60 et J+90. Si l’objectif n’est que partiellement atteint, c’est le niveau atteint qui doit tenir.</li>
         </ul>
       </Astuce>
 
@@ -43,6 +49,7 @@ export default function Section08Resultats({ draft, set, fiche, readOnly }) {
             <>
               {indicateur?.principal && <Badge tone="brand">KPI principal</Badge>}
               {indicateur?.a_ne_pas_degrader && <Badge tone="warning">À ne pas dégrader</Badge>}
+              {estDegrade(row) && <Badge tone="error">Dégradé</Badge>}
               {tenueBadge(cibleTenue(row.valeur, indicateur?.cible, indicateur?.sens))}
             </>
           )
@@ -64,6 +71,13 @@ export default function Section08Resultats({ draft, set, fiche, readOnly }) {
           } },
           { key: 'date_mesure', label: 'Date de mesure', render: (row, setRow) => <CellInput readOnly={!mesureOuverte} type="date" value={row.date_mesure} onChange={(value) => setRow('date_mesure', value)} /> },
           { key: 'periode_verification', label: 'Période observée', render: (row, setRow) => <CellInput placeholder="Ex. : semaines 12 à 15" readOnly={!mesureOuverte} value={row.periode_verification} onChange={(value) => setRow('periode_verification', value)} /> },
+          {
+            key: 'commentaire',
+            label: 'Pourquoi il s’est dégradé, et ce qui est décidé *',
+            wide: true,
+            hidden: (row) => !estDegrade(row) && !row.commentaire,
+            render: (row, setRow) => <CellInput placeholder="Ex. : consommation électrique en hausse de 2 %, acceptée par la Direction" readOnly={!mesureOuverte} value={row.commentaire} onChange={(value) => setRow('commentaire', value)} />,
+          },
         ]}
         readOnly={readOnly}
         rows={draft.mesures}
@@ -86,6 +100,9 @@ export default function Section08Resultats({ draft, set, fiche, readOnly }) {
         value={draft.objectif_atteint ? [draft.objectif_atteint] : []}
         onChange={(codes) => set('objectif_atteint', codes.filter((code) => code !== draft.objectif_atteint)[0] ?? '')}
       />
+      {ouiIncoherent && (
+        <p className="fiche-section__warning">« Oui » est impossible : la valeur Après du KPI principal n’atteint pas sa cible. Choisissez « Partiellement » ou « Non ».</p>
+      )}
       {draft.objectif_atteint === 'NON' && (
         <p className="fiche-section__warning">Objectif non atteint : la fiche ne peut pas avancer vers la clôture. Utilisez « Nouvelle boucle » en haut de la fiche pour revoir l’analyse et le plan.</p>
       )}
@@ -98,20 +115,21 @@ export default function Section08Resultats({ draft, set, fiche, readOnly }) {
           <h3>Maintien du résultat : {principal.libelle}</h3>
           <p className="fiche-section__help">
             Mesure Après validée le {formatDate(fiche.date_resultats)}. Remesurez le KPI principal à chaque échéance : la valeur doit rester
-            {principal.sens === 'baisse' ? ' sous ' : ' au-dessus de '}{formatNumber(principal.cible)} {principal.unite_mesure}.
+            {principal.sens === 'baisse' ? ' sous ' : ' au-dessus de '}{formatNumber(referenceMaintien)} {principal.unite_mesure}
+            {surNiveauAtteint ? ', le niveau atteint (objectif partiellement atteint).' : ', la cible.'}
           </p>
           <div className="fiche-section__maintien">
             {MAINTIEN_JALONS.map(([code, label]) => {
               const jalon = jalons[code] ?? {}
               const saisie = draft.maintien.find((item) => item.jalon === code) ?? { valeur: '', date_mesure: '', commentaire: '' }
               const ouvert = maintienOuvert && jalon.disponible
-              const tenue = cibleTenue(saisie.valeur, principal.cible, principal.sens)
+              const tenue = cibleTenue(saisie.valeur, referenceMaintien, principal.sens)
               return (
                 <article className="cards-editor__card" key={code}>
                   <header className="cards-editor__header">
                     <span className="cards-editor__title">{label}</span>
                     <span className="cards-editor__badges">
-                      {saisie.valeur === '' ? <Badge tone={jalon.disponible ? 'warning' : 'neutral'}>{jalon.disponible ? 'À mesurer' : 'À venir'}</Badge> : tenueBadge(tenue)}
+                      {saisie.valeur === '' ? <Badge tone={jalon.disponible ? 'warning' : 'neutral'}>{jalon.disponible ? 'À mesurer' : 'À venir'}</Badge> : surNiveauAtteint ? tenueBadge(tenue, 'Niveau tenu', 'Niveau non tenu') : tenueBadge(tenue)}
                     </span>
                   </header>
                   <span className="fiche-section__muted">Échéance : {formatDate(jalon.echeance)}</span>

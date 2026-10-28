@@ -27,6 +27,14 @@ export function cibleTenue(valeur, cible, sens) {
   return sens === 'baisse' ? a <= b : a >= b
 }
 
+/** Un indicateur à ne pas dégrader a-t-il reculé depuis sa valeur avant action ? */
+export function degrade(avant, apres, sens) {
+  const a = nombre(avant)
+  const b = nombre(apres)
+  if (a === null || b === null) return null
+  return sens === 'baisse' ? b > a : b < a
+}
+
 /**
  * Objectif atteint proposé au pilote : Oui si la cible est tenue, Partiellement si
  * l'indicateur progresse sans l'atteindre, Non sinon. Le pilote confirme.

@@ -164,7 +164,7 @@ export function DirectionDashboard({ data, hello, onAnneeChange }) {
         <KpiCard hint={retards(data)} icon="file" label="Fiches en cours" loading={loading} to="/fiches" tone={Number(data?.fiches_en_retard ?? 0) > 0 ? 'warning' : 'brand'} value={data?.fiches_ouvertes} />
         <KpiCard format={percent} hint="Fiches déclarées dans l’année" icon="ok" label={`Taux de clôture ${data?.annee ?? ''}`} loading={loading} to="/fiches" tone="calm" value={data?.taux_cloture} />
         <KpiCard format={days} hint="De la déclaration à la clôture" icon="clock" label="Délai moyen de clôture" loading={loading} to="/fiches" tone="neutral" value={pilotage?.delai_moyen_cloture_jours} />
-        <KpiCard format={percent} hint="Fiches clôturées avec un contrôle d’efficacité" icon="validation" label="Efficacité vérifiée" loading={loading} to="/fiches" tone="neutral" value={pilotage?.part_efficacite_verifiee} />
+        <KpiCard format={percent} hint="Fiches arrivées à la mesure des résultats dont tous les contrôles échus sont renseignés" icon="validation" label="Efficacité vérifiée" loading={loading} to="/fiches" tone="neutral" value={pilotage?.part_efficacite_verifiee} />
       </KpiRow>
       <div className="dash-grid">
         <Panel className="dash-span-8" subtitle={`Par mois, en ${data?.annee ?? ''}.`} title="Fiches déclarées et clôturées">

@@ -14,7 +14,8 @@ use Illuminate\Support\Carbon;
  * Hypothèse D2 : une action corrective est vérifiée une seule fois, à 30 jours.
  *
  * Maintien du résultat (règle d'or de la fiche papier) : le KPI principal est remesuré
- * à J+30, J+60 et J+90 de la mesure des résultats (T7) ; il doit tenir sa cible.
+ * à J+30, J+60 et J+90 de la mesure des résultats (T7) ; il doit tenir sa cible, ou le
+ * niveau atteint (valeur Après) quand l'objectif n'est que partiellement atteint.
  */
 class ControleEfficaciteService
 {
@@ -23,14 +24,29 @@ class ControleEfficaciteService
     public function __construct(private readonly Calculs $calculs) {}
 
     /**
-     * Jalons de maintien du KPI principal : échéance, mesure saisie et cible tenue ou non.
+     * Niveau que le KPI principal doit tenir pendant le maintien : la cible, ou la valeur
+     * Après mesurée en T7 quand l'objectif n'est que partiellement atteint (écart accepté).
      *
-     * @return array<int, array{jalon: string, echeance: string|null, disponible: bool, valeur: float|null, date_mesure: string|null, commentaire: string|null, tenu: bool|null}>
+     * @return array{type: string, valeur: float|null}
+     */
+    public function referenceMaintien(FicheA3 $fiche): array
+    {
+        $principal = $fiche->indicateurs->firstWhere('principal', true);
+        $type = $fiche->objectif_atteint === 'PARTIELLEMENT' ? 'APRES' : 'CIBLE';
+        $valeur = $principal?->mesures->firstWhere('type', $type)?->valeur;
+
+        return ['type' => $type, 'valeur' => $valeur !== null ? (float) $valeur : null];
+    }
+
+    /**
+     * Jalons de maintien du KPI principal : échéance, mesure saisie et niveau tenu ou non.
+     *
+     * @return array<int, array{jalon: string, echeance: string|null, disponible: bool, valeur: float|null, date_mesure: string|null, commentaire: string|null, tenu: bool|null, reference: float|null, reference_type: string}>
      */
     public function maintien(FicheA3 $fiche): array
     {
         $principal = $fiche->indicateurs->firstWhere('principal', true);
-        $cible = $principal?->mesures->firstWhere('type', 'CIBLE')?->valeur;
+        $reference = $this->referenceMaintien($fiche);
         $jalons = [];
 
         foreach (self::JALONS as $jalon => $jours) {
@@ -44,7 +60,9 @@ class ControleEfficaciteService
                 'valeur' => $valeur,
                 'date_mesure' => $mesure?->date_mesure?->toDateString(),
                 'commentaire' => $mesure?->commentaire,
-                'tenu' => $principal ? $this->calculs->cibleTenue($valeur, $cible !== null ? (float) $cible : null, $principal->sens) : null,
+                'tenu' => $principal ? $this->calculs->cibleTenue($valeur, $reference['valeur'], $principal->sens) : null,
+                'reference' => $reference['valeur'],
+                'reference_type' => $reference['type'],
             ];
         }
 
@@ -60,6 +78,7 @@ class ControleEfficaciteService
     {
         $fiche->loadMissing('indicateurs.mesures');
         $manques = [];
+        $niveau = $this->referenceMaintien($fiche)['type'] === 'APRES' ? 'le niveau atteint à la mesure des résultats' : 'sa cible';
 
         foreach ($this->maintien($fiche) as $jalon) {
             $nom = Controle::nomJalon($jalon['jalon'], '');
@@ -70,7 +89,7 @@ class ControleEfficaciteService
                     ? "Maintien du résultat : mesure {$nom} du KPI principal à saisir (échéance {$echeance})."
                     : "Maintien du résultat : mesure {$nom} du KPI principal à venir (le {$echeance}). La clôture attendra cette mesure.");
             } elseif ($jalon['tenu'] === false) {
-                $manques[] = Manque::section(8, "Maintien du résultat : le KPI principal ne tient plus sa cible à {$nom}. Lancez une nouvelle boucle.");
+                $manques[] = Manque::section(8, "Maintien du résultat : le KPI principal ne tient plus {$niveau} à {$nom}. Lancez une nouvelle boucle.");
             }
         }
 

@@ -322,7 +322,7 @@ class SuiviTerrainTest extends TestCase
         $this->assertNull($agent->json('data.evolution'));
     }
 
-    public function test_direction_and_controle_see_closure_delay_efficacy_and_net_gain(): void
+    public function test_direction_and_controle_see_closure_delay_and_net_gain(): void
     {
         $fiche = $this->declarer();
         $fiche->forceFill([
@@ -336,12 +336,56 @@ class SuiviTerrainTest extends TestCase
         foreach (['DIRECTION', 'CONTROLE_GESTION'] as $role) {
             $pilotage = $this->agir($role)->getJson('/api/tableau-de-bord')->assertOk()->json('data.pilotage');
             $this->assertSame(10, $pilotage['delai_moyen_cloture_jours']);
-            $this->assertEquals(0, $pilotage['part_efficacite_verifiee']);
+            // Fiche sans contrôle échu : rien à vérifier, elle n'entre pas dans l'indicateur.
+            $this->assertNull($pilotage['part_efficacite_verifiee']);
             $this->assertSame(600_000, $pilotage['gains_nets_annee']);
             $this->assertSame(400_000, $pilotage['couts_mise_en_oeuvre_annee']);
         }
 
         $this->assertNull($this->agir('AGENT')->getJson('/api/tableau-de-bord')->assertOk()->json('data.pilotage'));
+    }
+
+    public function test_net_gain_deducts_the_implementation_cost_once_when_all_gains_are_decided(): void
+    {
+        $fiche = $this->declarer();
+        $fiche->forceFill(['cout_mise_en_oeuvre_b' => 400_000])->save();
+        $gain = fn (int $montant, string $statut, $date) => Gain::forceCreate([
+            'fiche_id' => $fiche->id, 'categorie' => 'ENERGIE', 'hypothese_calcul' => 'Vapeur économisée',
+            'montant_annuel' => $montant, 'statut' => $statut, 'date_validation' => $date,
+        ]);
+        $gain(1_000_000, 'VALIDE', now()->subYear());
+        $enAttente = $gain(500_000, 'PROPOSE', null);
+
+        // Un gain reste à décider : la fiche n'entre pas encore dans le gain net.
+        $pilotage = fn (int $annee) => $this->agir('DIRECTION')->getJson('/api/tableau-de-bord?annee='.$annee)->assertOk()->json('data.pilotage');
+        $this->assertSame(0, $pilotage(now()->year - 1)['gains_nets_annee']);
+        $this->assertSame(0, $pilotage(now()->year)['gains_nets_annee']);
+
+        // Dernier gain validé cette année : gain net de la fiche compté cette année seulement, coût retiré une fois.
+        $enAttente->forceFill(['statut' => 'VALIDE', 'date_validation' => now()])->save();
+        $this->assertSame(1_100_000, $pilotage(now()->year)['gains_nets_annee']);
+        $this->assertSame(400_000, $pilotage(now()->year)['couts_mise_en_oeuvre_annee']);
+        $this->assertSame(0, $pilotage(now()->year - 1)['gains_nets_annee']);
+        $this->assertSame(0, $pilotage(now()->year - 1)['couts_mise_en_oeuvre_annee']);
+    }
+
+    public function test_efficacy_indicator_counts_fiches_whose_due_controls_are_filled_in(): void
+    {
+        $fiche = $this->declarer();
+        $ids = $this->amenerEnRealisation($fiche);
+        $this->amenerEnVerification($fiche, $ids);
+
+        $part = fn () => $this->agir('DIRECTION')->getJson('/api/tableau-de-bord')->assertOk()->json('data.pilotage.part_efficacite_verifiee');
+        $this->assertEquals(0, $part());
+
+        $controles = Controle::where('action_id', $ids['action'])->orderBy('date_echeance')->get();
+        $this->controle($controles[0], 'CONFORME')->assertOk();
+        $this->assertEquals(0, $part());
+
+        foreach ($controles->slice(1) as $controle) {
+            $this->controle($controle, 'CONFORME')->assertOk();
+        }
+        $this->assertEquals(100, $part());
     }
 
     public function test_lessons_and_standards_of_every_fiche_are_gathered_in_one_place(): void

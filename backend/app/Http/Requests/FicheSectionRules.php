@@ -113,6 +113,7 @@ class FicheSectionRules
                 'mesures.*.valeur' => ['nullable', 'numeric'],
                 'mesures.*.date_mesure' => ['nullable', 'date'],
                 'mesures.*.periode_verification' => ['nullable', 'string', 'max:255'],
+                'mesures.*.commentaire' => ['nullable', 'string', 'max:2000'],
                 'objectif_atteint' => ['nullable', Rule::in(['OUI', 'PARTIELLEMENT', 'NON'])],
                 'ecart_objectif' => $optionalText,
                 'maintien' => ['nullable', 'array', 'max:3'],
@@ -128,6 +129,8 @@ class FicheSectionRules
                 'gains.*.hypothese_calcul' => ['required', 'string', 'max:2000'],
                 'gains.*.montant_annuel' => ['required', 'integer', 'min:0'],
                 'cout_mise_en_oeuvre_b' => ['nullable', 'integer', 'min:0'],
+                'gain_net_annuel' => ['nullable', 'integer', 'between:-999999999999,999999999999'],
+                'payback_mois' => ['nullable', 'numeric', 'min:0', 'max:9999'],
                 'sans_gain_chiffre' => ['boolean'],
             ],
             10 => [

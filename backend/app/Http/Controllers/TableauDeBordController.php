@@ -132,9 +132,17 @@ class TableauDeBordController extends Controller
     }
 
     /**
-     * Indicateurs de pilotage de la démarche sur les fiches clôturées dans l'année : délai moyen
-     * de clôture, part des fiches dont l'efficacité a été vérifiée, et gain net (gains validés
-     * moins le coût de mise en œuvre des fiches concernées).
+     * Indicateurs du sujet P13 pour la Direction et le Contrôle de gestion : délai moyen
+     * de clôture, part des fiches dont l'efficacité est vérifiée, et gain net.
+     *
+     * Efficacité vérifiée (PRD §10.1) : parmi les fiches arrivées à la mesure des résultats
+     * ou au-delà (en cours, en attente depuis ces étapes, ou clôturées dans l'année), celles
+     * dont tous les contrôles d'efficacité arrivés à échéance sont renseignés. Une fiche sans
+     * contrôle encore échu n'a rien à vérifier : elle n'est pas comptée.
+     *
+     * Gain net (PRD §6.3) : pour chaque fiche dont tous les gains sont décidés et dont le
+     * dernier gain validé l'a été dans l'année, gains validés moins le coût de mise en œuvre.
+     * Le coût d'une fiche n'est donc retiré qu'une fois.
      *
      * @param  callable(): Builder<FicheA3>  $visibles
      * @return array{delai_moyen_cloture_jours: int|null, part_efficacite_verifiee: float|null, gains_nets_annee: int, couts_mise_en_oeuvre_annee: int}
@@ -142,18 +150,35 @@ class TableauDeBordController extends Controller
     private function pilotage(callable $visibles, Builder $visibleIds, int $annee): array
     {
         $cloturees = $visibles()->where('statut_etape', StatutEtape::Cloture->value)->whereYear('date_cloture', $annee)
-            ->withExists(['controles as efficacite_verifiee' => fn (Builder $q) => $q->whereNotNull('resultat')])
             ->get(['id', 'created_at', 'date_cloture']);
 
-        $gains = Gain::query()->whereIn('fiche_id', $visibleIds)->where('statut', 'VALIDE')->whereYear('date_validation', $annee);
-        $couts = (int) FicheA3::query()->whereIn('id', (clone $gains)->select('fiche_id'))->sum('cout_mise_en_oeuvre_b');
+        $apresMesure = [StatutEtape::MesureResultats->value, StatutEtape::VerificationMaintien->value, StatutEtape::EnValidationCloture->value];
+        $echus = fn (Builder $controle) => $controle->whereDate('controles.date_echeance', '<=', today());
+        $concernees = $visibles()
+            ->where(fn (Builder $q) => $q->whereIn('statut_etape', $apresMesure)
+                ->orWhere(fn (Builder $attente) => $attente->where('statut_etape', StatutEtape::EnAttente->value)->whereIn('etape_avant_attente', $apresMesure))
+                ->orWhere(fn (Builder $close) => $close->where('statut_etape', StatutEtape::Cloture->value)->whereYear('date_cloture', $annee)))
+            ->whereHas('controles', $echus);
+        $nombreConcernees = (clone $concernees)->count();
+        $nombreVerifiees = (clone $concernees)
+            ->whereDoesntHave('controles', fn (Builder $controle) => $echus($controle)->whereNull('controles.resultat'))
+            ->count();
+
+        $soldees = Gain::query()->whereIn('fiche_id', $visibleIds)
+            ->groupBy('fiche_id')
+            ->havingRaw("count(*) filter (where statut = 'PROPOSE') = 0")
+            ->havingRaw("count(*) filter (where statut = 'VALIDE') > 0")
+            ->havingRaw("extract(year from max(date_validation) filter (where statut = 'VALIDE')) = ?", [$annee])
+            ->select('fiche_id');
+        $gainsValides = (int) Gain::query()->whereIn('fiche_id', $soldees)->where('statut', 'VALIDE')->sum('montant_annuel');
+        $couts = (int) FicheA3::query()->whereIn('id', $soldees)->sum('cout_mise_en_oeuvre_b');
 
         return [
             'delai_moyen_cloture_jours' => $cloturees->isEmpty() ? null
                 : (int) round($cloturees->avg(fn (FicheA3 $fiche) => $fiche->created_at->startOfDay()->diffInDays($fiche->date_cloture))),
-            'part_efficacite_verifiee' => $cloturees->isEmpty() ? null
-                : round($cloturees->where('efficacite_verifiee', true)->count() / $cloturees->count() * 100, 1),
-            'gains_nets_annee' => (int) $gains->sum('montant_annuel') - $couts,
+            'part_efficacite_verifiee' => $nombreConcernees === 0 ? null
+                : round($nombreVerifiees / $nombreConcernees * 100, 1),
+            'gains_nets_annee' => $gainsValides - $couts,
             'couts_mise_en_oeuvre_annee' => $couts,
         ];
     }

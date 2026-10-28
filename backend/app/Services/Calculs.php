@@ -45,6 +45,19 @@ class Calculs
     }
 
     /**
+     * Un indicateur à ne pas dégrader s'est dégradé : il a reculé par rapport à sa valeur
+     * avant action, dans le sens opposé au sens souhaité. Null quand une valeur manque.
+     */
+    public function degrade(?float $avant, ?float $apres, string $sens): ?bool
+    {
+        if ($avant === null || $apres === null) {
+            return null;
+        }
+
+        return $sens === 'baisse' ? $apres > $avant : $apres < $avant;
+    }
+
+    /**
      * @param  iterable<int>  $montants
      */
     public function totalA(iterable $montants): int

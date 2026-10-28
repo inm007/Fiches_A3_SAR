@@ -165,6 +165,7 @@ export const sectionModel = {
         valeur: toText(indicateur.apres),
         date_mesure: indicateur.date_mesure_apres ?? '',
         periode_verification: indicateur.periode_verification ?? '',
+        commentaire: indicateur.commentaire_apres ?? '',
       })),
       maintien: (fiche.maintien ?? []).map((jalon) => ({
         jalon: jalon.jalon,
@@ -181,6 +182,7 @@ export const sectionModel = {
         valeur: toNumber(mesure.valeur),
         date_mesure: nullable(mesure.date_mesure),
         periode_verification: nullable(mesure.periode_verification),
+        commentaire: nullable(mesure.commentaire),
       })),
       maintien: draft.maintien
         .filter((jalon) => jalon.valeur !== '')
@@ -196,6 +198,8 @@ export const sectionModel = {
     toDraft: (fiche) => ({
       gains: fiche.gains.lignes.map((gain) => ({ ...gain, montant_annuel: toText(gain.montant_annuel) })),
       cout_mise_en_oeuvre_b: toText(fiche.gains.cout_mise_en_oeuvre_b || ''),
+      gain_net_annuel: toText(fiche.gains.gain_net_annuel),
+      payback_mois: toText(fiche.gains.payback_mois),
       sans_gain_chiffre: fiche.gains.sans_gain_chiffre,
     }),
     toPayload: (draft) => ({
@@ -206,6 +210,8 @@ export const sectionModel = {
         montant_annuel: toInt(row.montant_annuel),
       })),
       cout_mise_en_oeuvre_b: toInt(draft.cout_mise_en_oeuvre_b) ?? 0,
+      gain_net_annuel: toInt(draft.gain_net_annuel),
+      payback_mois: toNumber(draft.payback_mois),
       sans_gain_chiffre: Boolean(draft.sans_gain_chiffre),
     }),
   },

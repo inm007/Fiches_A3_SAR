@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\ActionA3;
 use App\Models\Cause;
+use App\Models\Controle;
 use App\Models\Parametre;
 use App\Models\PieceJointe;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -125,7 +126,7 @@ class PiecesJointesTest extends TestCase
         ], ['Accept' => 'application/json'])->assertCreated();
     }
 
-    public function test_perennisation_proof_is_optional_and_can_be_a_document_or_an_image(): void
+    public function test_perennisation_proof_can_be_a_document_or_an_image(): void
     {
         $fiche = $this->declarer();
         $ids = $this->amenerEnRealisation($fiche);
@@ -149,6 +150,35 @@ class PiecesJointesTest extends TestCase
             'perennisation_id' => $ligne,
             'action_id' => $ids['action'],
         ], ['Accept' => 'application/json'])->assertUnprocessable();
+    }
+
+    public function test_done_standard_needs_a_reference_or_a_document_before_closure(): void
+    {
+        $fiche = $this->declarer();
+        $ids = $this->amenerEnRealisation($fiche);
+        $this->amenerEnVerification($fiche, $ids);
+        foreach (Controle::where('action_id', $ids['action'])->get() as $controle) {
+            $this->controle($controle, 'CONFORME')->assertOk();
+        }
+        $this->mesurerMaintien($fiche);
+        $this->completerCloture($fiche);
+
+        $ligne = $this->section($fiche, 10, ['perennisation' => [['type' => 'SOP', 'statut' => 'REALISE']]])
+            ->assertOk()
+            ->assertJsonPath('data.perennisation.0.preuve_manquante', true)
+            ->json('data.perennisation.0.id');
+        $message = collect($this->transition($fiche, 'PILOTE', 'T8')->assertUnprocessable()->json('manques'))->implode(' ');
+        $this->assertStringContainsString('réalisée sans preuve', $message);
+
+        $this->agir('PILOTE')->post("/api/fiches/{$fiche->id}/pieces-jointes", [
+            'fichier' => UploadedFile::fake()->image('sop-signee.jpg'),
+            'perennisation_id' => $ligne,
+        ], ['Accept' => 'application/json'])->assertCreated();
+
+        $this->agir('PILOTE')->getJson("/api/fiches/{$fiche->id}")->assertOk()
+            ->assertJsonPath('data.perennisation.0.fichiers', 1)
+            ->assertJsonPath('data.perennisation.0.preuve_manquante', false);
+        $this->transition($fiche, 'PILOTE', 'T8')->assertOk()->assertJsonPath('data.statut_etape', 'EN_VALIDATION_CLOTURE');
     }
 
     public function test_upload_rejects_unapproved_file_types_and_enforces_configured_file_count(): void
