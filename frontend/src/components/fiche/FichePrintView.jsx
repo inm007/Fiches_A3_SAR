@@ -160,12 +160,14 @@ function FichePrintView({ fiche, refs, copie }) {
             ['Coût de mise en œuvre', gains.cout_mise_en_oeuvre_b],
             ['Gains annuels enregistrés', gains.total_a],
             ['Gains annuels validés', gains.total_a_valide],
+            ['Gain net annuel (A − B)', gains.gain_net_annuel],
+            ['Délai de retour (mois)', gains.payback_mois],
           ]} />
         </Section>
         <Section number={10} title="Standardisation et pérennisation">
           <Table headers={['Type', 'Responsable', 'Date', 'Statut', 'Preuve']} rows={fiche.perennisation.map((item) => ({
             id: item.id,
-            values: [item.type_libelle, item.responsable?.nom ?? null, item.date, item.statut, item.preuve],
+            values: [item.type_libelle, item.responsable?.nom ?? null, item.date, item.statut, [item.preuve, item.fichiers ? `${item.fichiers} fichier(s) joint(s)` : null].filter(Boolean).join(' · ') || null],
           }))} />
           <h3 className="fiche-print__subtitle">Contrôles d’efficacité J+30, J+60, J+90</h3>
           <Table headers={['Action', 'Contrôle', 'Échéance', 'Réalisé le', 'Résultat', 'Commentaire']} rows={fiche.actions.flatMap((action) => action.controles.map((controle) => ({

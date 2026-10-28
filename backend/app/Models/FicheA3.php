@@ -35,6 +35,8 @@ class FicheA3 extends Model
         'confidentialite',
         'version',
         'cout_mise_en_oeuvre_b',
+        'gain_net_annuel',
+        'payback_mois',
         'sans_gain_chiffre',
         'objectif_atteint',
         'date_cloture',
@@ -65,6 +67,8 @@ class FicheA3 extends Model
             'sans_gain_chiffre' => 'boolean',
             'version' => 'integer',
             'cout_mise_en_oeuvre_b' => 'integer',
+            'gain_net_annuel' => 'integer',
+            'payback_mois' => 'float',
             'impact_financier_estime' => 'integer',
         ];
     }

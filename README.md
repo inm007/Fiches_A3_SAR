@@ -1,6 +1,6 @@
 # Fiche A3 numérique SAR
 
-Outil de suivi des fiches A3 d'amélioration continue de la SAR : déclaration d'un problème, analyse en 12 sections, plan d'actions validé en deux portes, contrôles d'efficacité à J+30, J+60 et J+90, gains en FCFA et historique immuable.
+Outil de suivi des fiches A3 d'amélioration continue de la SAR : déclaration d'un problème, analyse en 12 sections, validation en trois portes (pertinence, plan, clôture), contrôles d'efficacité à J+30, J+60 et J+90, gains en FCFA et historique immuable.
 
 
 ## Démarrage rapide
@@ -24,19 +24,22 @@ npm run dev                   # http://127.0.0.1:5173
 
 Ouvrir http://127.0.0.1:5173 et se connecter avec un compte de démonstration, mot de passe `Azerty123` :
 
+| Pour… | Compte |
+|---|---|
 | Déclarer une fiche | `agent.demo` |
 | Compléter une fiche, soumettre le plan et la clôture | `pilote.demo` |
-| Valider un plan | `valideur.demo`, `valideur-hse.demo` |
+| Valider la pertinence (porte 0) | `chef.demo` |
+| Valider un plan (porte 1) | `valideur.demo`, `valideur-hse.demo` |
 | Valider les gains | `controle.demo` |
 | Approuver la clôture, vue globale | `direction.demo` |
 | Comptes, affectations, référentiels, désignation du pilote | `admin-fonctionnel.demo` |
 | État technique et journal d'administration | `admin-technique.demo` |
 
-La base de démonstration contient 15 fiches, une par étape du parcours.
+La base de démonstration contient 30 fiches, qui couvrent toutes les étapes du parcours.
 
 ## Mettre à jour une base existante
 
-Les migrations de création ont été réécrites (colonnes fusionnées, tables inutilisées retirées, contraintes des catégories de gain et des types de pérennisation supprimées). Une base créée avec une version précédente doit être recréée :
+Les migrations de création ont été réécrites (colonnes fusionnées, tables inutilisées retirées, contraintes des catégories de gain et des types de pérennisation supprimées, gain net et délai de retour ajoutés à la fiche). Une base créée avec une version précédente doit être recréée :
 
 ```bash
 cd backend

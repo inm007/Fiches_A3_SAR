@@ -34,6 +34,8 @@ return new class extends Migration
             $table->string('confidentialite', 20)->default('NORMAL');
             $table->unsignedInteger('version')->default(1);
             $table->unsignedBigInteger('cout_mise_en_oeuvre_b')->default(0);
+            $table->bigInteger('gain_net_annuel')->nullable();
+            $table->decimal('payback_mois', 6, 1)->nullable();
             $table->boolean('sans_gain_chiffre')->default(false);
             $table->string('objectif_atteint', 20)->nullable();
             $table->text('contexte')->nullable();

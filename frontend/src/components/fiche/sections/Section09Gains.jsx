@@ -1,7 +1,7 @@
 import { Checkbox, TextInput } from '../../ui/FormControls.jsx'
 import Badge from '../../ui/Badge.jsx'
 import { STATUTS_GAIN } from '../../../utils/constants.js'
-import { formatFcfa } from '../../../utils/format.js'
+import { formatFcfa, formatNumber } from '../../../utils/format.js'
 import Astuce from './Astuce.jsx'
 import CardsEditor from './CardsEditor.jsx'
 import { CellInput, CellSelect } from './RowsEditor.jsx'
@@ -19,6 +19,7 @@ export default function Section09Gains({ draft, set, fiche, refs, readOnly }) {
         <ul>
           <li>Un gain par nature : production récupérée, énergie économisée, maintenance évitée… Écrivez l’hypothèse pour que le Contrôle de gestion puisse la vérifier.</li>
           <li>Saisissez directement le montant annuel en FCFA : l’application ne fait aucun calcul.</li>
+          <li>Comme sur la fiche papier, indiquez ensuite le gain net annuel (gains moins coût de mise en œuvre) et le délai de retour en mois, calculés par vos soins.</li>
           <li>Pas de gain chiffrable (sécurité, conformité) ? Cochez « sans gain chiffré » : seul le directeur sponsor validera la clôture.</li>
         </ul>
       </Astuce>
@@ -46,7 +47,7 @@ export default function Section09Gains({ draft, set, fiche, refs, readOnly }) {
       )}
       <div className="fiche-section__grid">
         <TextInput
-          hint="Facultatif, saisi à la main."
+          hint={`Facultatif, saisi à la main. Pour mémoire, coût estimé des actions : ${formatFcfa(fiche.gains.cout_actions)}.`}
           label="Coût de mise en œuvre (FCFA)"
           min="0"
           readOnly={readOnly}
@@ -54,10 +55,38 @@ export default function Section09Gains({ draft, set, fiche, refs, readOnly }) {
           value={draft.cout_mise_en_oeuvre_b}
           onChange={(value) => set('cout_mise_en_oeuvre_b', value)}
         />
+        {!draft.sans_gain_chiffre && (
+          <>
+            <TextInput
+              hint="Saisi à la main : gains annuels moins coût de mise en œuvre."
+              label="Gain net annuel (FCFA)"
+              readOnly={readOnly}
+              type="number"
+              value={draft.gain_net_annuel}
+              onChange={(value) => set('gain_net_annuel', value)}
+            />
+            <TextInput
+              hint="Saisi à la main : temps pour que les gains remboursent le coût."
+              label="Délai de retour, payback (mois)"
+              min="0"
+              readOnly={readOnly}
+              step="0.1"
+              type="number"
+              value={draft.payback_mois}
+              onChange={(value) => set('payback_mois', value)}
+            />
+          </>
+        )}
       </div>
       <div className="fiche-section__totaux">
         <div className="fiche-section__total"><span>Gains annuels enregistrés (hors refusés)</span><strong>{formatFcfa(fiche.gains.total_a)}</strong></div>
         <div className="fiche-section__total"><span>Gains validés par le Contrôle de gestion</span><strong>{formatFcfa(fiche.gains.total_a_valide)}</strong></div>
+        {!fiche.gains.sans_gain_chiffre && (
+          <>
+            <div className="fiche-section__total"><span>Gain net annuel</span><strong>{fiche.gains.gain_net_annuel === null ? 'Non renseigné' : formatFcfa(fiche.gains.gain_net_annuel)}</strong></div>
+            <div className="fiche-section__total"><span>Délai de retour</span><strong>{fiche.gains.payback_mois === null ? 'Non renseigné' : `${formatNumber(fiche.gains.payback_mois)} mois`}</strong></div>
+          </>
+        )}
       </div>
       <p className="fiche-section__muted">Seuls les gains validés entrent dans les indicateurs officiels.</p>
     </div>

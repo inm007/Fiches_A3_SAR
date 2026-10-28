@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { ameliorationPourcent, cibleTenue, ecart, objectifSuggere, proposerObjectif } from '../src/utils/a3Calculs.js'
+import { ameliorationPourcent, cibleTenue, degrade, ecart, objectifSuggere, proposerObjectif } from '../src/utils/a3Calculs.js'
 
 test('écart et amélioration suivent les formules du serveur', () => {
   assert.equal(ecart('100', '80'), 20)
@@ -15,6 +15,14 @@ test('la cible tenue dépend du sens souhaité', () => {
   assert.equal(cibleTenue(82, 80, 'baisse'), false)
   assert.equal(cibleTenue(82, 80, 'hausse'), true)
   assert.equal(cibleTenue(null, 80, 'hausse'), null)
+})
+
+test('un indicateur à ne pas dégrader recule dans le sens opposé au sens souhaité', () => {
+  assert.equal(degrade(100, 98, 'hausse'), true)
+  assert.equal(degrade(100, 102, 'hausse'), false)
+  assert.equal(degrade(100, 102, 'baisse'), true)
+  assert.equal(degrade(100, 100, 'baisse'), false)
+  assert.equal(degrade('', 100, 'hausse'), null)
 })
 
 test('objectif proposé : oui, partiellement ou non', () => {

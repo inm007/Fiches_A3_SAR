@@ -45,8 +45,8 @@ Un utilisateur peut porter plusieurs rôles, appelés affectations. Chaque affec
 |---|---|
 | Agent | Déclare une fiche, suit ses déclarations et fait avancer les actions dont il est responsable. |
 | Pilote | Rédige la fiche, soumet le plan puis la clôture, pilote les actions, saisit la mesure et les contrôles. |
-| Valideur Production / Exploitation | Valide le plan en premier, sur toutes les fiches de son unité. |
-| Valideurs HSE, Procédé / Technique, Maintenance, Inspection / Intégrité | Valident le plan quand leur domaine est coché en section 7. |
+| Chef de département | Juge la pertinence des fiches qui lui sont soumises (porte 0) : valider, renvoyer à refaire ou classer sans suite. Rôle donné par l'organigramme. |
+| Directeurs de domaine (Production / Exploitation, QHSE, technique, DSI ; Maintenance et Inspection selon le circuit) | Valident le plan (porte 1) quand un domaine qui leur correspond est coché en section 7, tous en même temps. La correspondance se règle à l'écran Circuit de validation. |
 | Contrôle de gestion | Valide ou refuse chaque ligne de gain, puis approuve la porte 2 si des gains sont chiffrés. |
 | Direction | Voit toutes les fiches, peut mettre en attente, reprendre et relancer. Peut être choisie comme sponsor. |
 | Sponsor (un directeur choisi en section 1) | Donne l'accord final à la clôture (porte 2) : valider ou renvoyer la fiche. |
@@ -61,15 +61,16 @@ Le serveur reste la source de vérité. Masquer un bouton n'est qu'un confort : 
 
 | Étape | Qui agit | Passage à l'étape suivante |
 |---|---|---|
-| 1. Ouvert | Agent ou pilote (déclaration) ; le pilote de l'unité se désigne lui-même, sinon l'administrateur fonctionnel désigne le pilote | T2 « Commencer l'analyse », par le pilote |
-| 2. En cours | Pilote : sections 1 à 7 | T3 « Soumettre le plan », si les conditions B2 sont remplies |
-| 3. En validation du plan | Valideurs de la porte 1 | T4 automatique quand tout est approuvé ; T5 retour à En cours en cas de refus |
-| 4. Réalisation des actions | Responsables des actions ; pilote | T6 « Terminer les actions » : toutes terminées, au moins une réalisée, chaque cause racine garde une action |
-| 5. Mesure des résultats | Pilote : section 8 | T7 « Passer à la vérification du maintien », seulement si l'objectif est atteint (oui ou partiellement) |
-| 6. Vérification du maintien | Pilote : contrôles J+30, J+60, J+90 des actions, maintien du KPI principal à J+30, J+60, J+90, sections 9 à 11 | T8 « Soumettre la clôture » |
-| 7. En validation de clôture | Contrôle de gestion (si des gains sont chiffrés), puis Direction | T9 automatique vers Clôturé ; T10 retour en cas de refus |
-| 8. Clôturé | — | — |
-| Classée sans suite | Direction ou administrateur fonctionnel | T14, depuis Ouvert ou En cours, avec un motif (doublon, hors sujet…) |
+| 1. Ouvert | Agent ou pilote (déclaration) ; le pilote de l'unité se désigne lui-même, sinon l'administrateur fonctionnel désigne le pilote. Le pilote remplit ensuite les sections 1 à 4 et choisit le chef de département | T0 « Soumettre au chef de département » |
+| 2. En validation de la pertinence | Chef de département (porte 0) | T2 automatique quand le chef valide ; retour à Ouvert s'il demande de refaire ; classement sans suite s'il le décide |
+| 3. En cours | Pilote et équipe : sections 5 à 7 | T3 « Soumettre le plan », si les conditions B2 sont remplies |
+| 4. En validation du plan | Directeurs des domaines cochés (porte 1) | T4 automatique quand tout est approuvé ; T5 retour à En cours en cas de refus |
+| 5. Réalisation des actions | Responsables des actions ; pilote | T6 « Terminer les actions » : toutes terminées, au moins une réalisée, chaque cause racine garde une action |
+| 6. Mesure des résultats | Pilote : section 8 | T7 « Passer à la vérification du maintien », si l'objectif est atteint (« Oui » seulement si la cible est atteinte) ou partiellement atteint avec l'écart expliqué, et si chaque KPI à ne pas dégrader qui a reculé est expliqué |
+| 7. Vérification du maintien | Pilote : contrôles J+30, J+60, J+90 des actions, maintien du KPI principal à J+30, J+60, J+90, sections 9 à 11 | T8 « Soumettre la clôture » |
+| 8. En validation de clôture | Contrôle de gestion (si des gains sont chiffrés), puis le directeur sponsor | T9 automatique vers Clôturé ; T10 retour en cas de refus |
+| 9. Clôturé | — | — |
+| Classée sans suite | Direction ou administrateur fonctionnel (T14), ou chef de département à la porte 0 | Depuis Ouvert, En validation de la pertinence ou En cours, avec un motif (doublon, hors sujet…) |
 
 Quatre opérations s'ajoutent au parcours :
 - **T11, nouvelle boucle** : depuis Mesure ou Vérification, si l'objectif n'est pas atteint ou si le gain n'est pas maintenu. La fiche repart à En cours avec une nouvelle boucle (numéro de version), et le motif est obligatoire. Les mesures Après et de maintien, l'objectif atteint et la date des résultats sont effacés : la boucle suivante se mesure à neuf. L'historique et la copie figée gardent les anciennes valeurs.
@@ -96,9 +97,9 @@ Toutes les transitions passent par un seul service, `FicheWorkflow`, sous verrou
 | 5 | Analyse des causes racines | Méthode avec son aide, causes en cartes numérotées automatiquement, cause racine et preuve | En cours |
 | 6 | Plan de contre-mesures | Actions regroupées par cause : type, responsable, échéance, coût, MOC lié, critère d'efficacité obligatoire. Une action réalisée ou annulée ne se modifie plus | En cours |
 | 7 | Risques et MOC | Domaines concernés par pastilles, liste cochée des valideurs sollicités, risques (un risque coche son domaine), MOC requis, référence, statut et preuve | En cours, puis suivi du MOC en réalisation |
-| 8 | Résultats après action | Valeur Après de chaque indicateur avec écart et amélioration calculés, objectif atteint proposé d'après la cible ; puis maintien du KPI principal à J+30, J+60 et J+90 | Mesure ; en Vérification, seulement le maintien |
-| 9 | Gains économiques | Lignes de gain (catégorie, hypothèse, quantité, unité, coût unitaire), coût de mise en œuvre, ou « sans gain chiffré ». A, B, gain net et retour sur investissement se calculent pendant la saisie | Réalisation à Vérification |
-| 10 | Standardisation et pérennisation | Actions de pérennisation ajoutées d'un geste par pastilles ; chacune doit être réalisée avec sa preuve avant la clôture | Réalisation à Vérification |
+| 8 | Résultats après action | Valeur Après de chaque indicateur avec écart et amélioration calculés ; objectif atteint proposé d'après la cible (« Oui » refusé si la cible n'est pas atteinte) ; commentaire obligatoire pour un KPI à ne pas dégrader qui a reculé ; puis maintien du KPI principal à J+30, J+60 et J+90 | Mesure ; en Vérification, seulement le maintien |
+| 9 | Gains économiques | Lignes de gain (nature, hypothèse de calcul, montant annuel saisi), coût de mise en œuvre B (le coût estimé des actions est rappelé), gain net annuel et délai de retour en mois saisis à la main, ou « sans gain chiffré ». L'application affiche le total des gains (A) et des gains validés, sans autre calcul | Réalisation à Vérification |
+| 10 | Standardisation et pérennisation | Actions de pérennisation ajoutées d'un geste par pastilles ; chacune doit être réalisée avec sa preuve avant la clôture : une référence écrite, ou un document ou une photo joints sur la ligne | Réalisation à Vérification |
 | 11 | Leçons apprises | Ce qui a marché, ce qui est à reproduire ailleurs | Mesure, Vérification |
 | 12 | Validation | Signatures des deux portes, section en cause d'un refus, copies figées imprimables (lecture seule) | — |
 
@@ -118,7 +119,9 @@ Chaque section s'enregistre explicitement avec le bouton « Enregistrer ». Chaq
 
 **Porte 0, la pertinence.** À la fin de la section 4, le pilote choisit le chef de département qui juge la pertinence (le chef de son département est proposé d'après l'organigramme). Le chef reçoit une notification et décide : **valider** (la fiche passe en cours, les sections 2 à 4 se figent et l'équipe rédige les sections 5 à 11), **à refaire** (la fiche revient au pilote avec son commentaire et, s'il le précise, la section à corriger), ou **classer sans suite** (motif obligatoire).
 
-**Porte 2, la clôture.** Le Contrôle de gestion valide d'abord, si des gains sont chiffrés. Il valide ou refuse chaque ligne de gain, puis approuve la porte. La Direction approuve ensuite : la demande va au sponsor de la fiche quand il est titulaire du rôle Direction.
+**Porte 1, le plan.** À la soumission du plan (T3), chaque domaine coché en section 7 sollicite son ou ses directeurs, selon l'écran Circuit de validation : par défaut, Production / Exploitation pour Production, le directeur QHSE pour QHSE, le directeur technique pour Procédé, Fiabilité et Intégrité, le directeur technique et le DSI pour Sûreté / Cybersécurité. Pour « Autres », le pilote précise le domaine et choisit le directeur. Tous les directeurs sont sollicités en même temps et tous doivent approuver.
+
+**Porte 2, la clôture.** Le Contrôle de gestion valide d'abord, si des gains sont chiffrés. Il valide ou refuse chaque ligne de gain, puis approuve la porte. Le directeur sponsor choisi en section 1 donne ensuite l'accord final, sous son rôle Direction s'il l'a, sinon sous son rôle de directeur.
 
 Avant de décider, le valideur voit un résumé de la fiche (problème, KPI, objectif, plan ou résultats, gains). En cas de refus, il peut indiquer la section à corriger ; en porte 2, il choisit ce qui est en cause (la mesure, ou le maintien et la clôture), ce qui fixe l'étape de retour.
 
@@ -152,7 +155,7 @@ Le nouveau responsable est notifié à chaque attribution ou réattribution, et 
 
 Chaque action réalisée crée trois contrôles, à J+30, J+60 et J+90. Un contrôle devient disponible à sa date, et le pilote en est notifié. Le pilote le déclare conforme ou non conforme, au regard du critère d'efficacité de l'action. Un contrôle conforme exige un constat ou une preuve.
 
-**Maintien du KPI principal.** En plus des contrôles par action, le KPI principal est remesuré à J+30, J+60 et J+90 de la date des résultats (T7), en section 8. Chaque mesure se saisit à partir de son échéance. Si une mesure ne tient plus la cible, la clôture est refusée et l'écran propose une nouvelle boucle.
+**Maintien du KPI principal.** En plus des contrôles par action, le KPI principal est remesuré à J+30, J+60 et J+90 de la date des résultats (T7), en section 8. Chaque mesure se saisit à partir de son échéance. Le niveau à tenir est la cible quand l'objectif est atteint ; quand il n'est que partiellement atteint (écart accepté), c'est le niveau obtenu à la mesure des résultats (valeur Après). Si une mesure ne tient plus ce niveau, la clôture est refusée et l'écran propose une nouvelle boucle.
 
 Un contrôle non conforme exige une action corrective, avec une description, un responsable et une échéance (B4). Cette action corrective est vérifiée par un contrôle unique, 30 jours après sa réalisation (hypothèse D2).
 
@@ -160,18 +163,26 @@ La clôture ne peut pas être soumise tant que les contrôles ne sont pas tous r
 
 ## 8. Gains économiques et formules
 
-Les calculs sont centralisés dans la classe `Calculs`. Une valeur impossible à calculer (dénominateur nul ou donnée absente) s'affiche « Non calculable ».
+Les calculs sur les indicateurs sont centralisés dans la classe `Calculs`. Une valeur impossible à calculer (dénominateur nul ou donnée absente) s'affiche « Non calculable ».
 
-| Grandeur | Formule |
+| Grandeur | Règle |
 |---|---|
+| Écart | valeur mesurée − cible (ou référence) |
 | Amélioration d'un indicateur (%) | (après − avant) ÷ avant × 100 × s, avec s = +1 si la hausse est souhaitée, −1 si c'est la baisse |
-| Gain annuel d'une ligne (FCFA) | quantité × coût unitaire, arrondi à l'entier |
-| Total A | somme des gains annuels des lignes validées |
-| Coût B | coût de mise en œuvre |
-| Gain net annuel | A − B |
-| Délai de retour (années) | B ÷ A, seulement si A > 0 |
+| Cible tenue | après ≤ cible si la baisse est souhaitée, après ≥ cible si c'est la hausse |
+| KPI à ne pas dégrader dégradé | après < avant si la hausse est souhaitée, après > avant si c'est la baisse |
 
-Le Contrôle de gestion valide ou refuse chaque ligne de gain. Une fiche peut être clôturée « sans gain chiffré » : dans ce cas, la porte 2 ne passe que par la Direction.
+Les gains sont saisis par le pilote, comme sur la fiche papier : l'application ne fait aucun calcul financier sur la fiche.
+
+| Grandeur | Règle |
+|---|---|
+| Montant annuel d'une ligne (FCFA) | saisi, avec son hypothèse de calcul obligatoire |
+| Total A | somme des lignes non refusées ; le total des lignes validées est affiché à part |
+| Coût B | coût de mise en œuvre, saisi (le coût estimé des actions est rappelé à côté) |
+| Gain net annuel (FCFA) | saisi par le pilote |
+| Délai de retour (mois) | saisi par le pilote |
+
+Le Contrôle de gestion valide ou refuse chaque ligne de gain. Une fiche peut être clôturée « sans gain chiffré » : dans ce cas, la porte 2 ne passe que par le sponsor.
 
 ## 9. Règles métier B1 à B8
 
@@ -179,9 +190,9 @@ Le Contrôle de gestion valide ou refuse chaque ligne de gain. Une fiche peut ê
 |---|---|
 | B1 | Une action sous MOC ne démarre pas tant que le MOC n'est pas référencé, clôturé et prouvé. |
 | B2 | Le plan ne se soumet que complet : type et date cible, contexte, indicateur principal avec sa valeur actuelle et sa cible, objectif SMART, résultats attendus, méthode d'analyse, au moins une cause dont une cause racine, au moins une action dont une sur une cause racine, un critère d'efficacité sur chaque action, au moins un domaine, et un titulaire disponible pour chaque valideur. |
-| B3 | La mesure ne se valide qu'avec la valeur Après du KPI principal et des KPI à ne pas dégrader, et un objectif atteint (oui, ou partiellement avec l'écart expliqué). Un objectif non atteint impose une nouvelle boucle. |
-| B4 | Pas de clôture sans contrôles J+30, J+60 et J+90 renseignés pour chaque action non annulée, ni sans le maintien du KPI principal tenu à J+30, J+60 et J+90 ; un contrôle non conforme exige une action corrective et sa vérification. Chaque action de pérennisation doit être réalisée avec sa preuve. |
-| B5 | Pas de clôture sans l'approbation de la Direction, et du Contrôle de gestion si des gains sont chiffrés (chaque ligne de gain doit d'abord être validée ou refusée). |
+| B3 | La mesure ne se valide qu'avec la valeur Après du KPI principal et des KPI à ne pas dégrader, et un objectif atteint : « Oui » seulement si la cible est atteinte, ou « Partiellement » avec l'écart expliqué. Un KPI à ne pas dégrader qui a reculé doit être expliqué. Un objectif non atteint impose une nouvelle boucle. |
+| B4 | Pas de clôture sans contrôles J+30, J+60 et J+90 renseignés pour chaque action non annulée, ni sans le maintien du KPI principal à J+30, J+60 et J+90 (la cible, ou le niveau atteint si l'objectif est partiel) ; un contrôle non conforme exige une action corrective et sa vérification. Chaque action de pérennisation doit être réalisée avec sa preuve (référence écrite ou document joint). |
+| B5 | Pas de clôture sans l'accord du directeur sponsor, et du Contrôle de gestion si des gains sont chiffrés (chaque ligne de gain doit d'abord être validée ou refusée). |
 | B6 | Tout refus et tout blocage exigent un commentaire ou un motif. |
 | B7 | Une décision n'est possible que sur une demande en attente, à l'étape active de sa porte, une fois les demandes prioritaires approuvées. |
 | B8 | Ni le pilote ni un membre de l'équipe ne valident la fiche, à aucune porte. Le sponsor et le chef choisis ne peuvent ni piloter la fiche ni faire partie de l'équipe. |
@@ -244,8 +255,8 @@ Chaque profil a son propre tableau de bord :
 - **Direction** :
   - fiches ouvertes, fiches et actions en retard, fiches sans pilote ;
   - taux et délai moyen de clôture de l'année ;
-  - part des fiches avec vérification d'efficacité renseignée ;
-  - gain net annuel validé ;
+  - part des fiches avec vérification d'efficacité : parmi les fiches arrivées à la mesure des résultats ou au-delà (en cours, en attente depuis ces étapes, ou clôturées dans l'année), celles dont tous les contrôles arrivés à échéance sont renseignés ; une fiche sans contrôle encore échu n'est pas comptée ;
+  - gain net annuel validé : pour chaque fiche dont tous les gains sont décidés, gains validés moins coût de mise en œuvre, compté l'année du dernier gain validé (le coût n'est donc retiré qu'une fois) ;
   - répartition par unité, type d'amélioration et origine ;
   - portefeuille par étape et déclarations des six derniers mois.
 - **Administrateur fonctionnel** : les pilotes à désigner et les validations bloquées à partager, dans le bloc « À régulariser ».
@@ -258,7 +269,7 @@ Le sélecteur d'année permet de consulter l'année en cours et les années pré
 
 **Export Excel.** Il est disponible pour le registre, les validations, les notifications et les écrans d'administration.
 
-**Impression A3.** Le bouton « Exporter en PDF A3 » ouvre une vue A3 paysage avec les 12 sections et les contrôles J+30, J+60 et J+90. Il suffit ensuite de choisir « Enregistrer au format PDF » dans la fenêtre d'impression du navigateur.
+**Impression A3.** Le bouton « Exporter en PDF A3 » ouvre une vue A3 paysage avec les 12 sections, dont le gain net et le délai de retour saisis, les preuves de pérennisation et les contrôles J+30, J+60 et J+90. Il suffit ensuite de choisir « Enregistrer au format PDF » dans la fenêtre d'impression du navigateur.
 
 ## 15. Administration fonctionnelle
 
@@ -306,11 +317,11 @@ Les règles métier vivent dans `backend/app/Services` :
 
 | Service | Rôle |
 |---|---|
-| `FicheWorkflow` | Seul service qui change l'étape (T1 à T13), sous verrou |
-| `ValidationCircuit` | Portes 1 et 2, titulaires, signatures, partage des demandes |
+| `FicheWorkflow` | Seul service qui change l'étape (T0 à T14), sous verrou |
+| `ValidationCircuit` | Portes 0, 1 et 2, titulaires, signatures, partage des demandes |
 | `FicheSectionService` | Enregistrement des sections selon l'étape |
 | `ActionService` | Statuts, MOC, replanification, ajout, actions correctives |
-| `ControleEfficaciteService` | Contrôles J+30/60/90 et contrôle correctif |
+| `ControleEfficaciteService` | Contrôles J+30/60/90, contrôle correctif et maintien du KPI principal |
 | `Calculs` | Formules |
 | `FicheVisibility` | Portée des fiches par profil |
 | `RelanceService` | Relances manuelles et rappels quotidiens |
@@ -362,9 +373,9 @@ En production, passer aussi `APP_ENV=production` et `APP_DEBUG=false`. Il faut e
 ## 20. Données de démonstration et tests
 
 La commande `php artisan migrate:fresh --seed` crée :
-- 3 unités et 10 équipements ;
-- 22 comptes, deux par rôle, tous avec le mot de passe `Azerty123` ;
-- 16 fiches, une par situation du parcours, dont une classée sans suite.
+- 3 unités et 14 équipements ;
+- 26 comptes actifs, deux par rôle, tous avec le mot de passe `Azerty123` ;
+- 30 fiches couvrant toutes les situations du parcours, dont des fiches classées sans suite.
 
 Les fiches sont simulées à travers les vrais services. L'historique, les validations, les contrôles et les notifications sont donc cohérents.
 

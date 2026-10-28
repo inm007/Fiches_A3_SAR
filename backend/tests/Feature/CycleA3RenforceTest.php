@@ -197,6 +197,82 @@ class CycleA3RenforceTest extends TestCase
         $this->transition($fiche, 'PILOTE', 'T8')->assertOk()->assertJsonPath('data.statut_etape', 'EN_VALIDATION_CLOTURE');
     }
 
+    public function test_partially_met_objective_must_hold_the_level_reached_not_the_target(): void
+    {
+        $fiche = $this->declarer();
+        $ids = $this->amenerEnRealisation($fiche);
+        $this->fermerMoc($fiche, $ids['risque']);
+        $this->statutAction(ActionA3::findOrFail($ids['action']), 'REALISE', ['date_realisation' => today()->subDays(100)->toDateString()])->assertOk();
+        $this->transition($fiche, 'PILOTE', 'T6')->assertOk();
+
+        // Cible 80 (en baisse), départ 100 : 90 est un objectif partiellement atteint, écart accepté.
+        $this->section($fiche, 8, [
+            'mesures' => [['indicateur_id' => $ids['indicateur'], 'valeur' => 90]],
+            'objectif_atteint' => 'PARTIELLEMENT', 'ecart_objectif' => 'Écart de 10 points accepté par la Direction.',
+        ])->assertOk();
+        $this->transition($fiche, 'PILOTE', 'T7')->assertOk();
+        foreach (Controle::where('action_id', $ids['action'])->get() as $controle) {
+            $this->controle($controle, 'CONFORME')->assertOk();
+        }
+        $this->completerCloture($fiche);
+
+        // Le niveau atteint (90) n'a pas tenu à J+90.
+        $this->mesurerMaintien($fiche, 92);
+        $message = collect($this->transition($fiche, 'PILOTE', 'T8')->assertUnprocessable()->json('manques'))->implode(' ');
+        $this->assertStringContainsString('le niveau atteint à la mesure des résultats', $message);
+
+        // Le niveau atteint tient, sans atteindre la cible : la clôture peut être soumise.
+        $this->mesurerMaintien($fiche, 89);
+        $this->agir('PILOTE')->getJson("/api/fiches/{$fiche->id}")->assertOk()
+            ->assertJsonPath('data.maintien.0.reference_type', 'APRES')
+            ->assertJsonPath('data.maintien.0.tenu', true);
+        $this->transition($fiche, 'PILOTE', 'T8')->assertOk()->assertJsonPath('data.statut_etape', 'EN_VALIDATION_CLOTURE');
+    }
+
+    public function test_yes_needs_the_target_reached_and_a_degraded_kpi_needs_an_explanation(): void
+    {
+        $fiche = $this->declarer();
+        $ids = $this->amenerEnRealisation($fiche);
+        $this->fermerMoc($fiche, $ids['risque']);
+        $this->statutAction(ActionA3::findOrFail($ids['action']), 'REALISE')->assertOk();
+        $this->transition($fiche, 'PILOTE', 'T6')->assertOk();
+
+        // Cible 80 en baisse : 90 ne permet pas de répondre « Oui ».
+        $this->section($fiche, 8, ['mesures' => [['indicateur_id' => $ids['indicateur'], 'valeur' => 90]], 'objectif_atteint' => 'OUI'])
+            ->assertUnprocessable();
+
+        // Section 3 n'est plus modifiable : on ajoute le KPI à ne pas dégrader directement.
+        $kpi = $fiche->indicateurs()->create(['libelle' => 'Disponibilité', 'unite_mesure' => '%', 'sens' => 'hausse', 'a_ne_pas_degrader' => true]);
+        $kpi->mesures()->create(['type' => 'ACTUELLE', 'valeur' => 95]);
+        $mesures = fn (?string $commentaire) => [
+            'mesures' => [['indicateur_id' => $ids['indicateur'], 'valeur' => 75], ['indicateur_id' => $kpi->id, 'valeur' => 93, 'commentaire' => $commentaire]],
+            'objectif_atteint' => 'OUI',
+        ];
+        $this->section($fiche, 8, $mesures(null))->assertOk()->assertJsonPath('data.indicateurs.1.degrade', true);
+        $message = collect($this->transition($fiche, 'PILOTE', 'T7')->assertUnprocessable()->json('manques'))->implode(' ');
+        $this->assertStringContainsString('« Disponibilité » s’est dégradé', $message);
+
+        $this->section($fiche, 8, $mesures('Arrêt programmé de la pompe de secours pendant le mois de mesure.'))->assertOk();
+        $this->transition($fiche, 'PILOTE', 'T7')->assertOk()->assertJsonPath('data.statut_etape', 'VERIFICATION_MAINTIEN');
+    }
+
+    public function test_pilot_enters_net_gain_and_payback_by_hand(): void
+    {
+        $fiche = $this->declarer();
+        $ids = $this->amenerEnRealisation($fiche);
+        $this->amenerEnVerification($fiche, $ids);
+
+        $this->section($fiche, 9, [
+            'gains' => [['categorie' => 'ENERGIE_ECONOMISEE', 'hypothese_calcul' => '4 200 t × 2 500 FCFA', 'montant_annuel' => 10_500_000]],
+            'cout_mise_en_oeuvre_b' => 3_200_000,
+            'gain_net_annuel' => 7_000_000,
+            'payback_mois' => 3.5,
+        ])->assertOk()
+            ->assertJsonPath('data.gains.gain_net_annuel', 7_000_000)
+            ->assertJsonPath('data.gains.payback_mois', 3.5)
+            ->assertJsonPath('data.gains.cout_actions', 3_200_000);
+    }
+
     // ---- Validation finale par le sponsor --------------------------------------------
 
     public function test_sponsor_holding_the_direction_role_signs_the_closure(): void
