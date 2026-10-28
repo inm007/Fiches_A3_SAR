@@ -169,3 +169,8 @@
   padding-top: 16px;
   border-top: 1px solid var(--border);
 }
+
+.fiche-tab__action {
+  display: grid;
+  gap: 4px;
+}

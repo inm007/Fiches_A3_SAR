@@ -3,7 +3,7 @@ import Skeleton from './Skeleton.jsx'
 import './DataTable.css'
 
 function DataTable({
-  columns = [],
+  columns: allColumns = [],
   rows = [],
   emptyMessage = 'Aucun résultat.',
   emptyDescription,
@@ -14,8 +14,11 @@ function DataTable({
   context,
   variant = 'default',
   onRowClick,
+  rowProps,
 }) {
   const compact = variant === 'compact'
+  // Les colonnes `detailOnly` ne s'affichent que dans la fenêtre « Voir », pour garder le tableau lisible.
+  const columns = allColumns.filter((column) => !column.detailOnly)
   const classes = ['data-table__scroll', compact ? 'data-table__scroll--compact' : ''].filter(Boolean).join(' ')
 
   if (!loading && !rows.length) {
@@ -56,6 +59,7 @@ function DataTable({
             ))
             : rows.map((row, index) => (
               <tr
+                {...rowProps?.(row)}
                 className={onRowClick ? 'data-table__row--clickable' : undefined}
                 key={row.id ?? index}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}

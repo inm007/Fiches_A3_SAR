@@ -16,6 +16,7 @@ const routeNames = {
   '/lecons': 'Leçons et standards',
   '/admin/utilisateurs': 'Utilisateurs',
   '/admin/affectations': 'Affectations',
+  '/admin/droits': 'Droits des rôles',
   '/admin/organigramme': 'Organigramme',
   '/admin/circuit': 'Circuit de validation',
   '/admin/unites': 'Unités',

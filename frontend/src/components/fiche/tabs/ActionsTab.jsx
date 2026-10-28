@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import Button from '../../ui/Button.jsx'
+import DataTable from '../../ui/DataTable.jsx'
+import DetailsModal from '../../ui/DetailsModal.jsx'
+import RowActions from '../../ui/RowActions.jsx'
 import ConfirmDialog from '../../ui/ConfirmDialog.jsx'
 import Badge from '../../ui/Badge.jsx'
 import FileInput from '../../ui/FileInput.jsx'
@@ -9,6 +12,7 @@ import { Select, TextArea, TextInput } from '../../ui/FormControls.jsx'
 import { listOptions, peopleOptions } from '../sections/options.js'
 import { describeError, ficheService } from '../../../services/ficheService.js'
 import { STATUTS_ACTION } from '../../../utils/constants.js'
+import { detailItems } from '../../../utils/details.js'
 import { formatDate, formatDateTime, formatFcfa } from '../../../utils/format.js'
 import { toast } from '../../../utils/toast.js'
 import Icon from '../../ui/Icon.jsx'
@@ -21,6 +25,49 @@ const nextSteps = {
 }
 
 const stepLabels = { EN_COURS: 'Démarrer', REALISE: 'Réaliser', BLOQUE: 'Bloquer', ANNULE: 'Annuler', REPRENDRE: 'Reprendre' }
+
+function StatutAction({ action }) {
+  if (action.en_retard) return <Badge tone="retard"><Icon name="clock" size={13} />En retard</Badge>
+  const statut = STATUTS_ACTION[action.statut]
+  return <Badge tone={statut.tone}>{statut.label}</Badge>
+}
+
+// Le tableau garde l'essentiel ; critère, preuve, motif, coût et relances s'ouvrent avec « Voir ».
+const colonnes = [
+  { key: 'cause_numero', label: 'Cause', width: '72px', value: (action) => action.cause_numero ?? '—' },
+  {
+    key: 'description',
+    label: 'Action',
+    render: (action) => (
+      <span className="fiche-tab__action">
+        <span className="data-table__cell-text" title={action.description}>
+          {action.action_origine_id && <span className="fiche-tab__muted">Action corrective · </span>}
+          {action.description}
+        </span>
+        {action.manques_moc.length > 0 && <small className="fiche-tab__late">{action.manques_moc.join(' ')}</small>}
+      </span>
+    ),
+    detailValue: (action) => action.description,
+  },
+  { key: 'responsable', label: 'Responsable', width: '16%', value: (action) => action.responsable?.nom ?? '—' },
+  {
+    key: 'echeance',
+    label: 'Échéance',
+    width: '140px',
+    render: (action) => (action.en_retard
+      ? <span className="fiche-tab__late"><Icon name="clock" size={14} />{formatDate(action.echeance)}</span>
+      : formatDate(action.echeance)),
+  },
+  { key: 'statut', label: 'Statut', width: '128px', render: (action) => <StatutAction action={action} /> },
+  { key: 'origine', label: 'Origine', detailOnly: true, value: (action) => (action.action_origine_id ? 'Action corrective (contrôle d’efficacité)' : 'Plan d’actions') },
+  { key: 'critere_efficacite', label: 'Critère d’efficacité', detailOnly: true },
+  { key: 'cout_estime', label: 'Coût estimé', detailOnly: true, value: (action) => formatFcfa(action.cout_estime) },
+  { key: 'date_realisation', label: 'Réalisée le', detailOnly: true, value: (action) => (action.date_realisation ? formatDate(action.date_realisation) : null) },
+  { key: 'preuve_realisation', label: 'Preuve de réalisation', detailOnly: true },
+  { key: 'motif_statut', label: 'Motif (blocage, annulation)', detailOnly: true },
+  { key: 'manques_moc', label: 'MOC', detailOnly: true, value: (action) => action.manques_moc.join(' ') || null },
+  { key: 'derniere_relance', label: 'Dernière relance', detailOnly: true, value: (action) => (action.derniere_relance ? formatDateTime(action.derniere_relance) : null) },
+]
 
 const NOUVELLE_ACTION = { cause_id: '', description: '', type_action: '', responsable_id: '', echeance: '', cout_estime: '', risque_id: '', critere_efficacite: '', motif: '' }
 
@@ -121,6 +168,7 @@ export default function ActionsTab({ fiche, options, refs, onChange, onError }) 
   const [busy, setBusy] = useState(false)
   const [replanifiee, setReplanifiee] = useState(null)
   const [ajout, setAjout] = useState(false)
+  const [vue, setVue] = useState(null)
   const modifiables = fiche.droits.actions_modifiables
   const replanifiables = fiche.droits.actions_replanifiables ?? []
 
@@ -178,6 +226,22 @@ export default function ActionsTab({ fiche, options, refs, onChange, onError }) 
     }
   }
 
+  // Voir, puis l'étape suivante la plus courante ; les autres choix passent dans « Plus ».
+  function actionsDe(action) {
+    const boutons = [{ icon: 'eye', label: 'Voir', onClick: () => setVue(action) }]
+    if (modifiables.includes(action.id)) {
+      (nextSteps[action.statut] ?? []).forEach((step) => boutons.push({
+        disabled: busy,
+        label: stepLabels[step],
+        tone: step === 'ANNULE' || step === 'BLOQUE' ? 'danger' : undefined,
+        onClick: () => start(action, step),
+      }))
+    }
+    if (action.relancable) boutons.push({ disabled: busy, icon: 'bell', label: 'Relancer', onClick: () => remind(action) })
+    if (replanifiables.includes(action.id)) boutons.push({ disabled: busy, icon: 'calendar', label: 'Replanifier', onClick: () => setReplanifiee(action) })
+    return boutons
+  }
+
   const start = (action, statut) => (['ANNULE', 'BLOQUE', 'REALISE'].includes(statut) ? setDialog({ action, statut }) : apply(action, statut))
 
   return (
@@ -189,61 +253,23 @@ export default function ActionsTab({ fiche, options, refs, onChange, onError }) 
       <p className="fiche-tab__help">
         Démarrez chaque action, puis passez-la à « Réalisée » (preuve facultative). Une action sous MOC attend le MOC clôturé.
       </p>
-      <table>
-        <thead>
-          <tr><th>Cause</th><th>Action</th><th>Responsable</th><th>Échéance</th><th>Coût</th><th>Statut</th><th>Suivi</th></tr>
-        </thead>
-        <tbody>
-          {fiche.actions.length === 0 && <tr><td className="fiche-tab__muted" colSpan={7}>Aucune action. Le plan se construit en section 6.</td></tr>}
-          {fiche.actions.map((action) => {
-            const statut = STATUTS_ACTION[action.statut]
-            return (
-              <tr data-action-id={action.id} key={action.id}>
-                <td>{action.cause_numero ?? '—'}</td>
-                <td>
-                  {action.action_origine_id && <span className="fiche-tab__muted">Action corrective · </span>}
-                  {action.description}
-                  {action.critere_efficacite && <div className="fiche-tab__muted">Critère : {action.critere_efficacite}</div>}
-                  {action.preuve_realisation && <div className="fiche-tab__muted">Preuve : {action.preuve_realisation}</div>}
-                  {action.motif_statut && <div className="fiche-tab__muted">Motif : {action.motif_statut}</div>}
-                  {action.manques_moc.length > 0 && <div className="fiche-tab__late">{action.manques_moc.join(' ')}</div>}
-                </td>
-                <td>{action.responsable?.nom ?? '—'}</td>
-                <td>{action.en_retard ? <span className="fiche-tab__late"><Icon name="clock" size={14} />{formatDate(action.echeance)}</span> : formatDate(action.echeance)}</td>
-                <td>{formatFcfa(action.cout_estime)}</td>
-                <td>
-                  {action.en_retard
-                    ? <Badge tone="retard"><Icon name="clock" size={13} />En retard</Badge>
-                    : <Badge tone={statut.tone}>{statut.label}</Badge>}
-                  {action.date_realisation && <div className="fiche-tab__muted">le {formatDate(action.date_realisation)}</div>}
-                </td>
-                <td>
-                  {modifiables.includes(action.id) && (
-                    <div className="fiche-tab__buttons">
-                      {(nextSteps[action.statut] ?? []).map((step) => (
-                        <Button disabled={busy} key={step} type="button" variant={step === 'ANNULE' || step === 'BLOQUE' ? 'danger' : 'secondary'} onClick={() => start(action, step)}>
-                          {stepLabels[step]}
-                        </Button>
-                      ))}
-                    </div>
-                  )}
-                  {replanifiables.includes(action.id) && (
-                    <div className="fiche-tab__buttons">
-                      <Button disabled={busy} icon="calendar" size="small" type="button" variant="ghost" onClick={() => setReplanifiee(action)}>Replanifier</Button>
-                    </div>
-                  )}
-                  {action.relancable && (
-                    <div className="fiche-tab__buttons">
-                      <Button disabled={busy} icon="bell" size="small" type="button" variant="secondary" onClick={() => remind(action)}>Relancer</Button>
-                    </div>
-                  )}
-                  {action.derniere_relance && <div className="fiche-tab__muted">Relancée le {formatDateTime(action.derniere_relance)}</div>}
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+      <DataTable
+        actions={(action) => <RowActions actions={actionsDe(action)} />}
+        actionsWidth="280px"
+        columns={colonnes}
+        emptyDescription="Le plan se construit en section 6."
+        emptyMessage="Aucune action."
+        rowProps={(action) => ({ 'data-action-id': action.id })}
+        rows={fiche.actions}
+        variant="compact"
+      />
+      <DetailsModal
+        items={vue ? detailItems(colonnes, vue) : []}
+        open={Boolean(vue)}
+        subtitle={vue?.cause_numero ? `Cause ${vue.cause_numero}` : undefined}
+        title="Détail de l’action"
+        onClose={() => setVue(null)}
+      />
 
       {replanifiee && <ReplanifierModal action={replanifiee} options={options} onClose={() => setReplanifiee(null)} onSave={replanifier} />}
       {ajout && <AjouterActionModal fiche={fiche} options={options} refs={refs} onClose={() => setAjout(false)} onSave={ajouter} />}

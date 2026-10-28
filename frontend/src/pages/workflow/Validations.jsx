@@ -9,6 +9,7 @@ import ListPagination from '../../components/ui/ListPagination.jsx'
 import { TextArea } from '../../components/ui/FormControls.jsx'
 import Badge from '../../components/ui/Badge.jsx'
 import DataTable from '../../components/ui/DataTable.jsx'
+import RowActions from '../../components/ui/RowActions.jsx'
 import { ListToolbar, ResultCount, SearchField, ToolbarActions } from '../../components/shared/ListToolbar.jsx'
 import { refreshCounters } from '../../hooks/useCounters.js'
 import { useListFilters } from '../../hooks/useListFilters.js'
@@ -90,13 +91,16 @@ function Validations() {
             </ToolbarActions>
           </ListToolbar>
           <DataTable
-            actionsWidth="280px"
+            actionsWidth="320px"
             actions={(demande) => (
-              <div className="sar-list-actions">
-                <Button size="small" type="button" variant="secondary" onClick={() => navigate(`/fiches/${demande.fiche.id}`)}>Ouvrir</Button>
-                <Button disabled={Boolean(busy)} loading={busy === demande.id} size="small" type="button" variant="success" onClick={() => decide(demande, 'VALIDE')}>Approuver</Button>
-                <Button disabled={Boolean(busy)} size="small" type="button" variant="danger" onClick={() => setRefus(demande)}>Refuser</Button>
-              </div>
+              <RowActions
+                actions={[
+                  { icon: 'eye', label: 'Voir', onClick: () => navigate(`/fiches/${demande.fiche.id}`) },
+                  { icon: 'check', label: 'Approuver', variant: 'success', disabled: Boolean(busy), loading: busy === demande.id, onClick: () => decide(demande, 'VALIDE') },
+                  { icon: 'x', label: 'Refuser', variant: 'danger', disabled: Boolean(busy), onClick: () => setRefus(demande) },
+                ]}
+                maxVisible={3}
+              />
             )}
             columns={[
               { key: 'numero', label: 'N° A3', width: '140px', render: (demande) => <strong className="sar-num">{demande.fiche.numero_a3}</strong> },

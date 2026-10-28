@@ -51,7 +51,8 @@ const columns = [
   {
     key: 'name',
     label: 'Utilisateur',
-    width: '22%',
+    width: '28%',
+    detailValue: personName,
     searchValue: (user) => `${personName(user)} ${user.identifiant}`,
     render: (user) => (
       <div className="admin-entity__user">
@@ -65,11 +66,13 @@ const columns = [
       </div>
     ),
   },
-  { key: 'email', label: 'Courriel', width: '18%', className: 'data-table__secondary-column', titleValue: (user) => user.email },
+  { key: 'identifiant', label: 'Identifiant', detailOnly: true },
+  { key: 'email', label: 'Courriel', detailOnly: true },
+  { key: 'auth_source', label: 'Source du compte', detailOnly: true, value: (user) => user.auth_source === 'ldap' ? 'Annuaire (LDAP)' : 'Locale' },
   {
     key: 'entite',
     label: 'Entité',
-    width: '14%',
+    width: '20%',
     value: (user) => user.entite ?? 'Non rattaché',
     render: (user) => user.entite
       ? <span className="data-table__cell-text" title={user.entite}>{user.entite}</span>
@@ -78,8 +81,9 @@ const columns = [
   {
     key: 'roles',
     label: 'Rôles',
-    width: '22%',
+    width: '30%',
     value: (user) => rolesActifs(user).join(', '),
+    detailValue: (user) => rolesActifs(user).join('\n') || 'Aucun rôle',
     render: (user) => {
       const roles = rolesActifs(user)
       return roles.length
@@ -90,15 +94,14 @@ const columns = [
   {
     key: 'actif',
     label: 'État',
-    width: '9%',
+    width: '12%',
     value: (user) => user.actif ? 'Actif' : 'Inactif',
     render: (user) => <Badge tone={user.actif ? 'active' : 'inactive'}>{user.actif ? 'Actif' : 'Inactif'}</Badge>,
   },
   {
     key: 'derniere_connexion',
     label: 'Dernière connexion',
-    width: '15%',
-    className: 'data-table__date-column',
+    detailOnly: true,
     value: (user) => formatFrenchDateTime(user.derniere_connexion),
     render: (user) => user.derniere_connexion
       ? <time dateTime={user.derniere_connexion}>{formatFrenchDateTime(user.derniere_connexion)}</time>
@@ -135,6 +138,7 @@ function Utilisateurs() {
   return (
     <AdminEntityPage
       columns={columns}
+      detailTitle={personName}
       description="Un compte local reçoit son lien de mot de passe à la création. Ensuite, « Donner un rôle » lui ouvre l’application."
       endpoint="/admin/users"
       exportColumns={exportColumns}

@@ -1,0 +1,35 @@
+.details-modal {
+  display: grid;
+  margin: 0;
+}
+
+.details-modal__row {
+  display: grid;
+  grid-template-columns: minmax(140px, 32%) minmax(0, 1fr);
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.details-modal__row:last-child {
+  border-bottom: 0;
+}
+
+.details-modal dt {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.details-modal dd {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+@media (max-width: 599px) {
+  .details-modal__row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

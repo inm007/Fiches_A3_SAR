@@ -47,6 +47,30 @@ export function KpiCard({ label, value, format = String, icon, to, tone = 'neutr
   )
 }
 
+/**
+ * Raccourcis du profil : les écrans où il se rend le plus, à un clic du tableau de bord.
+ * @param {{ liens: { to: string, icon: string, label: string }[] }} props
+ */
+export function Raccourcis({ liens }) {
+  const visibles = liens.filter(Boolean)
+  if (!visibles.length) return null
+  return (
+    <nav aria-label="Raccourcis" className="dash-raccourcis">
+      <span className="dash-raccourcis__titre">Raccourcis</span>
+      <ul>
+        {visibles.map((lien) => (
+          <li key={lien.to + lien.label}>
+            <Link className="dash-raccourcis__lien" to={lien.to}>
+              <Icon name={lien.icon} size={16} />
+              {lien.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+
 export function KpiRow({ children }) {
   return <div className="dash-kpis">{children}</div>
 }

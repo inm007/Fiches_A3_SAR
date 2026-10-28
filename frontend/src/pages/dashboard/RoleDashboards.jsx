@@ -4,10 +4,10 @@ import Button from '../../components/ui/Button.jsx'
 import { plural } from '../../utils/format.js'
 import { days, percent, shortFcfa } from './dashboardData.js'
 import Courbe from './Courbe.jsx'
-import { FichesEnCours, KpiCard, KpiRow, Panel, TodoList, YearSelect } from './widgets.jsx'
+import { FichesEnCours, KpiCard, KpiRow, Panel, Raccourcis, TodoList, YearSelect } from './widgets.jsx'
 
 // Un tableau de bord par profil, réduit à ce que la personne vient y faire : ce qui l'attend,
-// quelques chiffres cliquables, et pour le terrain ses fiches en cours. Seules la Direction et
+// quelques chiffres cliquables, ses raccourcis, et pour le terrain ses fiches en cours. Seules la Direction et
 // l'administration ont une courbe : la tendance mois par mois les aide à piloter.
 // Le bandeau sombre n'apparaît que lorsqu'il porte une action ; sinon, un simple titre.
 
@@ -65,6 +65,14 @@ export function AgentDashboard({ data, fiches, hello }) {
         <KpiCard icon="file" label="Mes fiches" loading={loading} to="/fiches" tone="brand" value={data?.mes_fiches} />
         <KpiCard icon="users" label="Fiches de mes équipes" loading={loading} to="/fiches?equipe=1" tone="teal" value={data?.fiches_equipe} />
       </KpiRow>
+      <Raccourcis
+        liens={[
+          { to: '/fiches', icon: 'file', label: 'Mes fiches' },
+          { to: '/fiches?equipe=1', icon: 'users', label: 'Fiches de mes équipes' },
+          { to: '/lecons', icon: 'bulb', label: 'Leçons et standards' },
+          { to: '/notifications', icon: 'bell', label: 'Notifications' },
+        ]}
+      />
       <div className="dash-grid">
         <Panel className="dash-span-6" title="À traiter">
           <TodoList data={data} emptyText="Aucune action ne vous attend." />
@@ -79,6 +87,7 @@ export function AgentDashboard({ data, fiches, hello }) {
 
 export function PiloteDashboard({ data, fiches, hello }) {
   const loading = !data
+  const peutDeclarer = usePeutDeclarer()
   return (
     <>
       <Entete
@@ -91,6 +100,14 @@ export function PiloteDashboard({ data, fiches, hello }) {
         <KpiCard icon="validation" label="Validations en attente" loading={loading} to="/fiches" tone="violet" value={data?.validations_en_attente_sur_mes_fiches} />
         <KpiCard icon="users" label="Fiches de mes équipes" loading={loading} to="/fiches?equipe=1" tone="brand" value={data?.fiches_equipe} />
       </KpiRow>
+      <Raccourcis
+        liens={[
+          peutDeclarer && { to: '/fiches/nouvelle', icon: 'plus', label: 'Nouvelle fiche' },
+          { to: '/fiches', icon: 'file', label: 'Mes fiches' },
+          { to: '/fiches?equipe=1', icon: 'users', label: 'Fiches de mes équipes' },
+          { to: '/lecons', icon: 'bulb', label: 'Leçons et standards' },
+        ]}
+      />
       <div className="dash-grid">
         <Panel className="dash-span-6" title="Mes priorités">
           <TodoList data={data} emptyText="Aucune action en retard ni contrôle en attente." />
@@ -117,7 +134,16 @@ export function ValideurDashboard({ data, hello, roleCode }) {
       <KpiRow>
         <KpiCard icon="validation" label="Fiches à valider" loading={loading} to="/validations" tone={alertTone(data?.validations_a_traiter)} value={data?.validations_a_traiter} />
         <KpiCard format={days} icon="clock" label="Plus ancienne demande" loading={loading} to="/validations" tone={Number(data?.plus_ancienne_demande_jours ?? 0) > 10 ? 'alert' : 'neutral'} value={data?.plus_ancienne_demande_jours} />
+        <KpiCard hint="Ces 30 derniers jours" icon="ok" label="Mes décisions" loading={loading} to="/validations" tone="calm" value={data?.mes_decisions_30_jours} />
+        <KpiCard hint={data ? (data.fiches_en_retard ? `Dont ${data.fiches_en_retard} en retard` : 'Aucune en retard') : undefined} icon="file" label="Fiches en cours" loading={loading} to="/fiches" tone={Number(data?.fiches_en_retard ?? 0) > 0 ? 'warning' : 'brand'} value={data?.fiches_ouvertes} />
       </KpiRow>
+      <Raccourcis
+        liens={[
+          { to: '/validations', icon: 'validation', label: 'Validations à traiter' },
+          { to: '/fiches', icon: 'file', label: 'Registre des fiches' },
+          { to: '/lecons', icon: 'bulb', label: 'Leçons et standards' },
+        ]}
+      />
       <div className="dash-grid">
         <Panel className={autres ? 'dash-span-7' : 'dash-span-12'} link={{ to: '/validations', label: 'Toute la file' }} subtitle={roleCode === 'CHEF_DEPARTEMENT' ? 'Pertinence des fiches qui vous sont soumises (porte 0).' : 'Plan d’actions (porte 1) et clôture (porte 2).'} title="File de validation">
           <TodoList data={data} emptyText="Aucune fiche n’attend votre validation." types={['validation']} />
@@ -145,7 +171,15 @@ export function ControleDashboard({ data, hello, onAnneeChange }) {
         </article>
         <KpiCard icon="validation" label="Gains à valider" loading={loading} to="/validations" tone={alertTone(data?.gains_a_valider)} value={data?.gains_a_valider} />
         <KpiCard format={days} icon="clock" label="Plus ancienne demande" loading={loading} to="/validations" tone="neutral" value={data?.plus_ancienne_demande_jours} />
+        <KpiCard hint="Ces 30 derniers jours" icon="ok" label="Mes décisions" loading={loading} to="/validations" tone="calm" value={data?.mes_decisions_30_jours} />
       </div>
+      <Raccourcis
+        liens={[
+          { to: '/validations', icon: 'validation', label: 'Gains à valider' },
+          { to: '/fiches', icon: 'file', label: 'Registre des fiches' },
+          { to: '/lecons', icon: 'bulb', label: 'Leçons et standards' },
+        ]}
+      />
       <Panel link={{ to: '/validations', label: 'Toute la file' }} title="Validations à traiter">
         <TodoList data={data} emptyText="Aucun gain n’attend votre validation." types={['validation']} />
       </Panel>
@@ -166,6 +200,13 @@ export function DirectionDashboard({ data, hello, onAnneeChange }) {
         <KpiCard format={days} hint="De la déclaration à la clôture" icon="clock" label="Délai moyen de clôture" loading={loading} to="/fiches" tone="neutral" value={pilotage?.delai_moyen_cloture_jours} />
         <KpiCard format={percent} hint="Fiches arrivées à la mesure des résultats dont tous les contrôles échus sont renseignés" icon="validation" label="Efficacité vérifiée" loading={loading} to="/fiches" tone="neutral" value={pilotage?.part_efficacite_verifiee} />
       </KpiRow>
+      <Raccourcis
+        liens={[
+          { to: '/validations', icon: 'validation', label: data?.validations_a_traiter ? `Clôtures à approuver (${data.validations_a_traiter})` : 'Clôtures à approuver' },
+          { to: '/fiches', icon: 'file', label: 'Registre des fiches' },
+          { to: '/lecons', icon: 'bulb', label: 'Leçons et standards' },
+        ]}
+      />
       <div className="dash-grid">
         <Panel className="dash-span-8" subtitle={`Par mois, en ${data?.annee ?? ''}.`} title="Fiches déclarées et clôturées">
           <Courbe
@@ -238,6 +279,15 @@ export function AdminDashboard({ data, hello }) {
         <KpiCard hint="Dans les 30 jours" icon="clock" label="Rôles qui expirent" loading={loading} to="/admin/affectations" tone={Number(admin?.affectations_expirant ?? 0) > 0 ? 'warning' : 'calm'} value={admin?.affectations_expirant} />
         <KpiCard icon="file" label="Fiches sans pilote" loading={loading} to="/fiches" tone={alertTone(data?.fiches_sans_pilote)} value={data?.fiches_sans_pilote} />
       </KpiRow>
+      <Raccourcis
+        liens={[
+          { to: '/admin/utilisateurs', icon: 'users', label: 'Utilisateurs' },
+          { to: '/admin/affectations', icon: 'assignments', label: 'Donner un rôle' },
+          { to: '/admin/organigramme', icon: 'org', label: 'Organigramme' },
+          { to: '/admin/circuit', icon: 'circuit', label: 'Circuit de validation' },
+          { to: '/admin/droits', icon: 'lock', label: 'Droits des rôles' },
+        ]}
+      />
       <div className="dash-grid">
         <Panel className="dash-span-7" subtitle={`Utilisation de l’application : fiches déclarées par mois en ${data?.annee ?? ''}.`} title="Fiches déclarées">
           <Courbe
