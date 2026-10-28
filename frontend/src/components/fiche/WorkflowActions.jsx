@@ -7,6 +7,7 @@ import { TRANSITIONS } from '../../utils/constants.js'
 import { toast } from '../../utils/toast.js'
 import { refreshCounters } from '../../hooks/useCounters.js'
 import { peopleOptions } from './sections/options.js'
+import EquipeFiche from './EquipeFiche.jsx'
 import PartageValidations from './PartageValidations.jsx'
 import './WorkflowActions.css'
 
@@ -67,6 +68,8 @@ function WorkflowActions({ fiche, options, onChange, onError, onExportPdf }) {
   // Le panneau « Prochaine étape » porte déjà ce bouton, avec ce qu'il reste à faire : pas de doublon en haut.
   const dansLePanneau = !nouvelleBoucle && principale === fiche.prochaine_etape?.code
   const secondaires = droits.transitions.filter((code) => code !== principale)
+  // L'équipe se compose à la fin de la section 4 : une fois l'objectif posé, le pilote ajoute un membre depuis l'en-tête.
+  const ajoutMembre = droits.peut_gerer_equipe && (fiche.statut_etape !== 'OUVERT' || fiche.completude?.[4] === 'complet')
   const menu = [
     ...secondaires.map((code) => ({ key: code, label: TRANSITIONS[code].label, danger: TRANSITIONS[code].danger || code === 'T12', onClick: () => startTransition(code) })),
     ...(droits.peut_designer_pilote && fiche.pilote ? [
@@ -91,6 +94,9 @@ function WorkflowActions({ fiche, options, onChange, onError, onExportPdf }) {
         <Button disabled={busy} type="button" variant="primary" onClick={() => startTransition(principale)}>
           {TRANSITIONS[principale].label}
         </Button>
+      )}
+      {ajoutMembre && (
+        <Button icon="users" type="button" variant="secondary" onClick={() => setDialog({ type: 'equipe' })}>Ajouter un membre</Button>
       )}
       {menu.length > 0 && (
         <details className="workflow-actions__menu">
@@ -162,6 +168,19 @@ function WorkflowActions({ fiche, options, onChange, onError, onExportPdf }) {
       >
         <p>Quand un valideur est absent, malade ou parti, partagez sa demande avec un autre titulaire du même rôle. Les deux la voient ; le premier qui décide la traite.</p>
         <PartageValidations ficheId={fiche.id} />
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        confirmLabel="Fermer"
+        hideCancel
+        open={dialog?.type === 'equipe'}
+        wide
+        title="Ajouter un membre"
+        variant="primary"
+        onCancel={() => setDialog(null)}
+        onConfirm={() => setDialog(null)}
+      >
+        <EquipeFiche fiche={fiche} options={options} onChange={onChange} />
       </ConfirmDialog>
 
       <ConfirmDialog
