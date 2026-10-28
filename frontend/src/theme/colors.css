@@ -76,14 +76,11 @@
   --info-solid:     #2563EB;
 
   /* ---------- Statuts de la fiche A3 ---------- */
-  --st-ouvert:        #8A5A00;  --st-ouvert-bg:        #FFF4DD;
   --st-encours:       #1D4ED8;  --st-encours-bg:       #E8F0FE;
   --st-validation:    #6D28D9;  --st-validation-bg:    #F1EAFE;
   --st-realisation:   #0E7490;  --st-realisation-bg:   #E0F5F9;
-  --st-mesure:        #0369A1;  --st-mesure-bg:        #E1F1FA;
   --st-maintien:      #4338CA;  --st-maintien-bg:      #ECEBFD;
   --st-attente:       #C2410C;  --st-attente-bg:       #FFEDE3;
-  --st-cloture:      var(--button-success-text);  --st-cloture-bg: var(--button-success-bg);
 
   /* ---------- Statuts des actions ---------- */
   --action-a-faire:      var(--gray-500);  --action-a-faire-bg:   var(--gray-100);

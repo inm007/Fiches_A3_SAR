@@ -5,7 +5,6 @@
   gap: 24px;
 }
 
-.dash-span-3 { grid-column: span 3; }
 .dash-span-4 { grid-column: span 4; }
 .dash-span-5 { grid-column: span 5; }
 .dash-span-6 { grid-column: span 6; }
@@ -62,17 +61,6 @@
 
 .dash-panel__link:hover {
   background: var(--brand-50);
-}
-
-.dash-panel--accent {
-  border-color: var(--brand-100);
-  background:
-    radial-gradient(300px 160px at 100% 0, var(--brand-50), transparent 70%),
-    var(--white);
-}
-
-.dash-panel--accent .dash-hero__button--primary {
-  justify-self: start;
 }
 
 .dash-empty {

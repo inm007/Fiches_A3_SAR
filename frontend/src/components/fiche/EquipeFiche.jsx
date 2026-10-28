@@ -1,12 +1,10 @@
 import { useState } from 'react'
-import { ficheService } from '../../services/ficheService.js'
+import { errorMessage, ficheService } from '../../services/ficheService.js'
 import { toast } from '../../utils/toast.js'
 import Alert from '../ui/Alert.jsx'
 import Button from '../ui/Button.jsx'
 import { Select } from '../ui/FormControls.jsx'
 import './PartageValidations.css'
-
-const errorText = (error) => Object.values(error.data?.errors ?? {}).flat().join(' ') || error.data?.manques?.join(' ') || error.message
 
 /**
  * Équipe de la fiche, composée par le pilote à la fin de la section 4, comme le choix du chef
@@ -35,7 +33,7 @@ function EquipeFiche({ fiche, options, onChange }) {
       onChange?.(await task())
       toast(message)
     } catch (saveError) {
-      setError(errorText(saveError))
+      setError(errorMessage(saveError))
     } finally {
       setSaving(false)
     }

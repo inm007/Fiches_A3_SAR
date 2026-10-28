@@ -3,7 +3,7 @@ import Badge from '../ui/Badge.jsx'
 import { ETAPES } from '../../utils/constants.js'
 
 function EtapeBadge({ etape }) {
-  const config = ETAPES[etape] ?? { label: etape, tone: 'neutral' }
+  const label = ETAPES[etape]?.label ?? etape
   const phase = {
     OUVERT: 'opening',
     EN_VALIDATION_PERTINENCE: 'opening',
@@ -16,7 +16,8 @@ function EtapeBadge({ etape }) {
     EN_ATTENTE: 'waiting',
     CLOTURE: 'closure',
   }[etape]
-  return <Badge tone={phase ? `phase-${phase}` : config.tone}>{config.label}</Badge>
+  // La couleur suit la phase du parcours ; une fiche classée sans suite reste neutre.
+  return <Badge tone={phase ? `phase-${phase}` : 'neutral'}>{label}</Badge>
 }
 
 export function ConfidentialiteBadge({ value }) {

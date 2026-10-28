@@ -7,7 +7,7 @@ import './Badge.css'
  *
  * @param {object} props
  * @param {string} [props.tone='neutral'] Teinte : neutral, success, error, warning, brand,
- *   active, inactive, statuts de fiche (ouvert, encours, validation…), d'action (a-faire, realisee…)
+ *   active, inactive, teintes de suivi (encours, validation, realisation, maintien, attente), d'action (a-faire, realisee…)
  *   ou phases (phase-opening, phase-planning…).
  * @param {string} [props.icon] Nom d'icône de `Icon`.
  * @param {import('react').ReactNode} props.children

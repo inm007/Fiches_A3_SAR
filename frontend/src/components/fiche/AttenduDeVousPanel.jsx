@@ -1,8 +1,7 @@
 import Button from '../ui/Button.jsx'
+import { PORTES } from '../../utils/constants.js'
 import { plural } from '../../utils/format.js'
 import './NextStepPanel.css'
-
-const PORTES = { 0: 'pertinence de la fiche', 1: 'plan d’actions', 2: 'clôture' }
 
 /**
  * Pour qui n'est pas pilote : ce que la fiche attend de lui (une décision, ou les actions

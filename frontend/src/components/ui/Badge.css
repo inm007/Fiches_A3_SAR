@@ -25,17 +25,11 @@
 }
 
 .status-badge--neutral { color: var(--button-icon); background: var(--button-neutral-bg); }
-.status-badge--open,
-.status-badge--ouvert { color: var(--st-ouvert); background: var(--st-ouvert-bg); }
-.status-badge--progress,
 .status-badge--encours { color: var(--st-encours); background: var(--st-encours-bg); }
 .status-badge--validation { color: var(--st-validation); background: var(--st-validation-bg); }
 .status-badge--realisation { color: var(--st-realisation); background: var(--st-realisation-bg); }
-.status-badge--mesure { color: var(--st-mesure); background: var(--st-mesure-bg); }
 .status-badge--maintien { color: var(--st-maintien); background: var(--st-maintien-bg); }
 .status-badge--attente { color: var(--st-attente); background: var(--st-attente-bg); }
-.status-badge--done,
-.status-badge--cloture { color: var(--st-cloture); background: var(--st-cloture-bg); }
 .status-badge--restricted { color: var(--button-danger-text); background: var(--button-danger-bg); }
 .status-badge--normal { color: var(--conf-normal); background: var(--conf-normal-bg); }
 .status-badge--a-faire { color: var(--action-a-faire); background: var(--action-a-faire-bg); }

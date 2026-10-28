@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 import Badge from '../../ui/Badge.jsx'
 import Button from '../../ui/Button.jsx'
-import { DECISIONS, SECTIONS } from '../../../utils/constants.js'
+import { DECISIONS, PORTES, SECTIONS } from '../../../utils/constants.js'
 import { formatDate, formatDateTime } from '../../../utils/format.js'
 import { ficheService } from '../../../services/ficheService.js'
 import './FicheSection.css'
 
 const decisionTone = { EN_ATTENTE: 'warning', VALIDE: 'success', REFUSE: 'error', ANNULE: 'neutral' }
 const EVENEMENTS = { SOUMISSION_PLAN: 'Plan soumis en validation', CLOTURE: 'Fiche clôturée' }
-const PORTES = [[0, 'Porte 0 : pertinence (chef de département)'], [1, 'Porte 1 : validation du plan (directeurs)'], [2, 'Porte 2 : validation de la clôture']]
+const DECIDEURS = { 0: ' (chef de département)', 1: ' (directeurs)', 2: '' }
 
 export default function Section12Validation({ fiche, onPrintCopy }) {
   const [copies, setCopies] = useState(null)
@@ -26,11 +26,11 @@ export default function Section12Validation({ fiche, onPrintCopy }) {
         <p className="fiche-section__warning"><strong>Classée sans suite :</strong> {fiche.motif_classement}</p>
       )}
 
-      {PORTES.map(([porte, titre]) => {
+      {[0, 1, 2].map((porte) => {
         const lignes = signatures.filter((validation) => validation.porte === porte)
         return (
           <section className="fiche-section__group" key={porte}>
-            <h3 className="fiche-section__group-title">{titre}</h3>
+            <h3 className="fiche-section__group-title">Porte {porte} : {PORTES[porte]}{DECIDEURS[porte]}</h3>
             {lignes.length === 0 && <p className="fiche-section__muted">Pas encore demandée.</p>}
             <div className="fiche-section__signatures">
               {lignes.map((validation) => (

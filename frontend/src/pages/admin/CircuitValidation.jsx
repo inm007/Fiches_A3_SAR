@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiRequest } from '../../auth/api.js'
+import { errorMessage } from '../../services/ficheService.js'
 import Alert from '../../components/ui/Alert.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { Checkbox } from '../../components/ui/FormControls.jsx'
@@ -45,7 +46,7 @@ function CircuitValidation() {
       setEtat(result.data)
       toast.success('Circuit de validation enregistré.')
     } catch (saveError) {
-      setError(Object.values(saveError.data?.errors ?? {}).flat().join(' ') || saveError.message)
+      setError(errorMessage(saveError))
     } finally {
       setSaving(false)
     }

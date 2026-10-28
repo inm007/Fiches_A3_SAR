@@ -1,7 +1,7 @@
 import { useSearchParams } from 'react-router-dom'
 import AdminEntityPage from '../../components/admin/AdminEntityPage.jsx'
 import Badge from '../../components/ui/Badge.jsx'
-import { formatDate } from '../../utils/format.js'
+import { formatDate, personName } from '../../utils/format.js'
 
 const related = [
   { key: 'users', endpoint: '/admin/users' },
@@ -10,7 +10,7 @@ const related = [
 ]
 
 const fields = [
-  { name: 'user_id', label: 'Utilisateur', type: 'select', optionsKey: 'users', optionLabel: (user) => `${user.prenom} ${user.nom} — ${user.identifiant}`, required: true },
+  { name: 'user_id', label: 'Utilisateur', type: 'select', optionsKey: 'users', optionLabel: (user) => `${personName(user)} — ${user.identifiant}`, required: true },
   { name: 'role_id', label: 'Rôle', type: 'select', optionsKey: 'roles', required: true },
   { name: 'unite_id', label: 'Unité (laisser vide pour un rôle global)', type: 'select', optionsKey: 'units' },
   { name: 'date_debut', label: 'Date de début', type: 'date' },
@@ -22,9 +22,9 @@ const columns = [
     key: 'user',
     label: 'Utilisateur',
     width: '24%',
-    value: (assignment) => assignment.user ? `${assignment.user.prenom} ${assignment.user.nom}` : '—',
+    value: (assignment) => personName(assignment.user) ?? '—',
     render: (assignment) => {
-      const name = assignment.user ? `${assignment.user.prenom} ${assignment.user.nom}` : '—'
+      const name = personName(assignment.user) ?? '—'
       return <span className="data-table__cell-text" title={name}>{name}</span>
     },
   },
@@ -66,7 +66,7 @@ const columns = [
 ]
 
 const exportColumns = [
-  { key: 'user', label: 'Utilisateur', value: (assignment) => assignment.user ? `${assignment.user.prenom} ${assignment.user.nom}` : '—' },
+  { key: 'user', label: 'Utilisateur', value: (assignment) => personName(assignment.user) ?? '—' },
   { key: 'role', label: 'Rôle', value: (assignment) => assignment.role?.libelle },
   { key: 'unite', label: 'Unité', value: (assignment) => assignment.unite?.libelle ?? 'Global' },
   { key: 'date_debut', label: 'Début', value: (assignment) => assignment.date_debut ? String(assignment.date_debut).slice(0, 10) : '—' },

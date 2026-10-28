@@ -14,31 +14,23 @@ export const BUSINESS_ROLES = ['AGENT', 'PILOTE', 'CHEF_DEPARTEMENT', ...VALIDAT
 export const DECIDING_ROLES = ['CHEF_DEPARTEMENT', ...VALIDATOR_ROLES, 'CONTROLE_GESTION', 'DIRECTION']
 
 export const ETAPES = {
-  OUVERT: { label: 'Ouvert', tone: 'ouvert' },
-  EN_VALIDATION_PERTINENCE: { label: 'En validation de la pertinence', tone: 'validation' },
-  EN_COURS: { label: 'En cours', tone: 'encours' },
-  EN_VALIDATION_PLAN: { label: 'En validation du plan', tone: 'validation' },
-  REALISATION_ACTIONS: { label: 'Réalisation des actions', tone: 'realisation' },
-  MESURE_RESULTATS: { label: 'Mesure des résultats', tone: 'mesure' },
-  VERIFICATION_MAINTIEN: { label: 'Vérification du maintien', tone: 'maintien' },
-  EN_VALIDATION_CLOTURE: { label: 'En validation de clôture', tone: 'validation' },
-  EN_ATTENTE: { label: 'En attente', tone: 'attente' },
-  CLOTURE: { label: 'Clôturé', tone: 'cloture' },
-  CLASSE_SANS_SUITE: { label: 'Classée sans suite', tone: 'neutral' },
+  OUVERT: { label: 'Ouvert' },
+  EN_VALIDATION_PERTINENCE: { label: 'En validation de la pertinence' },
+  EN_COURS: { label: 'En cours' },
+  EN_VALIDATION_PLAN: { label: 'En validation du plan' },
+  REALISATION_ACTIONS: { label: 'Réalisation des actions' },
+  MESURE_RESULTATS: { label: 'Mesure des résultats' },
+  VERIFICATION_MAINTIEN: { label: 'Vérification du maintien' },
+  EN_VALIDATION_CLOTURE: { label: 'En validation de clôture' },
+  EN_ATTENTE: { label: 'En attente' },
+  CLOTURE: { label: 'Clôturé' },
+  CLASSE_SANS_SUITE: { label: 'Classée sans suite' },
 }
 
 export const PARCOURS = [
   'OUVERT', 'EN_VALIDATION_PERTINENCE', 'EN_COURS', 'EN_VALIDATION_PLAN', 'REALISATION_ACTIONS',
   'MESURE_RESULTATS', 'VERIFICATION_MAINTIEN', 'EN_VALIDATION_CLOTURE', 'CLOTURE',
 ]
-
-export const STATUTS_GENERAUX = {
-  OUVERT: 'Ouvert',
-  EN_COURS: 'En cours',
-  EN_ATTENTE: 'En attente',
-  CLOTURE: 'Clôturé',
-  CLASSE: 'Classée sans suite',
-}
 
 export const STATUTS_ACTION = {
   A_FAIRE: { label: 'À faire', tone: 'a-faire' },
@@ -105,7 +97,8 @@ export const DOMAINES = [
 
 export const TYPES_ENTITE = [['DIRECTION', 'Direction'], ['DEPARTEMENT', 'Département'], ['SERVICE', 'Service']]
 
-export const PORTES = { 0: 'Pertinence', 1: 'Plan', 2: 'Clôture' }
+// Objet de chaque porte de validation, tel qu'il suit « Porte N : ».
+export const PORTES = { 0: 'pertinence de la fiche', 1: 'plan d’actions', 2: 'clôture' }
 
 export const MOC_STATUTS = [['A_OUVRIR', 'À ouvrir'], ['OUVERT', 'Ouvert'], ['CLOTURE', 'Clôturé']]
 

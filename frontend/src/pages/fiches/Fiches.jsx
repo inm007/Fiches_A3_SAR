@@ -14,7 +14,7 @@ import ListPagination from '../../components/ui/ListPagination.jsx'
 import { useListFilters } from '../../hooks/useListFilters.js'
 import { ficheService } from '../../services/ficheService.js'
 import { ETAPES } from '../../utils/constants.js'
-import { formatDate } from '../../utils/format.js'
+import { formatDate, personName } from '../../utils/format.js'
 import { downloadExcel, matchesSearch, paginate } from '../../utils/listTools.js'
 import { toast } from '../../utils/toast.js'
 import './Fiches.css'
@@ -28,9 +28,27 @@ const CONFIDENTIALITE_OPTIONS = [['NORMAL', 'Normal'], ['RESTREINT', 'Restreint'
 const REGISTRE_FILTERS = { q: '', statut_etape: '', unite_id: '', equipe: '', equipement_id: '', type_amelioration: '', origine_id: '', confidentialite: '', date_debut: '', date_fin: '' }
 const ADMIN_FILTERS = { q: '', statut_etape: '', confidentialite: '' }
 
-const personName = (pilote) => (pilote ? `${pilote.prenom} ${pilote.nom}` : null)
 const initials = (name) => (name ? name.split(' ').map((part) => part[0]).join('').slice(0, 2) : '?')
 const withoutEmpty = (values) => Object.fromEntries(Object.entries(values).filter(([, value]) => value !== ''))
+
+// Les deux registres ramènent leurs fiches à une même ligne, affichée et exportée de la même façon.
+const ligneRegistre = (fiche) => ({ ...fiche, piloteNom: fiche.pilote ?? null, equipe: fiche.membres ?? [] })
+const ligneAdmin = (fiche) => ({ ...fiche, unite: fiche.unite?.libelle ?? '—', piloteNom: personName(fiche.pilote), equipe: (fiche.membres ?? []).map(personName), source: fiche })
+
+function exportColumns(complet) {
+  return [
+    { label: 'N° A3', value: (fiche) => fiche.numero_a3 },
+    { label: 'Titre', value: (fiche) => fiche.titre },
+    { label: 'Unité', value: (fiche) => fiche.unite },
+    ...(complet ? [{ label: 'Équipement', value: (fiche) => fiche.equipement ?? '—' }] : []),
+    { label: 'Pilote', value: (fiche) => fiche.piloteNom ?? 'Non désigné' },
+    { label: 'Équipe', value: (fiche) => fiche.equipe.join(', ') },
+    { label: 'Étape', value: (fiche) => fiche.statut_etape_libelle ?? ETAPES[fiche.statut_etape]?.label ?? fiche.statut_etape },
+    ...(complet ? [{ label: 'Date cible', value: (fiche) => fiche.date_cible ? formatDate(fiche.date_cible) : '—' }] : []),
+    { label: 'Confidentialité', value: (fiche) => fiche.confidentialite },
+    ...(complet ? [{ label: 'Ancienneté (jours)', value: (fiche) => fiche.anciennete_jours }] : []),
+  ]
+}
 
 /** Registre servi par /fiches : filtres, tri et pagination côté serveur. */
 function useRegistre({ enabled, filters, sort, page, perPage }) {
@@ -55,27 +73,16 @@ function useRegistre({ enabled, filters, sort, page, perPage }) {
     for (let currentPage = 2; currentPage <= firstPage.meta.last_page; currentPage += 1) {
       rows.push(...(await ficheService.list({ ...params, page: currentPage })).data)
     }
-    return rows
+    return rows.map(ligneRegistre)
   }
 
   return {
-    rows: result?.data.map((fiche) => ({ ...fiche, piloteNom: fiche.pilote ?? null, equipe: fiche.membres ?? [] })) ?? [],
+    rows: result?.data.map(ligneRegistre) ?? [],
     total: result?.meta.total ?? 0,
     loading: !result && !error,
     error,
     exportRows,
-    exportColumns: [
-      { label: 'N° A3', value: (fiche) => fiche.numero_a3 },
-      { label: 'Titre', value: (fiche) => fiche.titre },
-      { label: 'Unité', value: (fiche) => fiche.unite },
-      { label: 'Équipement', value: (fiche) => fiche.equipement ?? '—' },
-      { label: 'Pilote', value: (fiche) => fiche.pilote ?? 'Non désigné' },
-      { label: 'Équipe', value: (fiche) => (fiche.membres ?? []).join(', ') },
-      { label: 'Étape', value: (fiche) => fiche.statut_etape_libelle },
-      { label: 'Date cible', value: (fiche) => fiche.date_cible ? formatDate(fiche.date_cible) : '—' },
-      { label: 'Confidentialité', value: (fiche) => fiche.confidentialite },
-      { label: 'Ancienneté (jours)', value: (fiche) => fiche.anciennete_jours },
-    ],
+    exportColumns: exportColumns(true),
   }
 }
 
@@ -88,9 +95,9 @@ function useAdminRegistre({ enabled, filters, page, perPage }) {
   useEffect(() => {
     if (!enabled) return undefined
     let cancelled = false
-    Promise.all([apiRequest('/admin/fiches'), apiRequest('/admin/users')])
+    Promise.all([ficheService.registreAdmin(), apiRequest('/admin/users')])
       .then(([fichesResult, usersResult]) => {
-        if (!cancelled) { setFiches(fichesResult.data); setUsers(usersResult.data) }
+        if (!cancelled) { setFiches(fichesResult); setUsers(usersResult.data) }
       })
       .catch((loadError) => { if (!cancelled) setError(loadError.message) })
     return () => { cancelled = true }
@@ -104,22 +111,14 @@ function useAdminRegistre({ enabled, filters, page, perPage }) {
   const visible = paginate(filtered, page, perPage)
 
   return {
-    rows: visible.rows.map((fiche) => ({ ...fiche, unite: fiche.unite?.libelle ?? '—', piloteNom: personName(fiche.pilote), equipe: (fiche.membres ?? []).map(personName), source: fiche })),
+    rows: visible.rows.map(ligneAdmin),
     total: filtered.length,
     currentPage: visible.page,
     loading: fiches === null && !error,
     error,
     users,
-    exportRows: async () => filtered,
-    exportColumns: [
-      { label: 'N° A3', value: (fiche) => fiche.numero_a3 },
-      { label: 'Titre', value: (fiche) => fiche.titre },
-      { label: 'Unité', value: (fiche) => fiche.unite?.libelle },
-      { label: 'Pilote', value: (fiche) => personName(fiche.pilote) ?? 'Non désigné' },
-      { label: 'Équipe', value: (fiche) => (fiche.membres ?? []).map(personName).join(', ') },
-      { label: 'Étape', value: (fiche) => fiche.statut_etape },
-      { label: 'Confidentialité', value: (fiche) => fiche.confidentialite },
-    ],
+    exportRows: async () => filtered.map(ligneAdmin),
+    exportColumns: exportColumns(false),
     replace: (updated) => setFiches((current) => current.map((fiche) => (fiche.id === updated.id ? updated : fiche))),
   }
 }

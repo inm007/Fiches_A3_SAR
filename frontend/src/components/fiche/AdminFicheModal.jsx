@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { apiRequest } from '../../auth/api.js'
 import Alert from '../ui/Alert.jsx'
 import Badge from '../ui/Badge.jsx'
 import Button from '../ui/Button.jsx'
@@ -9,7 +8,9 @@ import Modal from '../ui/Modal.jsx'
 import { TextArea } from '../ui/FormControls.jsx'
 import EtapeBadge from './EtapeBadge.jsx'
 import PartageValidations from './PartageValidations.jsx'
+import { errorMessage, ficheService } from '../../services/ficheService.js'
 import './AdminFicheModal.css'
+import { personName } from '../../utils/format.js'
 
 function assignmentIsCurrent(assignment) {
   const today = new Date().toISOString().slice(0, 10)
@@ -56,14 +57,9 @@ function AdminFicheModal({ fiche, users, onClose, onSaved }) {
       changes.motif = motif.trim() || null
     }
     try {
-      const result = await apiRequest(`/admin/fiches/${fiche.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(changes),
-      })
-      onSaved(result.data)
+      onSaved(await ficheService.modifierAdmin(fiche.id, changes))
     } catch (saveError) {
-      const validationErrors = saveError.data?.errors
-      setError(validationErrors ? Object.values(validationErrors).flat().join(' ') : saveError.message)
+      setError(errorMessage(saveError))
     } finally {
       setSaving(false)
     }
@@ -107,7 +103,7 @@ function AdminFicheModal({ fiche, users, onClose, onSaved }) {
               <Select
                 hint={eligiblePilots.length === 0 ? 'Aucun pilote actif n’est affecté à cette unité.' : undefined}
                 label="Pilote"
-                options={eligiblePilots.map((user) => [String(user.id), `${user.prenom} ${user.nom} — ${user.identifiant}`])}
+                options={eligiblePilots.map((user) => [String(user.id), `${personName(user)} — ${user.identifiant}`])}
                 placeholder={fiche.statut_etape === 'OUVERT' ? 'Non désigné' : 'Choisir…'}
                 value={piloteId}
                 wide
@@ -130,7 +126,7 @@ function AdminFicheModal({ fiche, users, onClose, onSaved }) {
             <span className="admin-fiche-form__label">Équipe</span>
             {(fiche.membres ?? []).length === 0
               ? <span className="sar-muted">Aucun membre : le pilote compose l’équipe à la fin de la section 4.</span>
-              : <span>{fiche.membres.map((user) => `${user.prenom} ${user.nom}`).join(', ')}</span>}
+              : <span>{fiche.membres.map(personName).join(', ')}</span>}
           </div>
           {['EN_VALIDATION_PLAN', 'EN_VALIDATION_CLOTURE', 'EN_ATTENTE'].includes(fiche.statut_etape) && <PartageValidations ficheId={fiche.id} />}
           <p className="admin-fiche-form__note">

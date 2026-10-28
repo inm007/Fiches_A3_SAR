@@ -18,11 +18,12 @@ export const ficheService = {
   saveSection: (id, section, data) => send(`/fiches/${id}/sections/${section}`, 'PUT', data).then((result) => result.data),
   transition: (id, code, etape, motif) => send(`/fiches/${id}/transitions`, 'POST', { code, etape, motif }).then((result) => result.data),
   confidentialite: (id, confidentialite, motif) => send(`/fiches/${id}/confidentialite`, 'POST', { confidentialite, motif }).then((result) => result.data),
-  designerPilote: (id, piloteId, motif = null) => send(`/admin/fiches/${id}`, 'PATCH', { pilote_id: piloteId, motif }),
+  // Administrateur fonctionnel : registre complet, puis pilote et confidentialité d'une fiche.
+  registreAdmin: () => apiRequest('/admin/fiches').then((result) => result.data),
+  modifierAdmin: (id, changes) => send(`/admin/fiches/${id}`, 'PATCH', changes).then((result) => result.data),
   validationsEnAttente: (id) => apiRequest(`/admin/fiches/${id}/validations`).then((result) => result.data),
   partagerValidation: (validationId, valideurId, motif) => send(`/admin/validations/${validationId}/partages`, 'POST', { valideur_id: valideurId, motif }).then((result) => result.data),
   retirerPartageValidation: (validationId, userId) => send(`/admin/validations/${validationId}/partages/${userId}`, 'DELETE').then((result) => result.data),
-  confidentialiteAdmin: (id, confidentialite) => send(`/admin/fiches/${id}`, 'PATCH', { confidentialite }),
   versions: (id) => apiRequest(`/fiches/${id}/versions`).then((result) => result.data),
   historique: (id) => apiRequest(`/fiches/${id}/historique`).then((result) => result.data),
   piecesJointes: (id) => apiRequest(`/fiches/${id}/pieces-jointes`),
@@ -56,4 +57,10 @@ export function describeError(error) {
     emplacements: data.emplacements ?? [],
     conflict: error?.status === 409,
   }
+}
+
+// Le même résultat en une phrase, pour une alerte sous un formulaire.
+export function errorMessage(error) {
+  const described = describeError(error)
+  return described.manques.join(' ') || described.message
 }
