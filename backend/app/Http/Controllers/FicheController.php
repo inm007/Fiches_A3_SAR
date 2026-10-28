@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Confidentialite;
 use App\Enums\Domaine;
 use App\Enums\StatutEtape;
 use App\Exceptions\RegleMetierException;
@@ -16,6 +17,7 @@ use App\Models\FicheVersion;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\ActiveProfile;
+use App\Services\FicheConfidentialite;
 use App\Services\FicheSectionService;
 use App\Services\FicheVisibility;
 use App\Services\FicheWorkflow;
@@ -54,7 +56,7 @@ class FicheController extends Controller
             'origine_id' => ['nullable', 'integer'],
             'type_amelioration' => ['nullable', 'string', 'max:50'],
             'equipement_id' => ['nullable', 'integer'],
-            'confidentialite' => ['nullable', Rule::in(['NORMAL', 'RESTREINT'])],
+            'confidentialite' => ['nullable', Rule::enum(Confidentialite::class)],
             'date_debut' => ['nullable', 'date'],
             'date_fin' => ['nullable', 'date'],
             'sans_pilote' => ['nullable', 'boolean'],
@@ -124,7 +126,7 @@ class FicheController extends Controller
             'origine_precision' => ['nullable', 'string', 'max:255'],
             'enonce_probleme' => ['required', 'string', 'max:5000'],
             'equipement_id' => ['nullable', 'integer', Rule::exists('equipements', 'id')->where('actif', true)],
-            'confidentialite' => ['nullable', Rule::in(['NORMAL', 'RESTREINT'])],
+            'confidentialite' => ['nullable', Rule::enum(Confidentialite::class)],
             'piloter' => ['nullable', 'boolean'],
         ]);
 
@@ -185,7 +187,7 @@ class FicheController extends Controller
         if (! $this->membresPossibles()->contains('id', $userId)) {
             throw RegleMetierException::conditionsManquantes('Membre non ajouté.', ['L’équipe se compose d’agents et de pilotes actifs.']);
         }
-        if (in_array($userId, [$fiche->sponsor_id, $fiche->chef_pertinence_id], true)
+        if ($fiche->estValideurDesigne($userId)
             || $fiche->validations()->where('decision', 'EN_ATTENTE')->pourValideur($userId)->exists()) {
             throw RegleMetierException::conditionsManquantes('Membre non ajouté.', ['Cette personne valide la fiche (sponsor, chef de département ou valideur) : elle ne peut pas aussi la rédiger.']);
         }
@@ -219,11 +221,10 @@ class FicheController extends Controller
 
     private function exigerGestionEquipe(FicheA3 $fiche, ActiveProfile $profile): void
     {
-        if (! $profile->estPiloteDe($fiche)) {
-            throw RegleMetierException::interdit('Seul le pilote de la fiche gère son équipe.');
-        }
-        if (! $fiche->etape()->estActive()) {
-            throw RegleMetierException::conflit('L’équipe ne change plus à cette étape.');
+        if (! $profile->peutGererEquipe($fiche)) {
+            throw $profile->estPiloteDe($fiche)
+                ? RegleMetierException::conflit('L’équipe ne change plus à cette étape.')
+                : RegleMetierException::interdit('Seul le pilote de la fiche gère son équipe.');
         }
     }
 
@@ -248,25 +249,21 @@ class FicheController extends Controller
     }
 
     /**
-     * Le pilote bascule Normal / Restreint (l'administrateur passe par /admin/fiches).
+     * Le pilote bascule Normal / Restreint (l'administrateur passe d'ordinaire par /admin/fiches).
      */
-    public function updateConfidentialite(Request $request, FicheA3 $fiche, ActiveProfile $profile, HistoryLogger $history): FicheResource
+    public function updateConfidentialite(Request $request, FicheA3 $fiche, ActiveProfile $profile, FicheConfidentialite $confidentialite): FicheResource
     {
         $this->visible($fiche, $profile);
         $data = $request->validate([
-            'confidentialite' => ['required', Rule::in(['NORMAL', 'RESTREINT'])],
+            'confidentialite' => ['required', Rule::enum(Confidentialite::class)],
             'motif' => ['nullable', 'string', 'max:500'],
         ]);
 
-        if (! $profile->estPiloteDe($fiche)) {
-            throw RegleMetierException::interdit('Seul le pilote de la fiche change sa confidentialité.');
+        if (! $confidentialite->peutChanger($fiche, $profile)) {
+            throw RegleMetierException::interdit('Seuls le pilote de la fiche et l’administrateur fonctionnel changent sa confidentialité.');
         }
 
-        if ($fiche->confidentialite !== $data['confidentialite']) {
-            $ancienne = $fiche->confidentialite;
-            $fiche->update(['confidentialite' => $data['confidentialite']]);
-            $history->log($fiche, $profile->userId(), 'CHANGEMENT_CONFIDENTIALITE', 'confidentialite', $ancienne, $data['confidentialite'], $data['motif'] ?? null);
-        }
+        $confidentialite->changer($fiche, $data['confidentialite'], $profile->userId(), $data['motif'] ?? null);
 
         return new FicheResource($fiche->refresh());
     }
@@ -351,9 +348,7 @@ class FicheController extends Controller
     {
         return Affectation::query()
             ->with('user:id,nom,prenom,actif')
-            ->enCours()
-            ->whereHas('role', fn ($q) => $q->whereIn('code', $roles))
-            ->whereHas('user', fn ($q) => $q->where('actif', true))
+            ->titulaires($roles)
             ->when($uniteId !== null, fn ($q) => $q->where(fn ($scope) => $scope
                 ->where('unite_id', $uniteId)
                 ->when($avecGlobal, fn ($global) => $global->orWhereNull('unite_id'))))

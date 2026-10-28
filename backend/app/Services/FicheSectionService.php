@@ -244,10 +244,7 @@ class FicheSectionService
      */
     private function exigerDirecteurDisponible(FicheA3 $fiche, int $userId): void
     {
-        $estDirecteur = Affectation::query()->enCours()->where('user_id', $userId)
-            ->whereHas('user', fn ($query) => $query->where('actif', true))
-            ->whereHas('role', fn ($query) => $query->whereIn('code', ValidationCircuit::rolesDirecteurs()))
-            ->exists();
+        $estDirecteur = Affectation::query()->titulaires(ValidationCircuit::rolesDirecteurs())->where('user_id', $userId)->exists();
         if (! $estDirecteur || $fiche->estRedacteur($userId)) {
             throw RegleMetierException::conditionsManquantes('Sponsor invalide.', ['Le sponsor est un directeur actif, qui ne pilote pas la fiche et ne fait pas partie de son équipe.']);
         }
@@ -259,10 +256,7 @@ class FicheSectionService
      */
     private function exigerChefDisponible(FicheA3 $fiche, int $userId): void
     {
-        $estChef = Affectation::query()->enCours()->where('user_id', $userId)
-            ->whereHas('user', fn ($query) => $query->where('actif', true))
-            ->whereHas('role', fn ($query) => $query->where('code', Organigramme::ROLE_CHEF))
-            ->exists();
+        $estChef = Affectation::query()->titulaires(Organigramme::ROLE_CHEF)->where('user_id', $userId)->exists();
         if (! $estChef || $fiche->estRedacteur($userId)) {
             throw RegleMetierException::conditionsManquantes('Chef de département invalide.', ['Choisissez un chef de département actif, qui ne pilote pas la fiche et ne fait pas partie de son équipe.']);
         }

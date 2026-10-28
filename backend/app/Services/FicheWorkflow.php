@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\Confidentialite;
 use App\Enums\Permission;
 use App\Enums\StatutAction;
 use App\Enums\StatutEtape;
@@ -62,7 +63,7 @@ class FicheWorkflow
                 'declarant_id' => $profile->userId(),
                 'statut_etape' => StatutEtape::Ouvert->value,
                 'statut_general' => StatutEtape::Ouvert->statutGeneral(),
-                'confidentialite' => $data['confidentialite'] ?? 'NORMAL',
+                'confidentialite' => $data['confidentialite'] ?? Confidentialite::Normal->value,
                 'version' => 1,
             ]);
 
@@ -117,9 +118,7 @@ class FicheWorkflow
     private function administrateurs(): array
     {
         return Affectation::query()
-            ->enCours()
-            ->whereHas('role', fn ($query) => $query->where('code', 'ADMIN_FONCTIONNEL'))
-            ->whereHas('user', fn ($query) => $query->where('actif', true))
+            ->titulaires('ADMIN_FONCTIONNEL')
             ->pluck('user_id')
             ->unique()
             ->values()

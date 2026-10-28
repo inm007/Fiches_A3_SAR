@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\Confidentialite;
 use App\Enums\StatutAction;
 use App\Enums\StatutEtape;
 use App\Models\ActionA3;
@@ -25,7 +26,7 @@ class HistoriqueRecit
 
     private const CHAMPS = [
         'statut_etape' => 'l’étape', 'pilote_id' => 'le pilote', 'confidentialite' => 'la confidentialité',
-        'equipe' => 'l’équipe', 'copilote' => 'le partage de la fiche', 'version' => 'la boucle',
+        'equipe' => 'l’équipe', 'version' => 'la boucle',
         'objectif_atteint' => 'l’objectif atteint', 'enonce_probleme' => 'l’énoncé du problème',
         'contexte' => 'le contexte', 'objectif_smart' => 'l’objectif', 'date_cible' => 'la date cible',
         'titre' => 'le titre', 'sponsor_id' => 'le sponsor', 'unite_id' => 'l’unité', 'equipement_id' => 'l’équipement',
@@ -39,7 +40,7 @@ class HistoriqueRecit
 
     /**
      * @param  Collection<int, EvenementHistorique>  $evenements
-     * @return Collection<int, string>  une phrase par identifiant d'événement
+     * @return Collection<int, string> une phrase par identifiant d'événement
      */
     public function phrases(Collection $evenements): Collection
     {
@@ -67,8 +68,6 @@ class HistoriqueRecit
             'DESIGNATION_PILOTE' => $nouveau === null
                 ? "{$auteur} a retiré le pilote de la fiche."
                 : "{$auteur} a désigné ".$this->nom($nouveau).' comme pilote.',
-            'PARTAGE_FICHE' => "{$auteur} a ajouté ".$this->nom($nouveau).' comme copilote.',
-            'FIN_PARTAGE_FICHE' => "{$auteur} a retiré ".$this->nom($ancien).' des copilotes.',
             'AJOUT_MEMBRE' => "{$auteur} a ajouté ".$this->nom($nouveau).' à l’équipe de la fiche.',
             'RETRAIT_MEMBRE' => "{$auteur} a retiré ".$this->nom($ancien).' de l’équipe de la fiche.',
             'PARTAGE_VALIDATION' => "{$auteur} a partagé une demande de validation avec ".$this->nom($nouveau).'.',
@@ -80,7 +79,7 @@ class HistoriqueRecit
             'CHANGEMENT_RESPONSABLE' => "{$auteur} a confié l’action {$action} à ".$this->nom($nouveau).'.',
             'CONTROLE_EFFICACITE' => "{$auteur} a enregistré un contrôle d’efficacité : ".$this->controle($nouveau).'.',
             'DECISION_GAIN' => "{$auteur} a ".($nouveau === 'VALIDE' ? 'validé' : 'refusé').' un gain.',
-            'CHANGEMENT_CONFIDENTIALITE' => "{$auteur} a passé la fiche en « ".($nouveau === 'RESTREINT' ? 'Restreint' : 'Normal').' ».',
+            'CHANGEMENT_CONFIDENTIALITE' => "{$auteur} a passé la fiche en « ".($nouveau === Confidentialite::Restreint->value ? 'Restreint' : 'Normal').' ».',
             'NOUVELLE_VERSION' => "{$auteur} a lancé la boucle {$nouveau} : l’analyse et le plan sont repris.",
             'REINITIALISATION_MESURE' => "{$auteur} a effacé une mesure pour la nouvelle boucle.",
             'RELANCE' => "{$auteur} a envoyé une relance.",
@@ -164,7 +163,7 @@ class HistoriqueRecit
      */
     private function chargerNoms(Collection $evenements): Collection
     {
-        $champsPersonne = ['pilote_id', 'equipe', 'copilote', 'sponsor_id'];
+        $champsPersonne = ['pilote_id', 'equipe', 'sponsor_id'];
         $ids = $evenements
             ->filter(fn (EvenementHistorique $evenement) => in_array($evenement->champ, $champsPersonne, true)
                 || str_starts_with((string) $evenement->champ, 'validation_')

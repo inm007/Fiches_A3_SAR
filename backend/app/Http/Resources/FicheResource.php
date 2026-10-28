@@ -20,8 +20,10 @@ use App\Services\ActionService;
 use App\Services\ActiveProfile;
 use App\Services\Calculs;
 use App\Services\ControleEfficaciteService;
+use App\Services\FicheConfidentialite;
 use App\Services\FicheSectionService;
 use App\Services\FicheWorkflow;
+use App\Services\PieceJointeService;
 use App\Services\RelanceService;
 use App\Services\ValidationCircuit;
 use App\Support\Manque;
@@ -343,14 +345,14 @@ class FicheResource extends JsonResource
             'transitions' => array_values(array_unique($transitions)),
             'est_pilote' => $estPilote,
             'est_membre' => $fiche->estMembre($userId),
-            'peut_gerer_equipe' => $estPilote && $etape->estActive(),
+            'peut_gerer_equipe' => $profile->peutGererEquipe($fiche),
             'peut_designer_pilote' => $profile->is('ADMIN_FONCTIONNEL') && ! $etape->estFinale(),
             'peut_se_designer_pilote' => $profile->peutSeDesignerPilote($fiche),
-            'peut_changer_confidentialite' => $estPilote || $profile->is('ADMIN_FONCTIONNEL'),
+            'peut_changer_confidentialite' => app(FicheConfidentialite::class)->peutChanger($fiche, $profile),
             'peut_commenter' => $profile->peutCommenter(),
-            'peut_ajouter_piece_jointe' => $estPilote || $fiche->estMembre($userId) || ($profile->is('AGENT', 'PILOTE') && $fiche->actions->contains('responsable_id', $userId)),
+            'peut_ajouter_piece_jointe' => app(PieceJointeService::class)->peutJoindre($fiche, $profile),
             'peut_voir_historique' => $profile->peutVoirHistorique(),
-            'peut_enregistrer_controles' => $estPilote && in_array($etape, StatutEtape::etapesDeSuivi(), true),
+            'peut_enregistrer_controles' => app(ActionService::class)->peutEnregistrerControles($fiche, $profile),
             'peut_decider_gains' => $profile->is(ValidationCircuit::CONTROLE_GESTION) && $fiche->validations->contains(
                 fn (Validation $validation) => $validation->porte === 2 && $validation->estValideur($userId) && app(ValidationCircuit::class)->estActionnable($validation, $fiche)
             ),
@@ -362,7 +364,7 @@ class FicheResource extends JsonResource
                 ->filter(fn (ActionA3 $action) => app(ActionService::class)->peutReplanifier($action, $fiche, $profile))
                 ->pluck('id')
                 ->values(),
-            'peut_ajouter_action' => $estPilote && $etape === StatutEtape::RealisationActions,
+            'peut_ajouter_action' => app(ActionService::class)->peutAjouter($fiche, $profile),
         ];
     }
 
@@ -394,9 +396,6 @@ class FicheResource extends JsonResource
     }
 
     /**
-     * @return array{id: int, nom: string}|null
-     */
-    /**
      * Dernier enregistrement de chaque section (auteur et date) : le pilote voit ce que
      * chaque membre de l'équipe a fait. Réservé aux profils qui voient l'historique.
      *
@@ -424,6 +423,9 @@ class FicheResource extends JsonResource
             ->all();
     }
 
+    /**
+     * @return array{id: int, nom: string}|null
+     */
     private function personne(?User $user): ?array
     {
         return $user === null ? null : ['id' => $user->id, 'nom' => $user->nom_complet];

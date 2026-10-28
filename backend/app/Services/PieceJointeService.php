@@ -50,6 +50,26 @@ class PieceJointeService
     }
 
     /**
+     * Le pilote et l'équipe joignent des fichiers à la fiche ; le responsable d'une action,
+     * une preuve de cette action.
+     */
+    public function peutJoindre(FicheA3 $fiche, ActiveProfile $profile): bool
+    {
+        return $this->redige($fiche, $profile)
+            || $fiche->actions->contains(fn (ActionA3 $action) => $this->estResponsable($action, $profile));
+    }
+
+    private function redige(FicheA3 $fiche, ActiveProfile $profile): bool
+    {
+        return $profile->estPiloteDe($fiche) || $fiche->estMembre($profile->userId());
+    }
+
+    private function estResponsable(ActionA3 $action, ActiveProfile $profile): bool
+    {
+        return $profile->is('AGENT', 'PILOTE') && $action->responsable_id === $profile->userId();
+    }
+
+    /**
      * Joint un fichier à la fiche, éventuellement comme preuve d'une action ou d'une
      * action de pérennisation (la preuve écrite reste facultative).
      */
@@ -59,12 +79,7 @@ class PieceJointeService
             abort(404, 'Élément introuvable.');
         }
 
-        $redige = $profile->estPiloteDe($fiche) || $fiche->estMembre($profile->userId());
-        $estResponsable = $profile->is('AGENT', 'PILOTE')
-            && $objet instanceof ActionA3
-            && $objet->responsable_id === $profile->userId();
-
-        if (! $redige && ! $estResponsable) {
+        if (! $this->redige($fiche, $profile) && ! ($objet instanceof ActionA3 && $this->estResponsable($objet, $profile))) {
             throw RegleMetierException::interdit('Seuls le pilote, l’équipe de la fiche ou le responsable de l’action peuvent joindre un fichier.');
         }
 

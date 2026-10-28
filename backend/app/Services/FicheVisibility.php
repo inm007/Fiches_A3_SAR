@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\Confidentialite;
 use App\Enums\Domaine;
 use App\Enums\StatutEtape;
 use App\Models\DomaineRole;
@@ -53,10 +54,10 @@ class FicheVisibility
             $role === 'PILOTE' => $query->where(function (Builder $q) use ($userId): void {
                 $q->where('pilote_id', $userId)
                     ->orWhere(fn (Builder $normal) => $normal
-                        ->where('confidentialite', 'NORMAL')
+                        ->where('confidentialite', Confidentialite::Normal->value)
                         ->where(fn (Builder $agent) => $this->agentScope($agent, $userId)))
                     ->orWhere(fn (Builder $ownRestrictedDraft) => $ownRestrictedDraft
-                        ->where('confidentialite', 'RESTREINT')
+                        ->where('confidentialite', Confidentialite::Restreint->value)
                         ->where('declarant_id', $userId)
                         ->whereNull('pilote_id')
                         ->where('statut_etape', StatutEtape::Ouvert->value));
@@ -65,7 +66,7 @@ class FicheVisibility
             $role === Organigramme::ROLE_CHEF => $query->whereHas('validations', fn (Builder $validation) => $validation->pourValideur($userId)),
             $role === 'CONTROLE_GESTION' => $query->where(function (Builder $q) use ($userId): void {
                 $q->where(fn (Builder $normal) => $normal
-                    ->where('confidentialite', 'NORMAL')
+                    ->where('confidentialite', Confidentialite::Normal->value)
                     ->whereHas('gains'))
                     ->orWhereHas('gains', fn (Builder $gain) => $gain->where('statut', 'PROPOSE'))
                     ->orWhereHas('validations', fn (Builder $validation) => $validation->pourValideur($userId));
@@ -106,7 +107,7 @@ class FicheVisibility
 
         return $query->where(function (Builder $q) use ($userId, $roleId, $uniteId, $isProduction, $domaines): void {
             $q->where(function (Builder $normal) use ($roleId, $uniteId, $isProduction, $domaines): void {
-                $normal->where('confidentialite', 'NORMAL')
+                $normal->where('confidentialite', Confidentialite::Normal->value)
                     ->when($uniteId !== null, fn (Builder $scoped) => $scoped->where('unite_id', $uniteId))
                     ->when(! $isProduction, fn (Builder $domain) => $domain
                         ->whereHas('domaines', fn (Builder $d) => $d->where(fn (Builder $w) => $w->whereIn('domaine', $domaines)->orWhere('valideur_role_id', $roleId))));

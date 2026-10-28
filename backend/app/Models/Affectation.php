@@ -40,6 +40,18 @@ class Affectation extends Model
             ->where(fn (Builder $q) => $q->whereNull('date_fin')->orWhere('date_fin', '>=', now()));
     }
 
+    /**
+     * Affectations en cours d'utilisateurs actifs à l'un de ces rôles : les titulaires du rôle.
+     *
+     * @param  string|array<int, string>  $roles
+     */
+    public function scopeTitulaires(Builder $query, string|array $roles): void
+    {
+        $query->enCours()
+            ->whereHas('role', fn (Builder $role) => $role->whereIn('code', (array) $roles))
+            ->whereHas('user', fn (Builder $user) => $user->where('actif', true));
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

@@ -98,6 +98,14 @@ class ActiveProfile
     }
 
     /**
+     * Le pilote compose l'équipe tant que la fiche est à une étape active.
+     */
+    public function peutGererEquipe(FicheA3 $fiche): bool
+    {
+        return $this->estPiloteDe($fiche) && $fiche->etape()->estActive();
+    }
+
+    /**
      * Droit accordé au rôle du profil actif par l'administrateur fonctionnel (écran Droits).
      */
     public function peut(Permission $permission): bool
