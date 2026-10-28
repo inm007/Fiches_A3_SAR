@@ -1,6 +1,7 @@
 import Badge from '../../ui/Badge.jsx'
-import JoindrePreuve from '../JoindrePreuve.jsx'
+import PreuveJointe from '../PreuveJointe.jsx'
 import { STATUTS_SIMPLES } from '../../../utils/constants.js'
+import { ficheService } from '../../../services/ficheService.js'
 import Astuce, { Pastilles } from './Astuce.jsx'
 import CardsEditor from './CardsEditor.jsx'
 import { CellInput, CellSelect } from './RowsEditor.jsx'
@@ -28,7 +29,6 @@ export default function Section10Perennisation({ draft, set, fiche, options, ref
   const fichiers = Object.fromEntries(fiche.perennisation.map((ligne) => [ligne.id, ligne.fichiers ?? 0]))
   const sansPreuve = (row) => row.statut === 'REALISE' && !row.preuve?.trim() && !fichiers[row.id]
   const nbSansPreuve = draft.perennisation.filter(sansPreuve).length
-  const peutJoindre = fiche.droits.peut_ajouter_piece_jointe
 
   return (
     <div className="fiche-section">
@@ -63,15 +63,14 @@ export default function Section10Perennisation({ draft, set, fiche, options, ref
           { key: 'responsable_id', label: 'Responsable', render: (row, setRow) => <CellSelect options={peopleOptions(options?.responsables)} readOnly={readOnly} value={row.responsable_id} onChange={(value) => setRow('responsable_id', value)} /> },
           { key: 'date', label: 'Date', render: (row, setRow) => <CellInput readOnly={readOnly} type="date" value={row.date} onChange={(value) => setRow('date', value)} /> },
           { key: 'statut', label: 'Statut *', render: (row, setRow) => <CellSelect options={STATUTS_SIMPLES} placeholder={null} readOnly={readOnly} value={row.statut} onChange={(value) => setRow('statut', value)} /> },
-          { key: 'preuve', label: 'Preuve (référence) *', wide: true, render: (row, setRow) => <CellInput placeholder={PREUVES[row.type] ?? 'Référence du document ou de l’enregistrement'} readOnly={readOnly} value={row.preuve} onChange={(value) => setRow('preuve', value)} /> },
-          ...(peutJoindre ? [{
+          { key: 'preuve', label: 'Preuve écrite (référence) *', half: true, render: (row, setRow) => <CellInput placeholder={PREUVES[row.type] ?? 'Référence du document ou de l’enregistrement'} readOnly={readOnly} value={row.preuve} onChange={(value) => setRow('preuve', value)} /> },
+          {
             key: 'fichier',
-            label: 'Pièce jointe',
-            wide: true,
-            render: (row) => (row.id
-              ? <JoindrePreuve fiche={fiche} perennisationId={row.id} onJoint={onFicheChange} />
-              : <span className="fiche-section__muted">Enregistrez la section pour joindre un fichier.</span>),
-          }] : []),
+            label: 'Ou en pièce jointe (document, photo)',
+            half: true,
+            // Le fichier compte comme preuve : la fiche est rechargée pour mettre à jour « Preuve manquante ».
+            render: (row) => <PreuveJointe fiche={fiche} objet="perennisation" objetId={row.id} readOnly={readOnly} onJoint={async () => onFicheChange(await ficheService.get(fiche.id))} />,
+          },
         ]}
         newRow={() => ({ type: '', responsable_id: '', date: '', statut: 'A_FAIRE', preuve: '' })}
         addLabel="Ajouter une autre action"

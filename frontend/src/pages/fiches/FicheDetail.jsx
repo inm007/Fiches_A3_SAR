@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import Alert from '../../components/ui/Alert.jsx'
 import AttenduDeVousPanel from '../../components/fiche/AttenduDeVousPanel.jsx'
@@ -18,6 +18,7 @@ import HistoriqueTab from '../../components/fiche/tabs/HistoriqueTab.jsx'
 import PiecesJointesTab from '../../components/fiche/tabs/PiecesJointesTab.jsx'
 import ValidationsTab from '../../components/fiche/tabs/ValidationsTab.jsx'
 import { avecOption } from '../../components/fiche/sections/options.js'
+import { PiecesJointesContext } from '../../components/fiche/preuves.js'
 import { ficheService } from '../../services/ficheService.js'
 import { setCrumb } from '../../utils/crumb.js'
 import PageLoader from '../../components/shared/PageLoader.jsx'
@@ -46,7 +47,8 @@ function FicheDetail() {
   const [panel, setPanel] = useState(null)
   const [dirty, setDirty] = useState(false)
   const [pendingLocation, setPendingLocation] = useState(null)
-  const [copie, setCopie] = useState(null)
+  // Impression demandée depuis la section 12 : la fiche du moment ({ copie: null }) ou une copie figée.
+  const [impression, setImpression] = useState(null)
 
   const load = useCallback(() => Promise.all([ficheService.get(id), ficheService.referentiels(), ficheService.options(id)])
     .then(([loaded, referentiels, ficheOptions]) => {
@@ -59,6 +61,12 @@ function FicheDetail() {
     .catch((error) => setStatus(error.status === 404 ? 'not-found' : 'error')), [id])
 
   useEffect(() => { load() }, [load])
+
+  // Fichiers joints à la fiche : chaque preuve des sections y retrouve les siens.
+  const [pieces, setPieces] = useState([])
+  const rechargerPieces = useCallback(() => ficheService.piecesJointes(id).then((result) => setPieces(result.data)).catch(() => {}), [id])
+  useEffect(() => { rechargerPieces() }, [rechargerPieces])
+  const piecesJointes = useMemo(() => ({ pieces, recharger: rechargerPieces }), [pieces, rechargerPieces])
 
   useEffect(() => {
     if (fiche?.numero_a3) setCrumb(fiche.numero_a3)
@@ -78,22 +86,19 @@ function FicheDetail() {
   const onError = useCallback((described) => setPanel(described), [])
 
   const confirmLeave = () => !dirty || window.confirm('Des modifications ne sont pas enregistrées. Les abandonner ?')
-  function exportPdf(suffixe = '') {
-    const previousTitle = document.title
-    document.title = `${fiche.numero_a3} - ${fiche.titre}${suffixe}`
-    window.print()
-    window.setTimeout(() => { document.title = previousTitle }, 1000)
-  }
-
-  // Impression d'une copie figée : la vue d'impression affiche la copie le temps de l'impression.
+  // La vue d'impression affiche la fiche (ou la copie figée) le temps d'imprimer : A3 portrait, logo SAR.
   useEffect(() => {
-    if (!copie) return undefined
+    if (!impression) return undefined
     const frame = window.requestAnimationFrame(() => {
-      exportPdf(` - copie boucle ${copie.version}`)
-      setCopie(null)
+      const previousTitle = document.title
+      const { copie } = impression
+      document.title = `${fiche.numero_a3} - ${fiche.titre}${copie ? ` - copie boucle ${copie.version}` : ''}`
+      window.print()
+      window.setTimeout(() => { document.title = previousTitle }, 1000)
+      setImpression(null)
     })
     return () => window.cancelAnimationFrame(frame)
-  })
+  }, [impression, fiche])
   const goToSection = (numero) => {
     if (numero < 1 || numero > 12 || !confirmLeave()) return
     setDirty(false)
@@ -167,44 +172,46 @@ function FicheDetail() {
   ]
 
   return (
-    <div className="fiche-detail-page">
-      <FicheHeader fiche={fiche}>
-        <WorkflowActions fiche={fiche} options={options} onChange={onChange} onError={onError} onExportPdf={() => exportPdf()} />
-      </FicheHeader>
-      <MissingConditionsPanel error={panel} onClose={() => setPanel(null)} onNavigate={navigateToLocation} onReload={reload} />
-      {!panel && <NextStepPanel fiche={fiche} onChange={onChange} onError={onError} onNavigate={navigateToLocation} />}
-      {!panel && <AttenduDeVousPanel fiche={fiche} onNavigate={navigateToLocation} />}
-      <Tabs active={tab} idPrefix="fiche-tab" label="Rubriques de la fiche" tabs={tabs} onChange={goToTab} />
-      <div aria-labelledby={`fiche-tab-${tab}`} id={`fiche-tab-panel-${tab}`} role="tabpanel">
-        {tab === 'fiche' ? (
-          <div className="fiche-detail-page__body">
-            <aside className="fiche-detail-page__stepper">
-              <SectionStepper active={section} completude={Object.values(fiche.completude ?? {})} etats={fiche.droits.sections_etat} onSelect={goToSection} />
-            </aside>
-            <SectionEditor
-              fiche={fiche}
-              key={`${section}-${fiche.statut_etape}-${fiche.version}`}
-              options={options}
-              refs={refs}
-              section={section}
-              onDirtyChange={setDirty}
-              onError={onError}
-              onNavigate={goToSection}
-              onOptionCreee={(liste, valeur) => setRefs((current) => avecOption(current, liste, valeur))}
-              onPrintCopy={setCopie}
-              onSaved={onChange}
-            />
-          </div>
-        ) : (
-          <div className={`fiche-detail-page__group${tab === 'echanges' ? ' fiche-detail-page__group--echanges' : ''}`}>
-            {ongletContenu(tab).map((TabComponent, index) => (
-              <TabComponent fiche={fiche} key={index} options={options} refs={refs} onChange={onChange} onError={onError} />
-            ))}
-          </div>
-        )}
+    <PiecesJointesContext.Provider value={piecesJointes}>
+      <div className="fiche-detail-page">
+        <FicheHeader fiche={fiche}>
+          <WorkflowActions fiche={fiche} options={options} onChange={onChange} onError={onError} />
+        </FicheHeader>
+        <MissingConditionsPanel error={panel} onClose={() => setPanel(null)} onNavigate={navigateToLocation} onReload={reload} />
+        {!panel && <NextStepPanel fiche={fiche} onChange={onChange} onError={onError} onNavigate={navigateToLocation} />}
+        {!panel && <AttenduDeVousPanel fiche={fiche} onNavigate={navigateToLocation} />}
+        <Tabs active={tab} idPrefix="fiche-tab" label="Rubriques de la fiche" tabs={tabs} onChange={goToTab} />
+        <div aria-labelledby={`fiche-tab-${tab}`} id={`fiche-tab-panel-${tab}`} role="tabpanel">
+          {tab === 'fiche' ? (
+            <div className="fiche-detail-page__body">
+              <aside className="fiche-detail-page__stepper">
+                <SectionStepper active={section} completude={Object.values(fiche.completude ?? {})} etats={fiche.droits.sections_etat} onSelect={goToSection} />
+              </aside>
+              <SectionEditor
+                fiche={fiche}
+                key={`${section}-${fiche.statut_etape}-${fiche.version}`}
+                options={options}
+                refs={refs}
+                section={section}
+                onDirtyChange={setDirty}
+                onError={onError}
+                onNavigate={goToSection}
+                onOptionCreee={(liste, valeur) => setRefs((current) => avecOption(current, liste, valeur))}
+                onPrint={(copie) => setImpression({ copie })}
+                onSaved={onChange}
+              />
+            </div>
+          ) : (
+            <div className={`fiche-detail-page__group${tab === 'echanges' ? ' fiche-detail-page__group--echanges' : ''}`}>
+              {ongletContenu(tab).map((TabComponent, index) => (
+                <TabComponent fiche={fiche} key={index} options={options} refs={refs} onChange={onChange} onError={onError} />
+              ))}
+            </div>
+          )}
+        </div>
+        <FichePrintView copie={impression?.copie} fiche={impression?.copie?.contenu ?? fiche} refs={refs} />
       </div>
-      <FichePrintView copie={copie} fiche={copie?.contenu ?? fiche} refs={refs} />
-    </div>
+    </PiecesJointesContext.Provider>
   )
 }
 

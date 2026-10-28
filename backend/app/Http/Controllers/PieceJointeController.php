@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\ResolvesVisibleFiche;
 use App\Models\ActionA3;
+use App\Models\Cause;
+use App\Models\Controle;
 use App\Models\FicheA3;
 use App\Models\Perennisation;
 use App\Models\PieceJointe;
+use App\Models\Risque;
 use App\Services\ActiveProfile;
 use App\Services\PieceJointeService;
 use Illuminate\Http\JsonResponse;
@@ -40,13 +43,20 @@ class PieceJointeController extends Controller
                 'mimetypes:'.implode(',', array_keys(PieceJointeService::MIME_EXTENSIONS)),
                 'max:'.($limits['attachment_max_size_mb'] * 1024),
             ],
-            'action_id' => ['nullable', 'integer', 'exists:actions,id'],
-            'perennisation_id' => ['nullable', 'integer', 'exists:perennisation,id', 'prohibits:action_id'],
+            // Une preuve se rattache à une seule ligne : action, pérennisation, cause, risque (MOC) ou contrôle.
+            'action_id' => ['nullable', 'integer', 'exists:actions,id', 'prohibits:perennisation_id,cause_id,risque_id,controle_id'],
+            'perennisation_id' => ['nullable', 'integer', 'exists:perennisation,id', 'prohibits:action_id,cause_id,risque_id,controle_id'],
+            'cause_id' => ['nullable', 'integer', 'exists:causes,id', 'prohibits:action_id,perennisation_id,risque_id,controle_id'],
+            'risque_id' => ['nullable', 'integer', 'exists:risques,id', 'prohibits:action_id,perennisation_id,cause_id,controle_id'],
+            'controle_id' => ['nullable', 'integer', 'exists:controles,id', 'prohibits:action_id,perennisation_id,cause_id,risque_id'],
         ]);
 
         $objet = match (true) {
             isset($data['action_id']) => ActionA3::findOrFail($data['action_id']),
             isset($data['perennisation_id']) => Perennisation::findOrFail($data['perennisation_id']),
+            isset($data['cause_id']) => Cause::findOrFail($data['cause_id']),
+            isset($data['risque_id']) => Risque::findOrFail($data['risque_id']),
+            isset($data['controle_id']) => Controle::findOrFail($data['controle_id']),
             default => null,
         };
         $pieceJointe = $attachments->ajouter($fiche, $data['fichier'], $objet, $profile);

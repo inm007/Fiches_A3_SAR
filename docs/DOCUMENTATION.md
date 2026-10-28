@@ -269,7 +269,7 @@ Le sélecteur d'année permet de consulter l'année en cours et les années pré
 
 **Export Excel.** Il est disponible pour le registre, les validations, les notifications et les écrans d'administration.
 
-**Impression A3.** Le bouton « Exporter en PDF A3 » ouvre une vue A3 paysage avec les 12 sections, dont le gain net et le délai de retour saisis, les preuves de pérennisation et les contrôles J+30, J+60 et J+90. Il suffit ensuite de choisir « Enregistrer au format PDF » dans la fenêtre d'impression du navigateur.
+**Impression A3.** Le bouton « Imprimer » de la section 12, seul point d'impression, ouvre une vue A3 portrait (logo SAR en tête, une page) avec les 12 sections ; on y choisit la fiche du moment ou une copie figée. La vue reprend le gain net et le délai de retour saisis, les preuves de pérennisation et les contrôles J+30, J+60 et J+90. Il suffit ensuite de choisir « Enregistrer au format PDF » dans la fenêtre d'impression du navigateur.
 
 ## 15. Administration fonctionnelle
 

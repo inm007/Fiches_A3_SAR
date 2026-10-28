@@ -1,5 +1,6 @@
 import { useContext } from 'react'
 import Dropdown from '../../ui/Dropdown.jsx'
+import { useAutoHauteur } from '../../../hooks/useAutoHauteur.js'
 import { CellLabel } from './cellLabel.js'
 import './RowsEditor.css'
 
@@ -10,9 +11,10 @@ export function CellInput({ value, onChange, readOnly, type = 'text', ...props }
   return <input aria-label={label} className="rows-editor__input" readOnly={readOnly} type={type} value={value ?? ''} onChange={(event) => onChange(event.target.value)} {...props} />
 }
 
-export function CellTextArea({ value, onChange, readOnly, rows = 2, ...props }) {
+export function CellTextArea({ value, onChange, readOnly, rows = 1, ...props }) {
   const label = useContext(CellLabel)
-  return <textarea aria-label={label} className="rows-editor__input" readOnly={readOnly} rows={rows} value={value ?? ''} onChange={(event) => onChange(event.target.value)} {...props} />
+  const ref = useAutoHauteur(value)
+  return <textarea aria-label={label} className="rows-editor__input" readOnly={readOnly} ref={ref} rows={rows} value={value ?? ''} onChange={(event) => onChange(event.target.value)} {...props} />
 }
 
 export function CellSelect({ value, onChange, readOnly, options, placeholder = '—' }) {

@@ -8,7 +8,8 @@ import './CardsEditor.css'
  * et la carte s'adapte à la largeur, sans tableau à faire défiler. La suppression d'une
  * carte n'est effective qu'à l'enregistrement de la section.
  *
- * `fields` : { key, label, render(row, setRow, index), wide?, hidden?(row) }.
+ * `fields` : { key, label, render(row, setRow, index), wide?, half?, hidden?(row) } — `half` occupe
+ * la moitié de la carte (une preuve écrite à côté de sa pièce jointe, par exemple).
  */
 function CardsEditor({
   rows, fields, onChange, newRow, readOnly, title, badges, locked = () => false, lockedLabel,
@@ -34,7 +35,7 @@ function CardsEditor({
             {rowLocked && !readOnly && lockedLabel && <p className="cards-editor__locked">{lockedLabel(row)}</p>}
             <div className="cards-editor__fields">
               {fields.filter((field) => !field.hidden?.(row)).map((field) => (
-                <div className={`cards-editor__field${field.wide ? ' cards-editor__field--wide' : ''}`} key={field.key}>
+                <div className={`cards-editor__field${field.wide ? ' cards-editor__field--wide' : ''}${field.half ? ' cards-editor__field--half' : ''}`} key={field.key}>
                   <span className="cards-editor__label">{field.label}</span>
                   <CellLabel.Provider value={`${field.label}, ${title(row, index)}`}>
                     {field.render(row, setRow(index), index, rowLocked)}

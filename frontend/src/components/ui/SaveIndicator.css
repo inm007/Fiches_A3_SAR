@@ -6,6 +6,26 @@
 }
 
 .save-indicator--dirty { color: var(--warning); }
-.save-indicator--saving { color: var(--info); }
+.save-indicator--saving { color: var(--brand-600); }
 .save-indicator--saved { color: var(--success); }
 .save-indicator--error { color: var(--error); }
+
+/* Pastille d'état : on voit d'un coup d'œil s'il reste quelque chose à enregistrer. */
+.save-indicator {
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+}
+
+.save-indicator::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
+}
+
+.save-indicator--dirty { background: var(--warning-bg); }
+.save-indicator--saving { background: var(--brand-50); }
+.save-indicator--saved { background: var(--success-bg); }
+.save-indicator--error { background: var(--error-bg); }

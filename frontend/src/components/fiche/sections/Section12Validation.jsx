@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Badge from '../../ui/Badge.jsx'
 import Button from '../../ui/Button.jsx'
+import { Select } from '../../ui/FormControls.jsx'
 import { DECISIONS, PORTES, SECTIONS } from '../../../utils/constants.js'
 import { formatDate, formatDateTime } from '../../../utils/format.js'
 import { ficheService } from '../../../services/ficheService.js'
@@ -10,8 +11,9 @@ const decisionTone = { EN_ATTENTE: 'warning', VALIDE: 'success', REFUSE: 'error'
 const EVENEMENTS = { SOUMISSION_PLAN: 'Plan soumis en validation', CLOTURE: 'Fiche clôturée' }
 const DECIDEURS = { 0: ' (chef de département)', 1: ' (directeurs)', 2: '' }
 
-export default function Section12Validation({ fiche, onPrintCopy }) {
+export default function Section12Validation({ fiche, onPrint }) {
   const [copies, setCopies] = useState(null)
+  const [aImprimer, setAImprimer] = useState('actuelle')
   const signatures = fiche.validations.filter((validation) => validation.decision !== 'ANNULE')
 
   useEffect(() => {
@@ -22,6 +24,25 @@ export default function Section12Validation({ fiche, onPrintCopy }) {
 
   return (
     <div className="fiche-section">
+      {onPrint && (
+        <div className="fiche-section__impression">
+          <div className="fiche-section__impression-texte">
+            <strong>Imprimer la fiche A3</strong>
+            <span>Format A3 vertical, logo SAR en tête. Choisissez « Enregistrer en PDF » dans la fenêtre d’impression pour obtenir un fichier.</span>
+          </div>
+          {(copies?.length ?? 0) > 0 && (
+            <Select
+              label="Version à imprimer"
+              options={[['actuelle', 'La fiche telle qu’elle est aujourd’hui'], ...copies.map((copie) => [String(copie.id), `${EVENEMENTS[copie.evenement] ?? copie.evenement} · boucle ${copie.version} · ${formatDate(copie.created_at)}`])]}
+              placeholder={null}
+              value={aImprimer}
+              onChange={setAImprimer}
+            />
+          )}
+          <Button icon="pdf" type="button" onClick={() => onPrint(aImprimer === 'actuelle' ? null : copies.find((copie) => String(copie.id) === aImprimer))}>Imprimer</Button>
+        </div>
+      )}
+
       {fiche.motif_classement && (
         <p className="fiche-section__warning"><strong>Classée sans suite :</strong> {fiche.motif_classement}</p>
       )}
@@ -57,14 +78,13 @@ export default function Section12Validation({ fiche, onPrintCopy }) {
 
       <section className="fiche-section__group">
         <h3 className="fiche-section__group-title">Copies figées</h3>
-        <p className="fiche-section__help">Une copie de la fiche est gardée telle quelle à chaque soumission du plan et à la clôture : on retrouve ce qui a été validé, même après une nouvelle boucle.</p>
+        <p className="fiche-section__help">Une copie de la fiche est gardée telle quelle à chaque soumission du plan et à la clôture : on retrouve ce qui a été validé, même après une nouvelle boucle. Pour en imprimer une, choisissez-la ci-dessus.</p>
         {copies === null && <p className="fiche-section__muted">Chargement…</p>}
         {copies?.length === 0 && <p className="fiche-section__muted">Aucune copie pour l’instant : la première est prise à la soumission du plan.</p>}
         <ul className="fiche-section__list">
           {copies?.map((copie) => (
             <li key={copie.id}>
               <span><strong>{EVENEMENTS[copie.evenement] ?? copie.evenement}</strong> · boucle {copie.version} · {formatDateTime(copie.created_at)} · {copie.auteur}</span>
-              {onPrintCopy && <Button icon="pdf" size="small" type="button" variant="ghost" onClick={() => onPrintCopy(copie)}>Imprimer</Button>}
             </li>
           ))}
         </ul>

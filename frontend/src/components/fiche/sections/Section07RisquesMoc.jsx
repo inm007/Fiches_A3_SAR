@@ -1,4 +1,5 @@
 import Badge from '../../ui/Badge.jsx'
+import PreuveJointe from '../PreuveJointe.jsx'
 import Icon from '../../ui/Icon.jsx'
 import { Checkbox, Select, TextInput } from '../../ui/FormControls.jsx'
 import { DOMAINES, MOC_STATUTS } from '../../../utils/constants.js'
@@ -93,7 +94,8 @@ export default function Section07RisquesMoc({ draft, set, fiche, options, readOn
           { key: 'moc_requis', label: 'MOC', render: (row, setRow) => <Checkbox checked={row.moc_requis} label="Ce risque exige un MOC" readOnly={structureLocked} onChange={(value) => setRow('moc_requis', value)} /> },
           { key: 'moc_reference', label: 'Référence MOC', hidden: (row) => !row.moc_requis, render: (row, setRow) => <CellInput readOnly={readOnly} value={row.moc_reference} onChange={(value) => setRow('moc_reference', value)} /> },
           { key: 'moc_statut', label: 'Statut MOC', hidden: (row) => !row.moc_requis, render: (row, setRow) => <CellSelect options={MOC_STATUTS} readOnly={readOnly} value={row.moc_statut} onChange={(value) => setRow('moc_statut', value)} /> },
-          { key: 'moc_preuve', label: 'Preuve de clôture du MOC', hidden: (row) => !row.moc_requis, render: (row, setRow) => <CellInput readOnly={readOnly} value={row.moc_preuve} onChange={(value) => setRow('moc_preuve', value)} /> },
+          { key: 'moc_preuve', label: 'Preuve de clôture du MOC', half: true, hidden: (row) => !row.moc_requis, render: (row, setRow) => <CellInput placeholder="Référence du compte rendu de clôture, n° de MOC…" readOnly={readOnly} value={row.moc_preuve} onChange={(value) => setRow('moc_preuve', value)} /> },
+          { key: 'moc_fichier', label: 'Ou en pièce jointe (document, photo)', half: true, hidden: (row) => !row.moc_requis, render: (row) => <PreuveJointe fiche={fiche} objet="risque" objetId={row.id} readOnly={readOnly} /> },
         ]}
         newRow={structureLocked ? undefined : () => ({ domaine: draft.domaines[0]?.domaine ?? '', description: '', moc_requis: false, moc_reference: '', moc_statut: '', moc_preuve: '', mesure_maitrise: '', responsable_id: '' })}
         readOnly={readOnly}

@@ -41,15 +41,15 @@ export const STATUTS_ACTION = {
 }
 
 export const TRANSITIONS = {
-  T0: { label: 'Soumettre au chef de département', primary: true },
-  T3: { label: 'Soumettre le plan', primary: true },
-  T6: { label: 'Terminer les actions', primary: true },
-  T7: { label: 'Passer à la vérification du maintien', primary: true },
-  T8: { label: 'Soumettre la clôture', primary: true },
-  T11: { label: 'Nouvelle boucle', motif: 'Motif : objectif non atteint, partiellement atteint ou gain non maintenu' },
-  T12: { label: 'Mettre en attente', motif: 'Motif du blocage (obligatoire)' },
-  T13: { label: 'Lever le blocage' },
-  T14: { label: 'Classer sans suite', motif: 'Motif du classement (doublon, hors sujet, déjà traité…)', danger: true },
+  T0: { label: 'Soumettre au chef de département', primary: true, enCours: 'Envoi de la fiche au chef de département…' },
+  T3: { label: 'Soumettre le plan', primary: true, enCours: 'Soumission du plan aux directeurs…' },
+  T6: { label: 'Terminer les actions', primary: true, enCours: 'Fin de la réalisation des actions…' },
+  T7: { label: 'Passer à la vérification du maintien', primary: true, enCours: 'Passage à la vérification du maintien…' },
+  T8: { label: 'Soumettre la clôture', primary: true, enCours: 'Soumission de la clôture…' },
+  T11: { label: 'Nouvelle boucle', motif: 'Motif : objectif non atteint, partiellement atteint ou gain non maintenu', enCours: 'Lancement d’une nouvelle boucle…' },
+  T12: { label: 'Mettre en attente', motif: 'Motif du blocage (obligatoire)', enCours: 'Mise en attente de la fiche…' },
+  T13: { label: 'Lever le blocage', enCours: 'Levée du blocage…' },
+  T14: { label: 'Classer sans suite', motif: 'Motif du classement (doublon, hors sujet, déjà traité…)', danger: true, enCours: 'Classement sans suite…' },
 }
 
 // Ce que débloque chaque transition, affiché dans le panneau « Prochaine étape ».
@@ -74,6 +74,32 @@ export const SECTIONS = [
   'Analyse des causes racines', 'Plan de contre-mesures', 'Risques et MOC',
   'Résultats après action', 'Gains économiques', 'Standardisation et pérennisation',
   'Leçons apprises', 'Validation',
+]
+
+// Les 12 sections se lisent en quatre temps ; chaque temps a sa couleur (theme/colors.css, --phase-*).
+export const PHASES_SECTIONS = [
+  { code: 'probleme', titre: 'Poser le problème', sections: [1, 2, 3, 4] },
+  { code: 'analyse', titre: 'Analyser et agir', sections: [5, 6, 7] },
+  { code: 'resultats', titre: 'Mesurer les résultats', sections: [8, 9] },
+  { code: 'perennite', titre: 'Pérenniser et valider', sections: [10, 11, 12] },
+]
+
+export const phaseDeSection = (numero) => PHASES_SECTIONS.find((phase) => phase.sections.includes(numero))
+
+// À quoi sert chaque section, en une phrase, sous son titre.
+export const SECTIONS_BUT = [
+  'Qui, quoi, où : la carte d’identité de la fiche.',
+  'Pourquoi ce sujet, et quel est le problème, chiffré.',
+  'Les indicateurs qui mesurent le problème aujourd’hui.',
+  'Le but à atteindre, le chef qui valide la pertinence et l’équipe.',
+  'Remonter jusqu’à la cause racine, preuves à l’appui.',
+  'Une action par cause, avec un responsable et une échéance.',
+  'Les risques, les MOC et les directeurs qui valident le plan.',
+  'Mesurer après les actions, puis vérifier à J+30, J+60 et J+90.',
+  'Ce que l’amélioration rapporte, en FCFA par an.',
+  'Ce qui fera durer le résultat, preuves à l’appui.',
+  'Ce qu’il faut retenir et partager avec les autres unités.',
+  'Les décisions des trois portes, et l’impression de la fiche.',
 ]
 
 export const IMPACTS = [

@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { useAutoHauteur } from '../../hooks/useAutoHauteur.js'
 import Dropdown from './Dropdown.jsx'
 import './FormControls.css'
 
@@ -45,12 +46,13 @@ export function TextInput({ label, required, hint, error, wide, value, onChange,
   )
 }
 
-/** Zone de texte multiligne. */
-export function TextArea({ label, required, hint, error, value, onChange, readOnly, rows = 3, ...props }) {
+/** Zone de texte multiligne, qui s'agrandit à la saisie. */
+export function TextArea({ label, required, hint, error, value, onChange, readOnly, rows = 1, wide = true, ...props }) {
   const { hintId, errorId, a11y } = useFieldIds(hint, error)
+  const ref = useAutoHauteur(value)
   return (
-    <Field error={error} errorId={errorId} hint={hint} hintId={hintId} label={label} required={required} wide>
-      <textarea readOnly={readOnly} aria-required={required || undefined} rows={rows} value={value ?? ''} onChange={(event) => onChange?.(event.target.value)} {...a11y} {...props} />
+    <Field error={error} errorId={errorId} hint={hint} hintId={hintId} label={label} required={required} wide={wide}>
+      <textarea readOnly={readOnly} aria-required={required || undefined} ref={ref} rows={rows} value={value ?? ''} onChange={(event) => onChange?.(event.target.value)} {...a11y} {...props} />
     </Field>
   )
 }

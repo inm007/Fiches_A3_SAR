@@ -7,6 +7,7 @@ use App\Models\Cause;
 use App\Models\Controle;
 use App\Models\Parametre;
 use App\Models\PieceJointe;
+use App\Models\Risque;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -149,6 +150,44 @@ class PiecesJointesTest extends TestCase
             'fichier' => UploadedFile::fake()->image('x.png'),
             'perennisation_id' => $ligne,
             'action_id' => $ids['action'],
+        ], ['Accept' => 'application/json'])->assertUnprocessable();
+    }
+
+    public function test_cause_and_moc_proofs_can_be_attached_as_a_file_or_a_photo(): void
+    {
+        $fiche = $this->declarer();
+        $this->designerPilote($fiche);
+        $cause = Cause::create(['fiche_id' => $fiche->id, 'numero' => 1, 'categorie' => 'METHODE', 'libelle' => 'Cause']);
+        $risque = Risque::create(['fiche_id' => $fiche->id, 'domaine' => 'HSE', 'description' => 'Fuite vapeur', 'moc_requis' => true]);
+        $autreFiche = $this->declarer();
+        // Une vraie photo PNG d'un pixel et un vrai début de PDF : le type est lu dans le contenu.
+        $photo = fn (string $nom) => UploadedFile::fake()->createWithContent($nom, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='));
+        $causeAilleurs = Cause::create(['fiche_id' => $autreFiche->id, 'numero' => 1, 'categorie' => 'METHODE', 'libelle' => 'Autre']);
+
+        $this->agir('PILOTE')->post("/api/fiches/{$fiche->id}/pieces-jointes", [
+            'fichier' => $photo('releve.png'),
+            'cause_id' => $cause->id,
+        ], ['Accept' => 'application/json'])
+            ->assertCreated()
+            ->assertJsonPath('data.objet', 'cause')
+            ->assertJsonPath('data.objet_id', $cause->id);
+
+        $this->agir('PILOTE')->post("/api/fiches/{$fiche->id}/pieces-jointes", [
+            'fichier' => UploadedFile::fake()->createWithContent('moc-cloture.pdf', "%PDF-1.4\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n"),
+            'risque_id' => $risque->id,
+        ], ['Accept' => 'application/json'])
+            ->assertCreated()
+            ->assertJsonPath('data.objet', 'risque');
+
+        $this->agir('PILOTE')->post("/api/fiches/{$fiche->id}/pieces-jointes", [
+            'fichier' => $photo('x.png'),
+            'cause_id' => $causeAilleurs->id,
+        ], ['Accept' => 'application/json'])->assertNotFound();
+
+        $this->agir('PILOTE')->post("/api/fiches/{$fiche->id}/pieces-jointes", [
+            'fichier' => $photo('x.png'),
+            'cause_id' => $cause->id,
+            'risque_id' => $risque->id,
         ], ['Accept' => 'application/json'])->assertUnprocessable();
     }
 

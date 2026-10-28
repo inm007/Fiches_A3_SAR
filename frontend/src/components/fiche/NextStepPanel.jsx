@@ -2,9 +2,9 @@ import { useState } from 'react'
 import Button from '../ui/Button.jsx'
 import Icon from '../ui/Icon.jsx'
 import { describeError, ficheService } from '../../services/ficheService.js'
-import { PROCHAINES_ETAPES } from '../../utils/constants.js'
+import { PROCHAINES_ETAPES, TRANSITIONS } from '../../utils/constants.js'
 import { formatDate } from '../../utils/format.js'
-import { toast } from '../../utils/toast.js'
+import { avecSuivi } from '../../utils/toast.js'
 import { refreshCounters } from '../../hooks/useCounters.js'
 import './NextStepPanel.css'
 
@@ -52,9 +52,11 @@ function NextStepPanel({ fiche, onChange, onError, onNavigate }) {
   async function avancer() {
     setBusy(true)
     try {
-      const updated = await ficheService.transition(fiche.id, prochaine.code, fiche.statut_etape, null)
+      const updated = await avecSuivi(TRANSITIONS[prochaine.code]?.enCours ?? 'Action en cours…', () => ficheService.transition(fiche.id, prochaine.code, fiche.statut_etape, null), {
+        succes: (suivante) => `C’est fait : la fiche est à l’étape « ${suivante.statut_etape_libelle} ».`,
+        echec: 'L’action n’a pas abouti : voyez le détail sur la fiche.',
+      })
       onChange(updated)
-      toast(`${updated.numero_a3} — étape « ${updated.statut_etape_libelle} »`)
       refreshCounters()
     } catch (error) {
       onError(describeError(error))
@@ -72,7 +74,7 @@ function NextStepPanel({ fiche, onChange, onError, onNavigate }) {
           <p>{etape?.texte}</p>
         </div>
         {pret ? (
-          <Button disabled={busy || nouvelleBoucle} loading={busy} type="button" onClick={avancer}>
+          <Button disabled={nouvelleBoucle} loading={busy} loadingLabel="En cours…" type="button" onClick={avancer}>
             {etape?.titre}
           </Button>
         ) : (

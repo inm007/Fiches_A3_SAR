@@ -4,7 +4,7 @@ import ConfirmDialog from '../ui/ConfirmDialog.jsx'
 import { Select, TextArea } from '../ui/FormControls.jsx'
 import { describeError, ficheService } from '../../services/ficheService.js'
 import { TRANSITIONS } from '../../utils/constants.js'
-import { toast } from '../../utils/toast.js'
+import { avecSuivi } from '../../utils/toast.js'
 import { refreshCounters } from '../../hooks/useCounters.js'
 import { peopleOptions } from './sections/options.js'
 import EquipeFiche from './EquipeFiche.jsx'
@@ -15,21 +15,24 @@ import './WorkflowActions.css'
  * Boutons selon l'étape et le profil actif (UX §8.2). Le serveur reste seul juge :
  * un refus revient en 422 (manques) ou 409 (fiche modifiée) et s'affiche dans le panneau.
  */
-function WorkflowActions({ fiche, options, onChange, onError, onExportPdf }) {
+function WorkflowActions({ fiche, options, onChange, onError }) {
   const [dialog, setDialog] = useState(null)
   const [motif, setMotif] = useState('')
   const [pilote, setPilote] = useState('')
   const [busy, setBusy] = useState(false)
   const droits = fiche.droits
 
-  async function run(task, message) {
+  // Chaque action s'annonce pendant qu'elle se fait (« Soumission du plan… »), puis dit si elle a réussi.
+  async function run(task, message, enCours = 'Action en cours…') {
     setBusy(true)
     try {
-      const updated = await task()
+      const updated = await avecSuivi(enCours, task, {
+        succes: (suivante) => message ?? `C’est fait : la fiche est à l’étape « ${suivante.statut_etape_libelle} ».`,
+        echec: 'L’action n’a pas abouti : voyez le détail sur la fiche.',
+      })
       onChange(updated)
       setDialog(null)
       setMotif('')
-      toast(message ?? `${updated.numero_a3} — étape « ${updated.statut_etape_libelle} »`)
       refreshCounters()
     } catch (error) {
       setDialog(null)
@@ -39,18 +42,18 @@ function WorkflowActions({ fiche, options, onChange, onError, onExportPdf }) {
     }
   }
 
-  const transition = (code) => run(() => ficheService.transition(fiche.id, code, fiche.statut_etape, motif || null))
+  const transition = (code) => run(() => ficheService.transition(fiche.id, code, fiche.statut_etape, motif || null), undefined, TRANSITIONS[code].enCours)
   const startTransition = (code) => (TRANSITIONS[code].motif ? setDialog({ type: 'transition', code }) : transition(code))
 
   async function designer() {
     await run(async () => {
       await ficheService.modifierAdmin(fiche.id, { pilote_id: Number(pilote), motif: motif || null })
       return ficheService.get(fiche.id)
-    }, fiche.pilote ? 'Pilote changé' : 'Pilote désigné')
+    }, fiche.pilote ? 'Pilote changé' : 'Pilote désigné', fiche.pilote ? 'Changement du pilote…' : 'Désignation du pilote…')
   }
 
   async function meDesigner() {
-    await run(() => ficheService.meDesignerPilote(fiche.id), 'Vous êtes désigné pilote')
+    await run(() => ficheService.meDesignerPilote(fiche.id), 'Vous êtes désigné pilote', 'Désignation en cours…')
   }
 
   async function basculerConfidentialite() {
@@ -59,7 +62,7 @@ function WorkflowActions({ fiche, options, onChange, onError, onExportPdf }) {
       if (droits.est_pilote) return ficheService.confidentialite(fiche.id, cible, motif || null)
       await ficheService.modifierAdmin(fiche.id, { confidentialite: cible })
       return ficheService.get(fiche.id)
-    }, `Confidentialité : ${cible === 'RESTREINT' ? 'Restreint' : 'Normal'}`)
+    }, `Confidentialité : ${cible === 'RESTREINT' ? 'Restreint' : 'Normal'}`, 'Changement de la confidentialité…')
   }
 
   // Un seul bouton principal : l'étape suivante, ou « Nouvelle boucle » quand l'objectif n'est pas atteint.
@@ -79,7 +82,6 @@ function WorkflowActions({ fiche, options, onChange, onError, onExportPdf }) {
       ? [{ key: 'partage-validation', label: 'Partager une validation', onClick: () => setDialog({ type: 'partage-validation' }) }] : []),
     ...(droits.peut_changer_confidentialite
       ? [{ key: 'confidentialite', label: fiche.confidentialite === 'RESTREINT' ? 'Passer en Normal' : 'Passer en Restreint', onClick: () => setDialog({ type: 'confidentialite' }) }] : []),
-    ...(onExportPdf ? [{ key: 'pdf', label: 'Exporter en PDF A3', onClick: onExportPdf }] : []),
   ]
 
   return (
@@ -88,10 +90,10 @@ function WorkflowActions({ fiche, options, onChange, onError, onExportPdf }) {
         <Button type="button" variant="primary" onClick={() => setDialog({ type: 'pilote' })}>Désigner le pilote</Button>
       )}
       {droits.peut_se_designer_pilote && (
-        <Button disabled={busy} type="button" variant="primary" onClick={meDesigner}>Me désigner comme pilote</Button>
+        <Button loading={busy} loadingLabel="Désignation…" type="button" variant="primary" onClick={meDesigner}>Me désigner comme pilote</Button>
       )}
       {principale && !dansLePanneau && (
-        <Button disabled={busy} type="button" variant="primary" onClick={() => startTransition(principale)}>
+        <Button loading={busy} loadingLabel="En cours…" type="button" variant="primary" onClick={() => startTransition(principale)}>
           {TRANSITIONS[principale].label}
         </Button>
       )}

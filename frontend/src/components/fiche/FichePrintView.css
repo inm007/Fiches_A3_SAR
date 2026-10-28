@@ -3,11 +3,29 @@
 }
 
 @page {
-  size: A3 landscape;
-  margin: 9mm;
+  size: A3 portrait;
+  margin: 10mm 11mm;
 }
 
 @media print {
+  html,
+  body {
+    background: var(--white) !important;
+  }
+
+  /* Seule la fiche occupe la page : le reste de l'application ne laisse pas de page blanche derrière. */
+  body *:not(:has(.fiche-print)):not(.fiche-print, .fiche-print *) {
+    display: none !important;
+  }
+
+  body *:has(.fiche-print) {
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
   body * {
     visibility: hidden !important;
   }
@@ -25,55 +43,89 @@
     color: var(--ink);
     background: var(--white);
     font-family: var(--font-sans);
-    font-size: 8pt;
+    font-size: 9pt;
     line-height: 1.3;
   }
 
   .fiche-print__header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12mm;
+    display: grid;
+    grid-template-columns: 52mm minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8mm;
     padding-bottom: 5mm;
-    border-bottom: 2px solid var(--brand-500);
+    border-bottom: 1.2mm solid var(--brand-500);
   }
 
-  .fiche-print__header p {
+  .fiche-print__logo {
+    display: block;
+    width: 52mm;
+    height: auto;
+  }
+
+  .fiche-print__heading p {
     margin: 0 0 2mm;
     color: var(--brand-700);
-    font-size: 8pt;
+    font-size: 9pt;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
   }
 
-  .fiche-print__header h1 {
+  .fiche-print__heading h1 {
     margin: 0 0 2mm;
-    font-size: 19pt;
+    font-size: 22pt;
     line-height: 1.15;
+  }
+
+  .fiche-print__heading span {
+    color: var(--gray-700);
+    font-size: 9pt;
   }
 
   .fiche-print__status {
     display: grid;
-    gap: 2mm;
-    min-width: 34mm;
-    text-align: right;
+    grid-template-columns: auto auto;
+    gap: 1.5mm 5mm;
+    margin: 0;
+    padding: 3mm 4mm;
+    border: 0.4mm solid var(--brand-100);
+    border-radius: 2mm;
+    background: var(--brand-50) !important;
+    print-color-adjust: exact;
   }
 
-  .fiche-print__status b {
-    color: var(--brand-600);
-    font-size: 10pt;
+  .fiche-print__status dt {
+    color: var(--gray-500);
+    font-size: 6.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
   }
 
+  .fiche-print__status dd {
+    margin: 0;
+    font-size: 9.5pt;
+    font-weight: 700;
+  }
+
+  /* Deux colonnes remplies l'une après l'autre : pas de trou sous une section courte. */
   .fiche-print__grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    align-items: start;
-    gap: 4mm;
-    padding-top: 4mm;
+    column-count: 2;
+    column-gap: 5mm;
+    padding-top: 5mm;
   }
+
+  .fiche-print__grid > .fiche-print__section {
+    margin-bottom: 4mm;
+  }
+
+  .fiche-print__section--probleme { --phase: var(--phase-probleme); --phase-bg: var(--phase-probleme-bg); }
+  .fiche-print__section--analyse { --phase: var(--phase-analyse); --phase-bg: var(--phase-analyse-bg); }
+  .fiche-print__section--resultats { --phase: var(--phase-resultats); --phase-bg: var(--phase-resultats-bg); }
+  .fiche-print__section--perennite { --phase: var(--phase-perennite); --phase-bg: var(--phase-perennite-bg); }
 
   .fiche-print__section {
+    border-top: 1mm solid var(--phase, var(--gray-300)) !important;
+    print-color-adjust: exact;
     break-inside: avoid;
     padding: 3mm;
     border: 0.3mm solid var(--gray-300);
@@ -91,7 +143,14 @@
   }
 
   .fiche-print__section h2 span {
-    color: var(--brand-500);
+    display: inline-grid;
+    min-width: 6.5mm;
+    height: 6.5mm;
+    place-items: center;
+    border-radius: 50%;
+    color: var(--white);
+    background: var(--phase, var(--brand-500)) !important;
+    print-color-adjust: exact;
     font-family: var(--font-mono);
     font-size: 9pt;
   }
@@ -110,7 +169,7 @@
 
   .fiche-print__fields dt {
     color: var(--gray-500);
-    font-size: 7pt;
+    font-size: 8pt;
     font-weight: 700;
     text-transform: uppercase;
   }
@@ -124,7 +183,7 @@
   .fiche-print__section table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 7pt;
+    font-size: 8pt;
   }
 
   .fiche-print__section th,

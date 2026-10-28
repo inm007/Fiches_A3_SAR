@@ -34,7 +34,38 @@
 
 .fiche-nouvelle-page__layout .fiche-nouvelle-page__card {
   max-width: none;
-  padding: 28px;
+  padding: 24px 28px 28px;
+  border-top: 4px solid var(--phase-probleme);
+}
+
+.fiche-nouvelle-page__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--phase-probleme-border);
+}
+
+.fiche-nouvelle-page__head > span {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--white);
+  background: var(--phase-probleme);
+  font-weight: 700;
+}
+
+.fiche-nouvelle-page__head strong {
+  font-size: var(--text-lg);
+}
+
+.fiche-nouvelle-page__head p {
+  margin: 2px 0 0;
+  color: var(--gray-700);
+  font-size: var(--text-sm);
 }
 
 .fiche-nouvelle-page__submit {
@@ -125,12 +156,12 @@
 }
 
 .fiche-nouvelle-page__tips {
-  border: 1px solid var(--info-border);
-  background: var(--info-bg);
+  border: 1px solid var(--brand-100);
+  background: var(--brand-50);
 }
 
 .fiche-nouvelle-page__tips h2 {
-  color: var(--info);
+  color: var(--brand-700);
 }
 
 .fiche-nouvelle-page__tips ul {

@@ -76,11 +76,32 @@
   --info-solid:     #2563EB;
 
   /* ---------- Statuts de la fiche A3 ---------- */
-  --st-encours:       #1D4ED8;  --st-encours-bg:       #E8F0FE;
-  --st-validation:    #6D28D9;  --st-validation-bg:    #F1EAFE;
-  --st-realisation:   #0E7490;  --st-realisation-bg:   #E0F5F9;
-  --st-maintien:      #4338CA;  --st-maintien-bg:      #ECEBFD;
-  --st-attente:       #C2410C;  --st-attente-bg:       #FFEDE3;
+  --st-encours:       #D7000E;  --st-encours-bg:       #FDECEE;
+  --st-validation:    #BE185D;  --st-validation-bg:    #FCE7F3;
+  --st-realisation:   #C2410C;  --st-realisation-bg:   #FFEDE3;
+  --st-maintien:      #9F1239;  --st-maintien-bg:      #FBE4EA;
+  --st-attente:       #A16207;  --st-attente-bg:       #FEF6D3;
+
+  /* ---------- Étapes de la fiche : une teinte par étape, qui parle d'elle-même ----------
+     gris = pas commencée, orange → ambre → jaune → vert clair = le travail avance,
+     violet / fuchsia / framboise = attend une décision, rouge = bloquée, vert = clôturée. */
+  --etape-ouvert:                #5B6575;  --etape-ouvert-bg:                #EEF0F3;
+  --etape-validation-pertinence: #7C3AED;  --etape-validation-pertinence-bg: #F1EAFE;
+  --etape-en-cours:              #C2410C;  --etape-en-cours-bg:              #FFEDE3;
+  --etape-validation-plan:       #A21CAF;  --etape-validation-plan-bg:       #FBE9FB;
+  --etape-realisation:           #B45309;  --etape-realisation-bg:           #FEF1D6;
+  --etape-mesure:                #A16207;  --etape-mesure-bg:                #FEF6D3;
+  --etape-maintien:              #4D7C0F;  --etape-maintien-bg:              #EEF6DC;
+  --etape-validation-cloture:    #BE185D;  --etape-validation-cloture-bg:    #FCE7F3;
+  --etape-attente:               #D7000E;  --etape-attente-bg:               #FDECEE;
+  --etape-cloture:               #15803D;  --etape-cloture-bg:               #E1F4E7;
+  --etape-sans-suite:            #3A3A44;  --etape-sans-suite-bg:            #E5E5E8;
+
+  /* ---------- Phases des 12 sections (fiche A3) : variantes du rouge SAR ---------- */
+  --phase-probleme:    #E3000F;  --phase-probleme-bg:    #FDF0F1;  --phase-probleme-border:    #FAD1D5;
+  --phase-analyse:     #A3123A;  --phase-analyse-bg:     #FCEEF2;  --phase-analyse-border:     #F4C7D4;
+  --phase-resultats:   #D2461B;  --phase-resultats-bg:   #FFF2EC;  --phase-resultats-border:   #FBD3C2;
+  --phase-perennite:   #7A0010;  --phase-perennite-bg:   #F8ECEE;  --phase-perennite-border:   #E6C3C8;
 
   /* ---------- Statuts des actions ---------- */
   --action-a-faire:      var(--gray-500);  --action-a-faire-bg:   var(--gray-100);
