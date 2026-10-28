@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from 'react'
 import { apiRequest } from '../../auth/api.js'
+import { errorMessage } from '../../services/ficheService.js'
 import Alert from '../../components/ui/Alert.jsx'
 import Icon from '../../components/ui/Icon.jsx'
 import Skeleton from '../../components/ui/Skeleton.jsx'
@@ -81,7 +82,7 @@ function Droits() {
       setMatrice(result.data)
       toast.success(`« ${permission.libelle} » ${accorde ? 'accordé au rôle' : 'retiré du rôle'} ${role.libelle}.`)
     } catch (saveError) {
-      setError(Object.values(saveError.data?.errors ?? {}).flat().join(' ') || saveError.message)
+      setError(errorMessage(saveError))
     } finally {
       setEnCours('')
     }

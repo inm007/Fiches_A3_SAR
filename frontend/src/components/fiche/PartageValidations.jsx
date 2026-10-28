@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { ficheService } from '../../services/ficheService.js'
-import { formatDate } from '../../utils/format.js'
+import { errorMessage, ficheService } from '../../services/ficheService.js'
+import { formatDate, personName } from '../../utils/format.js'
 import { toast } from '../../utils/toast.js'
 import Alert from '../ui/Alert.jsx'
 import Badge from '../ui/Badge.jsx'
@@ -8,8 +8,7 @@ import Button from '../ui/Button.jsx'
 import { Select, TextInput } from '../ui/FormControls.jsx'
 import './PartageValidations.css'
 
-const personLabel = (person) => `${person.prenom} ${person.nom} — ${person.identifiant}`
-const errorText = (error) => error.data?.manques?.join(' ') || Object.values(error.data?.errors ?? {}).flat().join(' ') || error.message
+const personLabel = (person) => `${personName(person)} — ${person.identifiant}`
 
 function DemandeEnAttente({ demande, onSaved }) {
   const [valideurId, setValideurId] = useState('')
@@ -24,7 +23,7 @@ function DemandeEnAttente({ demande, onSaved }) {
       onSaved(await task())
       toast(message)
     } catch (saveError) {
-      setError(errorText(saveError))
+      setError(errorMessage(saveError))
     } finally {
       setSaving(false)
     }
@@ -51,7 +50,7 @@ function DemandeEnAttente({ demande, onSaved }) {
           <li className="partage__person" key={person.id}>
             {personLabel(person)} <small>associé</small>
             <Button
-              aria-label={`Retirer ${person.prenom} ${person.nom} de la demande`}
+              aria-label={`Retirer ${personName(person)} de la demande`}
               disabled={saving}
               icon="x"
               size="small"

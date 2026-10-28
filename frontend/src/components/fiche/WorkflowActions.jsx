@@ -43,7 +43,7 @@ function WorkflowActions({ fiche, options, onChange, onError, onExportPdf }) {
 
   async function designer() {
     await run(async () => {
-      await ficheService.designerPilote(fiche.id, Number(pilote), motif || null)
+      await ficheService.modifierAdmin(fiche.id, { pilote_id: Number(pilote), motif: motif || null })
       return ficheService.get(fiche.id)
     }, fiche.pilote ? 'Pilote changé' : 'Pilote désigné')
   }
@@ -56,7 +56,7 @@ function WorkflowActions({ fiche, options, onChange, onError, onExportPdf }) {
     const cible = fiche.confidentialite === 'RESTREINT' ? 'NORMAL' : 'RESTREINT'
     await run(async () => {
       if (droits.est_pilote) return ficheService.confidentialite(fiche.id, cible, motif || null)
-      await ficheService.confidentialiteAdmin(fiche.id, cible)
+      await ficheService.modifierAdmin(fiche.id, { confidentialite: cible })
       return ficheService.get(fiche.id)
     }, `Confidentialité : ${cible === 'RESTREINT' ? 'Restreint' : 'Normal'}`)
   }

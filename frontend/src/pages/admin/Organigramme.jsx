@@ -1,6 +1,7 @@
 import AdminEntityPage from '../../components/admin/AdminEntityPage.jsx'
 import Badge from '../../components/ui/Badge.jsx'
 import { TYPES_ENTITE } from '../../utils/constants.js'
+import { personName } from '../../utils/format.js'
 
 const typeLabel = (type) => TYPES_ENTITE.find(([code]) => code === type)?.[1] ?? type
 
@@ -28,7 +29,7 @@ const fields = [
     type: 'select',
     optionsKey: 'users',
     hint: 'Le responsable d’un département reçoit le profil Chef de département : il valide la pertinence des fiches de son département.',
-    optionLabel: (user) => `${user.prenom} ${user.nom}`,
+    optionLabel: personName,
   },
 ]
 

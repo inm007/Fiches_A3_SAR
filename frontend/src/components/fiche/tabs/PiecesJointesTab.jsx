@@ -5,7 +5,7 @@ import EmptyState from '../../ui/EmptyState.jsx'
 import FileInput from '../../ui/FileInput.jsx'
 import { Select } from '../../ui/FormControls.jsx'
 import Skeleton from '../../ui/Skeleton.jsx'
-import { describeError, ficheService } from '../../../services/ficheService.js'
+import { describeError, errorMessage, ficheService } from '../../../services/ficheService.js'
 import { formatDate } from '../../../utils/format.js'
 import { FICHIERS_ACCEPTES } from '../JoindrePreuve.jsx'
 import { toast } from '../../../utils/toast.js'
@@ -75,7 +75,7 @@ export default function PiecesJointesTab({ fiche, onError }) {
       formRef.current?.reset()
       toast('Pièce jointe ajoutée.')
     } catch (error) {
-      setMessage(describeError(error).manques.join(' ') || describeError(error).message)
+      setMessage(errorMessage(error))
       onError?.(describeError(error))
     } finally {
       setBusy(false)

@@ -9,6 +9,7 @@ import ListPagination from '../components/ui/ListPagination.jsx'
 import { FilterSelect, ListToolbar, ResultCount, SearchField, ToolbarActions } from '../components/shared/ListToolbar.jsx'
 import PageBanner from '../components/shared/PageBanner.jsx'
 import PageLoader from '../components/shared/PageLoader.jsx'
+import { formatDateTime } from '../utils/format.js'
 import { downloadExcel } from '../utils/listTools.js'
 import './Technique.css'
 
@@ -19,10 +20,6 @@ const logColumns = [
   { key: 'objet', label: 'Objet' },
   { key: 'detail', label: 'Détail' },
 ]
-
-function formatDate(value) {
-  return value ? new Date(value).toLocaleString('fr-FR', { timeZone: 'Africa/Dakar' }) : '—'
-}
 
 function Technique() {
   const [data, setData] = useState(null)
@@ -73,7 +70,7 @@ function Technique() {
         page += 1
       } while (page <= lastPage)
       downloadExcel('journal-administration.xlsx', [
-        { label: 'Date', value: (log) => formatDate(log.created_at) },
+        { label: 'Date', value: (log) => formatDateTime(log.created_at, { secondes: true }) },
         { label: 'Auteur', value: (log) => log.auteur },
         { label: 'Opération', value: (log) => log.operation },
         { label: 'Objet', value: (log) => log.objet },
@@ -91,7 +88,7 @@ function Technique() {
 
   const logRows = (logsResult?.data || []).map((log) => ({
     id: log.id,
-    date: formatDate(log.created_at),
+    date: formatDateTime(log.created_at, { secondes: true }),
     auteur: log.auteur,
     operation: log.operation,
     objet: log.objet,

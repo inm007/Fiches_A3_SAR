@@ -101,10 +101,8 @@ class ValidationCircuit
         }
 
         $codes = Affectation::query()
-            ->enCours()
+            ->titulaires(self::rolesDirecteurs())
             ->where('user_id', $fiche->sponsor_id)
-            ->whereHas('role', fn ($query) => $query->whereIn('code', self::rolesDirecteurs()))
-            ->whereHas('user', fn ($query) => $query->where('actif', true))
             ->orderBy('id')
             ->with('role:id,code')
             ->get()
@@ -144,9 +142,7 @@ class ValidationCircuit
     {
         $redacteurs = $fiche->redacteursIds();
         $base = Affectation::query()
-            ->enCours()
-            ->whereHas('role', fn ($query) => $query->where('code', $roleCode))
-            ->whereHas('user', fn ($query) => $query->where('actif', true))
+            ->titulaires($roleCode)
             ->when($redacteurs !== [], fn ($query) => $query->whereNotIn('user_id', $redacteurs))
             ->orderBy('id');
 

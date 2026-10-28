@@ -136,7 +136,7 @@ class ActionService
             if (! $profile->estPiloteDe($fiche)) {
                 throw RegleMetierException::interdit('Seul le pilote ajoute une action.');
             }
-            if ($fiche->etape() !== StatutEtape::RealisationActions) {
+            if (! $this->etapeAjout($fiche)) {
                 throw RegleMetierException::conflit('Une action s’ajoute ici pendant la réalisation ; avant, utilisez la section 6.');
             }
             $motif = trim((string) ($data['motif'] ?? ''));
@@ -210,7 +210,7 @@ class ActionService
             if (! $profile->estPiloteDe($fiche)) {
                 throw RegleMetierException::interdit('Seul le pilote enregistre un contrôle d’efficacité.');
             }
-            if (! in_array($fiche->etape(), StatutEtape::etapesDeSuivi(), true)) {
+            if (! $this->etapeControles($fiche)) {
                 throw RegleMetierException::conflit('Les contrôles ne sont pas modifiables à l’étape « '.$fiche->etape()->libelle().' ».');
             }
             if ($controle->resultat !== null) {
@@ -279,6 +279,32 @@ class ActionService
         return $profile->estPiloteDe($fiche)
             && $this->etapePermise($action, $fiche)
             && ! in_array($action->statut, StatutAction::terminees(), true);
+    }
+
+    /**
+     * Le pilote ajoute une action oubliée pendant la réalisation.
+     */
+    public function peutAjouter(FicheA3 $fiche, ActiveProfile $profile): bool
+    {
+        return $profile->estPiloteDe($fiche) && $this->etapeAjout($fiche);
+    }
+
+    /**
+     * Le pilote enregistre les contrôles d'efficacité pendant le suivi.
+     */
+    public function peutEnregistrerControles(FicheA3 $fiche, ActiveProfile $profile): bool
+    {
+        return $profile->estPiloteDe($fiche) && $this->etapeControles($fiche);
+    }
+
+    private function etapeAjout(FicheA3 $fiche): bool
+    {
+        return $fiche->etape() === StatutEtape::RealisationActions;
+    }
+
+    private function etapeControles(FicheA3 $fiche): bool
+    {
+        return in_array($fiche->etape(), StatutEtape::etapesDeSuivi(), true);
     }
 
     private function exigerDroit(ActionA3 $action, FicheA3 $fiche, ActiveProfile $profile): void

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { describeError, ficheService } from '../../services/ficheService.js'
+import { errorMessage, ficheService } from '../../services/ficheService.js'
 import { toast } from '../../utils/toast.js'
 import Button from '../ui/Button.jsx'
 import FileInput from '../ui/FileInput.jsx'
@@ -25,8 +25,7 @@ function JoindrePreuve({ fiche, perennisationId }) {
       setCle((valeur) => valeur + 1)
       toast('Preuve jointe : elle figure dans les pièces jointes de la fiche.')
     } catch (error) {
-      const described = describeError(error)
-      setErreur(described.manques.join(' ') || described.message)
+      setErreur(errorMessage(error))
     } finally {
       setBusy(false)
     }

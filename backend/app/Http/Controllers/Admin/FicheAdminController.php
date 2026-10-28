@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Confidentialite;
 use App\Enums\StatutEtape;
+use App\Models\Affectation;
 use App\Models\FicheA3;
 use App\Models\User;
 use App\Models\Validation;
+use App\Services\FicheConfidentialite;
 use App\Services\HistoryLogger;
 use App\Services\NotificationService;
 use App\Services\ValidationCircuit;
@@ -22,16 +25,24 @@ use Illuminate\Validation\ValidationException;
  */
 class FicheAdminController extends AdminController
 {
+    /** Ce que l'écran montre d'une personne : nom, identifiant, et si son compte est actif. */
+    private const PERSONNE = ['id', 'identifiant', 'nom', 'prenom', 'actif'];
+
+    private const RELATIONS_FICHE = ['unite:id,code,libelle', 'pilote:id,identifiant,nom,prenom,actif', 'membres:id,identifiant,nom,prenom,actif'];
+
+    private const RELATIONS_VALIDATION = ['role:id,code,libelle', 'valideur:id,identifiant,nom,prenom,actif', 'partages:id,identifiant,nom,prenom,actif'];
+
     public function __construct(
         private readonly HistoryLogger $history,
         private readonly NotificationService $notifications,
         private readonly ValidationCircuit $circuit,
+        private readonly FicheConfidentialite $confidentialite,
     ) {}
 
     public function index(): JsonResponse
     {
         $fiches = FicheA3::query()
-            ->with(['unite:id,code,libelle', 'pilote:id,identifiant,nom,prenom,actif', 'membres:id,identifiant,nom,prenom,actif'])
+            ->with(self::RELATIONS_FICHE)
             ->orderByDesc('created_at')
             ->get();
 
@@ -42,7 +53,7 @@ class FicheAdminController extends AdminController
     {
         $validated = $request->validate([
             'pilote_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
-            'confidentialite' => ['sometimes', 'required', Rule::in(['NORMAL', 'RESTREINT'])],
+            'confidentialite' => ['sometimes', 'required', Rule::enum(Confidentialite::class)],
             'motif' => ['nullable', 'string', 'max:500'],
         ]);
         $motif = trim((string) ($validated['motif'] ?? ''));
@@ -57,14 +68,10 @@ class FicheAdminController extends AdminController
 
         $before = $fiche->only(['pilote_id', 'confidentialite']);
         DB::transaction(function () use ($request, $fiche, $validated, $before, $motif): void {
-            $fiche->fill($validated)->save();
-            $this->audit($request, 'MODIFICATION_ADMIN_FONCTIONNELLE', 'fiche_a3', $fiche->id, [
-                'avant' => $before,
-                'apres' => $fiche->only(['pilote_id', 'confidentialite']),
-            ]);
-
             $auteurId = $request->user()->id;
-            if ($fiche->wasChanged('pilote_id')) {
+            $fiche->fill(collect($validated)->only('pilote_id')->all())->save();
+            $piloteChange = $fiche->wasChanged('pilote_id');
+            if ($piloteChange) {
                 $this->history->log($fiche, $auteurId, 'DESIGNATION_PILOTE', 'pilote_id', $before['pilote_id'], $fiche->pilote_id, $motif ?: null);
                 if ($before['pilote_id'] !== null) {
                     $this->notifications->notify([$before['pilote_id']], $fiche, 'DESIGNATION_PILOTE', 'Vous n’êtes plus pilote de cette fiche.', auteurId: $auteurId);
@@ -80,9 +87,13 @@ class FicheAdminController extends AdminController
                     $this->reattribuerDemandesDe($fiche, $fiche->pilote_id, $auteurId);
                 }
             }
-            if ($fiche->wasChanged('confidentialite')) {
-                $this->history->log($fiche, $auteurId, 'CHANGEMENT_CONFIDENTIALITE', 'confidentialite', $before['confidentialite'], $fiche->confidentialite);
+            if (isset($validated['confidentialite'])) {
+                $this->confidentialite->changer($fiche, $validated['confidentialite'], $auteurId);
             }
+            $this->audit($request, 'MODIFICATION_ADMIN_FONCTIONNELLE', 'fiche_a3', $fiche->id, [
+                'avant' => $before,
+                'apres' => $fiche->only(['pilote_id', 'confidentialite']),
+            ]);
         });
 
         return response()->json(['data' => $this->ficheData($this->rechargerFiche($fiche))]);
@@ -94,7 +105,7 @@ class FicheAdminController extends AdminController
     public function validations(FicheA3 $fiche): JsonResponse
     {
         $demandes = $fiche->validations()
-            ->with(['role:id,code,libelle', 'valideur:id,identifiant,nom,prenom,actif', 'partages:id,identifiant,nom,prenom,actif'])
+            ->with(self::RELATIONS_VALIDATION)
             ->where('decision', 'EN_ATTENTE')
             ->orderBy('porte')->orderBy('ordre')
             ->get();
@@ -173,17 +184,15 @@ class FicheAdminController extends AdminController
      */
     private function verifierPiloteEligible(FicheA3 $fiche, int $userId, string $champ): void
     {
-        $estPiloteDeLUnite = User::query()
-            ->whereKey($userId)
-            ->where('actif', true)
-            ->whereHas('affectations', fn ($query) => $query->where('unite_id', $fiche->unite_id)->enCours()
-                ->whereHas('role', fn ($role) => $role->where('code', 'PILOTE')))
+        $estPiloteDeLUnite = Affectation::query()->titulaires('PILOTE')
+            ->where('user_id', $userId)
+            ->where('unite_id', $fiche->unite_id)
             ->exists();
 
         if (! $estPiloteDeLUnite) {
             throw ValidationException::withMessages([$champ => 'Le pilote doit avoir une affectation active dans l’unité de la fiche.']);
         }
-        if (in_array($userId, [$fiche->sponsor_id, $fiche->chef_pertinence_id], true)) {
+        if ($fiche->estValideurDesigne($userId)) {
             throw ValidationException::withMessages([$champ => 'Cette personne valide la fiche (sponsor ou chef de département) : elle ne peut pas aussi la piloter.']);
         }
 
@@ -225,12 +234,12 @@ class FicheAdminController extends AdminController
 
     private function rechargerFiche(FicheA3 $fiche): FicheA3
     {
-        return $fiche->fresh()->load(['unite:id,code,libelle', 'pilote:id,identifiant,nom,prenom,actif', 'membres:id,identifiant,nom,prenom,actif']);
+        return $fiche->fresh()->load(self::RELATIONS_FICHE);
     }
 
     private function rechargerValidation(Validation $validation): Validation
     {
-        return $validation->fresh()->load(['role:id,code,libelle', 'valideur:id,identifiant,nom,prenom,actif', 'partages:id,identifiant,nom,prenom,actif']);
+        return $validation->fresh()->load(self::RELATIONS_VALIDATION);
     }
 
     /**
@@ -248,8 +257,8 @@ class FicheAdminController extends AdminController
             ...$validation->only(['id', 'porte', 'ordre', 'decision']),
             'demandee_le' => $validation->demandee_le?->toDateString(),
             'role' => $validation->role?->only(['id', 'code', 'libelle']),
-            'valideur' => $validation->valideur?->only(['id', 'identifiant', 'nom', 'prenom', 'actif']),
-            'partages' => $validation->partages->map(fn (User $user) => $user->only(['id', 'identifiant', 'nom', 'prenom', 'actif']))->values()->all(),
+            'valideur' => $validation->valideur?->only(self::PERSONNE),
+            'partages' => $validation->partages->map(fn (User $user) => $user->only(self::PERSONNE))->values()->all(),
             'valideur_indisponible' => $this->circuit->valideurIndisponible($validation, $fiche),
             'candidats' => $candidats->map(fn (User $user) => $user->only(['id', 'identifiant', 'nom', 'prenom']))->all(),
         ];
@@ -263,8 +272,8 @@ class FicheAdminController extends AdminController
         return [
             ...$fiche->only(['id', 'numero_a3', 'titre', 'statut_etape', 'statut_general', 'confidentialite']),
             'unite' => $fiche->unite?->only(['id', 'code', 'libelle']),
-            'pilote' => $fiche->pilote?->only(['id', 'identifiant', 'nom', 'prenom', 'actif']),
-            'membres' => $fiche->membres->map(fn (User $user) => $user->only(['id', 'identifiant', 'nom', 'prenom', 'actif']))->values()->all(),
+            'pilote' => $fiche->pilote?->only(self::PERSONNE),
+            'membres' => $fiche->membres->map(fn (User $user) => $user->only(self::PERSONNE))->values()->all(),
         ];
     }
 }

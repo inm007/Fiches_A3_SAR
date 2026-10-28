@@ -6,6 +6,7 @@ import sarLogo from '../../assets/logo.jpg'
 import { ADMIN_SECTIONS, sectionOf } from '../admin/adminSections.js'
 import { BUSINESS_ROLES, DECIDING_ROLES } from '../../utils/constants.js'
 import './Sidebar.css'
+import { personName } from '../../utils/format.js'
 
 const sharedRoles = BUSINESS_ROLES
 const validationRoles = DECIDING_ROLES
@@ -85,7 +86,7 @@ function Sidebar() {
       <div className="sidebar__account">
         <span aria-hidden="true" className="sidebar__avatar">{initials}</span>
         <span className="sidebar__account-copy">
-          <strong>{user?.prenom} {user?.nom}</strong>
+          <strong>{personName(user)}</strong>
           <span title={activeProfile?.label || activeProfile?.role}>{activeProfile?.label || activeProfile?.role}</span>
         </span>
       </div>

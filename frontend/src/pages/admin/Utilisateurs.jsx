@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { apiRequest } from '../../auth/api.js'
 import AdminEntityPage from '../../components/admin/AdminEntityPage.jsx'
 import Badge from '../../components/ui/Badge.jsx'
+import { personName } from '../../utils/format.js'
 
 const fields = [
   { name: 'identifiant', label: 'Identifiant', required: true, maxLength: 255 },
@@ -51,13 +52,13 @@ const columns = [
     key: 'name',
     label: 'Utilisateur',
     width: '22%',
-    searchValue: (user) => `${user.prenom} ${user.nom} ${user.identifiant}`,
+    searchValue: (user) => `${personName(user)} ${user.identifiant}`,
     render: (user) => (
       <div className="admin-entity__user">
         <span aria-hidden="true" className="admin-entity__avatar">{userInitials(user)}</span>
         <span className="admin-entity__user-details">
-          <strong title={`${user.prenom} ${user.nom} · ${user.identifiant} · ${user.email} · ${user.auth_source === 'ldap' ? 'Annuaire' : 'Locale'}`}>
-            {user.prenom} {user.nom}
+          <strong title={`${personName(user)} · ${user.identifiant} · ${user.email} · ${user.auth_source === 'ldap' ? 'Annuaire' : 'Locale'}`}>
+            {personName(user)}
           </strong>
           <small title={user.identifiant}>{user.identifiant}</small>
         </span>
@@ -107,7 +108,7 @@ const columns = [
 
 const exportColumns = [
   { key: 'identifiant', label: 'Identifiant' },
-  { key: 'name', label: 'Nom', value: (user) => `${user.prenom} ${user.nom}` },
+  { key: 'name', label: 'Nom', value: personName },
   { key: 'email', label: 'Courriel' },
   { key: 'entite', label: 'Entité', value: (user) => user.entite ?? '' },
   { key: 'auth_source', label: 'Source', value: (user) => user.auth_source === 'ldap' ? 'Annuaire' : 'Locale' },

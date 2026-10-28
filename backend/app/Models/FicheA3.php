@@ -120,6 +120,15 @@ class FicheA3 extends Model
     }
 
     /**
+     * Sponsor ou chef de département choisis en sections 1 et 4 : ils valident la fiche,
+     * ils ne la pilotent pas et n'entrent pas dans l'équipe (B8).
+     */
+    public function estValideurDesigne(?int $userId): bool
+    {
+        return $userId !== null && in_array($userId, [$this->sponsor_id, $this->chef_pertinence_id], true);
+    }
+
+    /**
      * Fiches dont l'utilisateur fait partie de l'équipe.
      *
      * @param  Builder<FicheA3>  $query
