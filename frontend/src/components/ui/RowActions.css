@@ -1,52 +1,144 @@
 .row-actions {
   display: flex;
+  min-width: 0;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 8px;
   white-space: nowrap;
 }
 
 .row-actions .sar-button {
-  min-height: 32px;
-  padding: 0 10px;
-  font-size: var(--text-xs);
+  min-height: 42px;
+  gap: 9px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    transform 150ms ease;
+}
+
+.row-actions .row-actions__button.sar-button--secondary {
+  color: var(--gray-700);
+  background: var(--gray-100);
+}
+
+.row-actions .row-actions__button.sar-button--secondary > .sar-icon {
+  color: var(--gray-800);
+}
+
+.row-actions .row-actions__button.sar-button--secondary:hover:not(:disabled) {
+  border-color: transparent;
+  color: var(--ink-strong);
+  background: var(--gray-200);
+}
+
+.row-actions .row-actions__button--view.sar-button--secondary {
+  color: var(--brand-700);
+  background: var(--brand-50);
+}
+
+.row-actions .row-actions__button--view.sar-button--secondary > .sar-icon {
+  color: var(--brand-600);
+}
+
+.row-actions .row-actions__button--view.sar-button--secondary:hover:not(:disabled) {
+  color: var(--brand-700);
+  background: var(--brand-100);
+}
+
+.row-actions .sar-button--success {
+  border-color: var(--success-border);
+}
+
+.row-actions .sar-button--danger,
+.row-actions .sar-button--danger-solid {
+  border-color: var(--error-border);
+}
+
+.row-actions .sar-button:disabled {
+  border-color: transparent;
 }
 
 .row-actions__menu {
   position: relative;
 }
 
+.row-actions .row-actions__more {
+  display: grid;
+  width: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  padding: 0;
+  border-color: transparent;
+  border-radius: var(--radius-pill);
+  color: var(--gray-800);
+  background: var(--gray-100);
+  place-items: center;
+}
+
+.row-actions .row-actions__more:hover,
+.row-actions .row-actions__more.is-open {
+  border-color: transparent;
+  color: var(--brand-700);
+  background: var(--gray-200);
+}
+
 .row-actions__menu-items {
   position: absolute;
-  z-index: 5;
-  top: calc(100% + 4px);
+  z-index: 20;
+  top: calc(100% + 7px);
   right: 0;
   display: grid;
-  min-width: 190px;
-  padding: 4px;
+  min-width: 196px;
+  gap: 2px;
+  padding: 6px;
   border: 1px solid var(--border-card);
   border-radius: var(--radius-lg);
   background: var(--white);
   box-shadow: var(--shadow-pop);
+  animation: row-actions-menu-in 140ms ease-out both;
 }
 
 .row-actions__menu-items button {
   display: flex;
+  min-height: 36px;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: 9px;
+  padding: 0 10px;
   border: 0;
   border-radius: var(--radius-md);
-  color: var(--ink);
+  color: var(--gray-700);
   background: transparent;
   font: inherit;
   font-size: var(--text-sm);
+  font-weight: 500;
   cursor: pointer;
   text-align: left;
+  transition: color 140ms ease, background-color 140ms ease;
+}
+
+.row-actions__menu-items button > .sar-icon {
+  flex: 0 0 auto;
+  color: var(--text-muted);
 }
 
 .row-actions__menu-items button:hover:not(:disabled) {
-  background: var(--gray-50);
+  color: var(--brand-700);
+  background: var(--brand-50);
+}
+
+.row-actions__menu-items button:hover:not(:disabled) > .sar-icon {
+  color: var(--brand-600);
+}
+
+.row-actions__menu-items button:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: -2px;
 }
 
 .row-actions__menu-items button:disabled {
@@ -58,6 +150,61 @@
   color: var(--button-danger-text);
 }
 
+.row-actions__menu-items button.is-danger:hover:not(:disabled) {
+  background: var(--button-danger-bg);
+}
+
+.row-actions__menu-items button.is-danger > .sar-icon {
+  color: var(--button-danger-text);
+}
+
 .row-actions__menu-items button.is-success:not(:disabled) {
   color: var(--button-success-text);
+}
+
+.row-actions__menu-items button.is-success:hover:not(:disabled) {
+  background: var(--button-success-bg);
+}
+
+.row-actions__menu-items button.is-success > .sar-icon {
+  color: var(--button-success-text);
+}
+
+@keyframes row-actions-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 799px) {
+  .row-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .row-actions .sar-button {
+    min-height: 38px;
+    padding: 0 13px;
+  }
+
+  .row-actions .row-actions__more {
+    width: 38px;
+    min-width: 38px;
+    min-height: 38px;
+    padding: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row-actions .sar-button,
+  .row-actions__menu-items,
+  .row-actions__menu-items button {
+    animation: none;
+    transition: none;
+  }
 }

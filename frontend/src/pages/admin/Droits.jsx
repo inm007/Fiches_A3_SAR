@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { apiRequest } from '../../auth/api.js'
 import { errorMessage } from '../../services/ficheService.js'
+import AdminSectionTabs from '../../components/admin/AdminSectionTabs.jsx'
 import Alert from '../../components/ui/Alert.jsx'
 import Icon from '../../components/ui/Icon.jsx'
 import Skeleton from '../../components/ui/Skeleton.jsx'
@@ -77,6 +78,7 @@ function Droits() {
         description="Choisissez un rôle pour voir ce qu’il peut faire. Chaque changement est journalisé."
         title="Droits des rôles"
       />
+      <AdminSectionTabs />
       {error && <Alert severity="error">{error}</Alert>}
       {!matrice ? <Skeleton height={56} lines={6} /> : (
         <div className="droits-layout">

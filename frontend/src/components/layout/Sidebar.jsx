@@ -22,9 +22,9 @@ const menuLinks = [
 ]
 
 
-function SidebarLink({ label, to, icon, count = 0, active }) {
+function SidebarLink({ label, to, icon, count = 0, active, onNavigate }) {
   return (
-    <NavLink end className={({ isActive }) => `sidebar__link${(active ?? isActive) ? ' is-active' : ''}`} to={to}>
+    <NavLink end className={({ isActive }) => `sidebar__link${(active ?? isActive) ? ' is-active' : ''}`} to={to} onClick={onNavigate}>
       <Icon className="sidebar__icon" name={icon} size={19} />
       <span>{label}</span>
       {count > 0 && <b className="sidebar__count" aria-label={`${count} en attente`}>{count}</b>}
@@ -32,7 +32,7 @@ function SidebarLink({ label, to, icon, count = 0, active }) {
   )
 }
 
-function Sidebar() {
+function Sidebar({ mobileViewport = false, open = false, onNavigate }) {
   const { activeProfile, user } = useAuth()
   const roleCode = activeProfile?.role_code
   const homeRoute = activeProfile?.redirect_to || '/tableau-de-bord'
@@ -45,8 +45,12 @@ function Sidebar() {
   const counts = { '/validations': counters.validations, '/notifications': counters.notifications }
 
   return (
-    <aside className="sidebar">
-      <NavLink className="sidebar__brand" to={homeRoute}>
+    <aside
+      aria-hidden={mobileViewport && !open ? true : undefined}
+      className={`sidebar${open ? ' sidebar--open' : ''}`}
+      inert={mobileViewport && !open ? true : undefined}
+    >
+      <NavLink className="sidebar__brand" to={homeRoute} onClick={onNavigate}>
         <img alt="SAR" className="sidebar__logo" src={sarLogo} />
         <span className="sidebar__brand-copy">
           <strong>Fiches A3</strong>
@@ -59,7 +63,7 @@ function Sidebar() {
             <div className="sidebar__section-label">Espace de travail</div>
             <nav aria-label="Navigation principale" className="sidebar__nav">
               {visibleLinks.map(({ label, to, icon }) => (
-                <SidebarLink active={to === '/fiches' && ficheDetail ? true : undefined} count={counts[to]} icon={icon} key={to} label={label} to={to} />
+                <SidebarLink active={to === '/fiches' && ficheDetail ? true : undefined} count={counts[to]} icon={icon} key={to} label={label} to={to} onNavigate={onNavigate} />
               ))}
             </nav>
           </>
@@ -69,7 +73,7 @@ function Sidebar() {
             <div className="sidebar__section-label">Administration</div>
             <nav aria-label="Administration" className="sidebar__nav">
               {ADMIN_SECTIONS.map((section) => (
-                <SidebarLink active={sectionOf(pathname) === section} icon={section.icon} key={section.label} label={section.label} to={section.pages[0].to} />
+                <SidebarLink active={sectionOf(pathname) === section} icon={section.icon} key={section.label} label={section.label} to={section.pages[0].to} onNavigate={onNavigate} />
               ))}
             </nav>
           </>
@@ -78,7 +82,7 @@ function Sidebar() {
           <>
             <div className="sidebar__section-label">Administration technique</div>
             <nav aria-label="Administration technique" className="sidebar__nav">
-              <SidebarLink icon="technical" label="État technique" to="/technique" />
+              <SidebarLink icon="technical" label="État technique" to="/technique" onNavigate={onNavigate} />
             </nav>
           </>
         )}

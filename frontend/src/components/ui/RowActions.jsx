@@ -3,6 +3,34 @@ import Button from './Button.jsx'
 import Icon from './Icon.jsx'
 import './RowActions.css'
 
+const ACTION_ICONS = {
+  voir: 'eye',
+  consulter: 'eye',
+  ouvrir: 'eye',
+  modifier: 'edit',
+  éditer: 'edit',
+  editer: 'edit',
+  gérer: 'set',
+  gerer: 'set',
+  supprimer: 'x',
+  retirer: 'x',
+  désactiver: 'disable',
+  desactiver: 'disable',
+  réactiver: 'enable',
+  reactiver: 'enable',
+  activer: 'enable',
+  télécharger: 'download',
+  telecharger: 'download',
+  valider: 'check',
+  approuver: 'check',
+  refuser: 'x',
+  relancer: 'bell',
+}
+
+function iconForAction(action) {
+  return action.icon ?? ACTION_ICONS[action.label.toLocaleLowerCase('fr')]
+}
+
 /**
  * Actions d'une ligne de tableau : des boutons avec leur libellé, toujours dans le même ordre
  * (« Voir », puis l'action principale) ; au-delà de `maxVisible`, les autres passent dans « Plus ».
@@ -18,8 +46,9 @@ function RowActions({ actions = [], maxVisible = 2 }) {
     <div className="row-actions" onClick={(event) => event.stopPropagation()}>
       {visibleActions.map((action) => (
         <Button
+          className={`row-actions__button${action.label.toLocaleLowerCase('fr') === 'voir' ? ' row-actions__button--view' : ''}`}
           disabled={action.disabled}
-          icon={action.icon}
+          icon={iconForAction(action)}
           key={action.label}
           loading={action.loading}
           size="small"
@@ -54,22 +83,34 @@ function PlusMenu({ actions }) {
 
   return (
     <div className="row-actions__menu" ref={ref}>
-      <Button aria-expanded={open} aria-haspopup="menu" size="small" type="button" variant="ghost" onClick={() => setOpen((current) => !current)}>
-        Plus
-        <Icon name="chevron-down" size={14} />
-      </Button>
+      <Button
+        aria-label="Plus d’actions"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className={`row-actions__more${open ? ' is-open' : ''}`}
+        icon="more-horizontal"
+        size="small"
+        title="Plus d’actions"
+        type="button"
+        variant="ghost"
+        onClick={() => setOpen((current) => !current)}
+      />
       {open && (
         <div className="row-actions__menu-items" role="menu">
           {actions.map((action) => (
             <button
-              className={action.tone === 'danger' ? 'is-danger' : action.tone === 'success' ? 'is-success' : undefined}
+              className={action.tone === 'danger' || action.variant === 'danger' || action.variant === 'danger-solid'
+                ? 'is-danger'
+                : action.tone === 'success' || action.variant === 'success'
+                  ? 'is-success'
+                  : undefined}
               disabled={action.disabled}
               key={action.label}
               role="menuitem"
               type="button"
               onClick={() => { setOpen(false); action.onClick() }}
             >
-              {action.icon && <Icon name={action.icon} size={15} />}
+              {iconForAction(action) && <Icon name={iconForAction(action)} size={15} />}
               {action.label}
             </button>
           ))}

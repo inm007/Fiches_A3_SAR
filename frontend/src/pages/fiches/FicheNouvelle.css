@@ -178,6 +178,29 @@
   padding-left: 18px;
 }
 
+@media (max-width: 900px) {
+  .fiche-nouvelle-page__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fiche-nouvelle-page__aside {
+    position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .fiche-nouvelle-page__card,
+  .fiche-nouvelle-page__layout .fiche-nouvelle-page__card {
+    padding: 16px;
+  }
+
+  .fiche-nouvelle-page__grid,
+  .fiche-nouvelle-page__aside {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .fiche-nouvelle-page__doublons li {
   margin: 2px 0;
 }

@@ -27,7 +27,7 @@ const routeNames = {
   '/403': 'Accès refusé',
 }
 
-function Topbar() {
+function Topbar({ mobileNavOpen, onToggleNavigation }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { logout, activeProfile } = useAuth()
@@ -62,6 +62,15 @@ function Topbar() {
 
   return (
     <header className="topbar">
+      <button
+        aria-expanded={mobileNavOpen}
+        aria-label={mobileNavOpen ? 'Fermer le menu de navigation' : 'Ouvrir le menu de navigation'}
+        className="topbar__menu-toggle"
+        type="button"
+        onClick={onToggleNavigation}
+      >
+        <Icon name={mobileNavOpen ? 'x' : 'menu'} size={20} />
+      </button>
       <Breadcrumb
         className={`topbar__breadcrumb${pathname === '/tableau-de-bord' ? ' topbar__breadcrumb--dashboard' : ''}`}
         homeTo={activeProfile?.redirect_to || '/tableau-de-bord'}

@@ -304,7 +304,7 @@ function Fiches() {
               ]}
             />
           )}
-          actionsWidth={isAdmin ? '168px' : '96px'}
+          actionsWidth={isAdmin ? '208px' : '104px'}
           columns={columns}
           emptyAction={list.active
             ? <Button type="button" variant="secondary" onClick={list.reset}>Réinitialiser les filtres</Button>

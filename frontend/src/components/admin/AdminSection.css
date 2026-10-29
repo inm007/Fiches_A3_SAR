@@ -1,5 +1,5 @@
 .admin-section__tabs {
-  margin-bottom: var(--space-2, 16px);
+  margin: 0;
 }
 
 .admin-section__tabs a {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { apiRequest } from '../../auth/api.js'
+import AdminSectionTabs from './AdminSectionTabs.jsx'
 import { useListFilters } from '../../hooks/useListFilters.js'
 import Alert from '../ui/Alert.jsx'
 import Button from '../ui/Button.jsx'
@@ -372,6 +373,7 @@ function AdminEntityPage({
   return (
     <section className="admin-entity">
       <PageBanner actions={addButton} description={description} title={title} />
+      <AdminSectionTabs />
 
       {error && <Alert severity="error">{error}</Alert>}
 
