@@ -72,6 +72,12 @@ class DemoAccountsSeeder extends Seeder
     private const array ANCIEN = ['ancien-agent.demo', 'Modou', 'Lo', 'AGENT', 'UTIL', 'SRV-UTIL'];
 
     /**
+     * Compte créé depuis l'annuaire (assistant de création, source LDAP) : identifiant, prénom, nom,
+     * rôle, unité, entité. Il se connectera par l'annuaire de la SAR, sans mot de passe local.
+     */
+    private const array ANNUAIRE = ['ramatoulaye.sene', 'Ramatoulaye', 'Sène', 'AGENT', 'DIST', 'SRV-DIST'];
+
+    /**
      * @var array<string, array<int, array{0: string, 1: string}>>
      */
     private const array EQUIPEMENTS = [
@@ -144,6 +150,21 @@ class DemoAccountsSeeder extends Seeder
             ['actif' => false, 'date_debut' => now()->subYears(3), 'date_fin' => now()->subMonths(4)],
         );
 
+        [$identifiant, $prenom, $nom, $roleCode, $uniteCode] = self::ANNUAIRE;
+        $annuaire = User::updateOrCreate(['identifiant' => $identifiant], [
+            'prenom' => $prenom,
+            'nom' => $nom,
+            'email' => $identifiant.'@sar.sn',
+            'password' => null,
+            'auth_source' => 'ldap',
+            'ldap_dn' => "uid={$identifiant},ou=personnel,dc=sar,dc=sn",
+            'actif' => true,
+        ]);
+        Affectation::updateOrCreate(
+            ['user_id' => $annuaire->id, 'role_id' => Role::where('code', $roleCode)->value('id'), 'unite_id' => $unites[$uniteCode]->id],
+            ['actif' => true],
+        );
+
         $this->organigramme();
     }
 
@@ -172,7 +193,7 @@ class DemoAccountsSeeder extends Seeder
             ]);
         }
 
-        $rattachements = array_map(fn (array $compte) => $compte[4], self::COMPTES) + [self::ANCIEN[0] => self::ANCIEN[5]];
+        $rattachements = array_map(fn (array $compte) => $compte[4], self::COMPTES) + [self::ANCIEN[0] => self::ANCIEN[5], self::ANNUAIRE[0] => self::ANNUAIRE[5]];
         foreach ($rattachements as $identifiant => $code) {
             User::where('identifiant', $identifiant)->update(['entite_id' => $entites[$code]->id]);
         }
