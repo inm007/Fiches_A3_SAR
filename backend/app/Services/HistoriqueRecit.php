@@ -6,8 +6,10 @@ use App\Enums\Confidentialite;
 use App\Enums\StatutAction;
 use App\Enums\StatutEtape;
 use App\Models\ActionA3;
+use App\Models\Controle;
 use App\Models\EvenementHistorique;
 use App\Models\User;
+use App\Models\ValeurListe;
 use Illuminate\Support\Collection;
 
 /**
@@ -30,13 +32,30 @@ class HistoriqueRecit
         'objectif_atteint' => 'l’objectif atteint', 'enonce_probleme' => 'l’énoncé du problème',
         'contexte' => 'le contexte', 'objectif_smart' => 'l’objectif', 'date_cible' => 'la date cible',
         'titre' => 'le titre', 'sponsor_id' => 'le sponsor', 'unite_id' => 'l’unité', 'equipement_id' => 'l’équipement',
+        'methode_analyse' => 'la méthode d’analyse', 'frequence_id' => 'la fréquence', 'type_amelioration' => 'le type d’amélioration',
+        'impact_financier_estime' => 'l’impact financier estimé', 'perimetre' => 'le périmètre', 'resultats_attendus' => 'les résultats attendus',
+        'date_lancement' => 'la date de lancement', 'chef_pertinence_id' => 'le chef de département (pertinence)',
+        'cout_mise_en_oeuvre_b' => 'le coût de mise en œuvre', 'sans_gain_chiffre' => '« sans gain chiffré »',
     ];
+
+    /** Champs dont la valeur est une personne, un montant ou un code de liste de choix. */
+    private const PERSONNES = ['pilote_id', 'equipe', 'sponsor_id', 'chef_pertinence_id'];
+
+    private const MONTANTS = ['impact_financier_estime', 'cout_mise_en_oeuvre_b'];
+
+    private const LISTES = ['methode_analyse', 'type_amelioration', 'frequence_id'];
 
     /** @var Collection<int, string> */
     private Collection $noms;
 
     /** @var Collection<int, string> */
     private Collection $actions;
+
+    /** @var Collection<int, string> action contrôlée, par identifiant de contrôle */
+    private Collection $controles;
+
+    /** @var Collection<string, string> libellé par « id » ou « code » de valeur de liste */
+    private Collection $libelles;
 
     /**
      * @param  Collection<int, EvenementHistorique>  $evenements
@@ -46,6 +65,8 @@ class HistoriqueRecit
     {
         $this->noms = $this->chargerNoms($evenements);
         $this->actions = $this->chargerActions($evenements);
+        $this->libelles = $this->chargerLibelles($evenements);
+        $this->controles = $this->chargerControles($evenements);
 
         return $evenements->mapWithKeys(fn (EvenementHistorique $evenement) => [$evenement->id => $this->phrase($evenement)]);
     }
@@ -62,7 +83,9 @@ class HistoriqueRecit
                 ? "{$auteur} a déclaré la fiche."
                 : "{$auteur} a fait passer la fiche à l’étape « ".$this->etape($nouveau).' ».',
             'ENREGISTREMENT_SECTION' => "{$auteur} a enregistré la section ".$this->section($evenement->champ).'.',
-            'MODIFICATION_CHAMP' => "{$auteur} a modifié ".$this->champ($evenement->champ).' : '.$this->valeur($ancien).' → '.$this->valeur($nouveau).'.',
+            'MODIFICATION_CHAMP' => $ancien === null || $ancien === ''
+                ? "{$auteur} a renseigné ".$this->champ($evenement->champ).' : '.$this->valeurDe($evenement->champ, $nouveau).'.'
+                : "{$auteur} a modifié ".$this->champ($evenement->champ).' : '.$this->valeurDe($evenement->champ, $ancien).' → '.$this->valeurDe($evenement->champ, $nouveau).'.',
             'APPROBATION' => "{$auteur} a approuvé la fiche (".$this->porte($evenement->champ).').',
             'REFUS' => "{$auteur} a renvoyé la fiche au pilote (".$this->porte($evenement->champ).').',
             'DESIGNATION_PILOTE' => $nouveau === null
@@ -77,7 +100,7 @@ class HistoriqueRecit
             'STATUT_ACTION' => "{$auteur} a passé l’action {$action} de « ".$this->statutAction($ancien).' » à « '.$this->statutAction($nouveau).' ».',
             'REPORT_ECHEANCE' => "{$auteur} a reporté l’échéance de l’action {$action} du ".$this->date($ancien).' au '.$this->date($nouveau).'.',
             'CHANGEMENT_RESPONSABLE' => "{$auteur} a confié l’action {$action} à ".$this->nom($nouveau).'.',
-            'CONTROLE_EFFICACITE' => "{$auteur} a enregistré un contrôle d’efficacité : ".$this->controle($nouveau).'.',
+            'CONTROLE_EFFICACITE' => "{$auteur} a enregistré le contrôle ".str_replace(' : ', $this->actionControlee($evenement->champ).' : ', $this->controle($nouveau)).'.',
             'DECISION_GAIN' => "{$auteur} a ".($nouveau === 'VALIDE' ? 'validé' : 'refusé').' un gain.',
             'CHANGEMENT_CONFIDENTIALITE' => "{$auteur} a passé la fiche en « ".($nouveau === Confidentialite::Restreint->value ? 'Restreint' : 'Normal').' ».',
             'NOUVELLE_VERSION' => "{$auteur} a lancé la boucle {$nouveau} : l’analyse et le plan sont repris.",
@@ -137,9 +160,40 @@ class HistoriqueRecit
         return is_string($valeur) ? str_replace(['J30', 'J60', 'J90', 'NON_CONFORME', 'CONFORME'], ['J+30', 'J+60', 'J+90', 'non conforme', 'conforme'], $valeur) : (string) $valeur;
     }
 
+    private function actionControlee(?string $champ): string
+    {
+        $id = (int) str_replace('controle_', '', (string) $champ);
+
+        return $this->controles->has($id) ? ' de l’action « '.$this->controles->get($id).' »' : '';
+    }
+
     private function date(mixed $valeur): string
     {
         return is_string($valeur) && strlen($valeur) >= 10 ? implode('/', array_reverse(explode('-', substr($valeur, 0, 10)))) : (string) $valeur;
+    }
+
+    private function valeurDe(?string $champ, mixed $valeur): string
+    {
+        if ($valeur === null || $valeur === '') {
+            return 'vide';
+        }
+        if (in_array($champ, self::PERSONNES, true) && is_numeric($valeur)) {
+            return $this->nom($valeur);
+        }
+        if (in_array($champ, self::MONTANTS, true) && is_numeric($valeur)) {
+            return number_format((float) $valeur, 0, ',', ' ').' FCFA';
+        }
+        if (in_array($champ, self::LISTES, true) && $this->libelles->has((string) $valeur)) {
+            return '« '.$this->libelles->get((string) $valeur).' »';
+        }
+        if ($champ === 'objectif_atteint' && is_string($valeur)) {
+            return '« '.(['OUI' => 'Oui', 'PARTIELLEMENT' => 'Partiellement', 'NON' => 'Non'][$valeur] ?? $valeur).' »';
+        }
+        if (is_string($valeur) && preg_match('/^\d{4}-\d{2}-\d{2}/', $valeur)) {
+            return $this->date($valeur);
+        }
+
+        return $this->valeur($valeur);
     }
 
     private function valeur(mixed $valeur): string
@@ -163,7 +217,7 @@ class HistoriqueRecit
      */
     private function chargerNoms(Collection $evenements): Collection
     {
-        $champsPersonne = ['pilote_id', 'equipe', 'sponsor_id'];
+        $champsPersonne = self::PERSONNES;
         $ids = $evenements
             ->filter(fn (EvenementHistorique $evenement) => in_array($evenement->champ, $champsPersonne, true)
                 || str_starts_with((string) $evenement->champ, 'validation_')
@@ -190,5 +244,44 @@ class HistoriqueRecit
             ? collect()
             : ActionA3::query()->whereIn('id', $ids)->get(['id', 'description'])
                 ->mapWithKeys(fn (ActionA3 $action) => [$action->id => str($action->description)->limit(60)->toString()]);
+    }
+
+    /**
+     * @param  Collection<int, EvenementHistorique>  $evenements
+     * @return Collection<string, string>
+     */
+    private function chargerLibelles(Collection $evenements): Collection
+    {
+        $valeurs = $evenements
+            ->filter(fn (EvenementHistorique $evenement) => in_array($evenement->champ, self::LISTES, true))
+            ->flatMap(fn (EvenementHistorique $evenement) => [$evenement->ancien_etat['valeur'] ?? null, $evenement->nouvel_etat['valeur'] ?? null])
+            ->filter(fn (mixed $valeur) => is_scalar($valeur) && $valeur !== '')
+            ->unique();
+        if ($valeurs->isEmpty()) {
+            return collect();
+        }
+        $ids = $valeurs->filter(fn (mixed $valeur) => is_numeric($valeur))->map(fn (mixed $valeur) => (int) $valeur);
+        $codes = $valeurs->reject(fn (mixed $valeur) => is_numeric($valeur))->map(fn (mixed $valeur) => (string) $valeur);
+
+        return ValeurListe::query()
+            ->where(fn ($query) => $query->whereIn('id', $ids)->orWhereIn('code', $codes))
+            ->get(['id', 'code', 'libelle'])
+            ->reduce(fn (Collection $libelles, ValeurListe $valeur) => $libelles->put((string) $valeur->id, $valeur->libelle)->put((string) $valeur->code, $valeur->libelle), collect());
+    }
+
+    /**
+     * @param  Collection<int, EvenementHistorique>  $evenements
+     * @return Collection<int, string>
+     */
+    private function chargerControles(Collection $evenements): Collection
+    {
+        $ids = $evenements->map(fn (EvenementHistorique $evenement) => str_starts_with((string) $evenement->champ, 'controle_')
+            ? (int) str_replace('controle_', '', (string) $evenement->champ)
+            : null)->filter()->unique();
+
+        return $ids->isEmpty()
+            ? collect()
+            : Controle::query()->with('action:id,description')->whereIn('id', $ids)->get(['id', 'action_id'])
+                ->mapWithKeys(fn (Controle $controle) => [$controle->id => str($controle->action?->description)->limit(60)->toString()]);
     }
 }

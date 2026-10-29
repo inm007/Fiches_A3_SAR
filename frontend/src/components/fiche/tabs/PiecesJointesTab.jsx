@@ -6,6 +6,7 @@ import FileInput from '../../ui/FileInput.jsx'
 import { Select } from '../../ui/FormControls.jsx'
 import Skeleton from '../../ui/Skeleton.jsx'
 import { describeError, errorMessage, ficheService } from '../../../services/ficheService.js'
+import { JALONS } from '../../../utils/constants.js'
 import { formatDate } from '../../../utils/format.js'
 import { FICHIERS_ACCEPTES, PiecesJointesContext, telechargerPiece } from '../preuves.js'
 import { toast } from '../../../utils/toast.js'
@@ -16,6 +17,26 @@ function formatSize(bytes) {
   return bytes < 1024 * 1024
     ? `${Math.ceil(bytes / 1024)} Ko`
     : `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
+}
+
+// À quoi le fichier sert de preuve : une action, une cause, un MOC, un contrôle ou la pérennisation.
+function rattachement(fiche, piece) {
+  const id = piece.objet_id
+  switch (piece.objet) {
+    case 'action': return `Action : ${piece.action ?? fiche.actions.find((action) => action.id === id)?.description ?? 'supprimée'}`
+    case 'cause': {
+      const cause = fiche.analyse.causes.find((ligne) => ligne.id === id)
+      return cause ? `Cause ${cause.numero} : ${cause.libelle}` : 'Cause supprimée'
+    }
+    case 'risque': return `MOC : ${fiche.risques.find((ligne) => ligne.id === id)?.description ?? 'supprimé'}`
+    case 'controle': {
+      const action = fiche.actions.find((ligne) => ligne.controles.some((controle) => controle.id === id))
+      const controle = action?.controles.find((ligne) => ligne.id === id)
+      return controle ? `Contrôle ${JALONS[controle.jalon]} : ${action.description}` : 'Contrôle d’efficacité'
+    }
+    case 'perennisation': return `Pérennisation : ${fiche.perennisation?.find((ligne) => ligne.id === id)?.type_libelle ?? 'ligne supprimée'}`
+    default: return null
+  }
 }
 
 export default function PiecesJointesTab({ fiche, onError }) {
@@ -95,9 +116,12 @@ export default function PiecesJointesTab({ fiche, onError }) {
 
   return (
     <section className="fiche-tab">
-      <h2>Pièces jointes</h2>
+      <div className="fiche-tab__title">
+        <h2>Pièces jointes</h2>
+        <span className="fiche-tab__muted">{attachments.length} / {limits.attachment_max_files}</span>
+      </div>
       <p className="fiche-tab__help">
-        Formats acceptés : PDF, PNG, JPEG, DOCX, XLSX et PPTX. Limites actuelles : {limits.attachment_max_size_mb} Mo par fichier et {limits.attachment_max_files} fichiers par fiche.
+        Toutes les preuves de la fiche, y compris celles jointes aux causes, aux actions et aux contrôles. PDF, photo, Word, Excel ou PowerPoint, {limits.attachment_max_size_mb} Mo au plus.
       </p>
       {message && <p className="pieces-jointes__message" role="alert">{message}</p>}
 
@@ -120,15 +144,14 @@ export default function PiecesJointesTab({ fiche, onError }) {
 
       {loading ? <Skeleton lines={3} height={22} /> : (
         <div className="pieces-jointes__list">
-          {attachments.length === 0 && <EmptyState icon="file" title="Aucune pièce jointe pour cette fiche" />}
+          {attachments.length === 0 && <EmptyState icon="file" title="Aucune pièce jointe pour l’instant" />}
           {attachments.map((attachment) => (
             <article className="pieces-jointes__item" key={attachment.id}>
               <div>
                 <strong>{attachment.nom}</strong>
+                {rattachement(fiche, attachment) && <span className="pieces-jointes__objet">{rattachement(fiche, attachment)}</span>}
                 <p className="fiche-tab__muted">
                   {formatSize(attachment.taille)} · {attachment.auteur} · {formatDate(attachment.created_at)}
-                  {attachment.action && <> · Action : {attachment.action}</>}
-                  {attachment.perennisation_id && <> · Pérennisation : {fiche.perennisation?.find((ligne) => ligne.id === attachment.perennisation_id)?.type_libelle ?? 'action supprimée'}</>}
                 </p>
               </div>
               <Button icon="download" type="button" variant="secondary" onClick={() => download(attachment)}>

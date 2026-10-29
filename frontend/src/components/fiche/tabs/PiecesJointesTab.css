@@ -60,3 +60,25 @@
     flex-direction: column;
   }
 }
+
+.pieces-jointes__objet {
+  display: inline-block;
+  overflow: hidden;
+  max-width: 100%;
+  margin: 2px 0;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  color: var(--brand-700);
+  background: var(--brand-50);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.pieces-jointes__item > div {
+  display: grid;
+  justify-items: start;
+  min-width: 0;
+}

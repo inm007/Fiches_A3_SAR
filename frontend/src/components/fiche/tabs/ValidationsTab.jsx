@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import Alert from '../../ui/Alert.jsx'
 import Button from '../../ui/Button.jsx'
 import ConfirmDialog from '../../ui/ConfirmDialog.jsx'
 import DataTable from '../../ui/DataTable.jsx'
@@ -12,7 +11,7 @@ import { describeError, ficheService } from '../../../services/ficheService.js'
 import { DECISIONS, SECTIONS, STATUTS_GAIN } from '../../../utils/constants.js'
 import { formatDate, formatDateTime, formatFcfa, formatNumber, plural } from '../../../utils/format.js'
 import { detailItems } from '../../../utils/details.js'
-import { toast } from '../../../utils/toast.js'
+import { avecSuivi } from '../../../utils/toast.js'
 import './FicheTab.css'
 
 const COLONNES_GAINS = [
@@ -23,7 +22,28 @@ const COLONNES_GAINS = [
 ]
 
 const tones = { EN_ATTENTE: 'warning', VALIDE: 'success', REFUSE: 'error', ANNULE: 'neutral' }
-const steps = { EN_ATTENTE: 'is-wait', VALIDE: 'is-ok', REFUSE: 'is-ko' }
+const CLASSES = { EN_ATTENTE: 'is-todo', VALIDE: 'is-ok', REFUSE: 'is-ko' }
+
+// Les trois portes du parcours, dans l'ordre où la fiche les franchit.
+const PORTES = [
+  { numero: 0, titre: 'Pertinence', qui: 'Chef de département' },
+  { numero: 1, titre: 'Plan d’actions', qui: 'Directeurs concernés' },
+  { numero: 2, titre: 'Clôture', qui: 'Contrôle de gestion, puis sponsor' },
+]
+
+// État d'une porte d'après ses demandes de la boucle la plus récente.
+function etatPorte(validations, porte) {
+  const demandes = validations.filter((validation) => validation.porte === porte && validation.decision !== 'ANNULE')
+  const boucle = Math.max(...demandes.map((validation) => validation.version_fiche))
+  const actuelles = demandes.filter((validation) => validation.version_fiche === boucle)
+  if (actuelles.length === 0) return { classe: 'is-later', label: 'À venir' }
+  if (actuelles.some((validation) => validation.decision === 'EN_ATTENTE')) return { classe: 'is-todo', label: 'En attente' }
+  const derniere = [...actuelles].sort((a, b) => String(b.decidee_le).localeCompare(String(a.decidee_le)))[0]
+  if (derniere.decision === 'REFUSE') return { classe: 'is-ko', label: 'Renvoyée au pilote' }
+  return { classe: 'is-ok', label: 'Franchie' }
+}
+
+const initiales = (nom) => (nom ?? '?').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()
 // Libellés des boutons et de la boîte de dialogue selon la décision choisie.
 const CHOIX = {
   VALIDE: { bouton: 'Approuver', titre: 'Approuver la demande', confirmer: 'Approuver', variant: 'primary', toast: 'Demande approuvée' },
@@ -90,15 +110,11 @@ export default function ValidationsTab({ fiche, onChange, onError }) {
   const [section, setSection] = useState('')
   const [busy, setBusy] = useState(false)
   const [gainVu, setGainVu] = useState(null)
-  const enAttente = fiche.validations.filter((validation) => validation.decision === 'EN_ATTENTE')
-  const plusAncienne = enAttente.reduce((oldest, validation) => (validation.anciennete_jours > (oldest?.anciennete_jours ?? -1) ? validation : oldest), null)
-  const porte2 = fiche.validations.some((validation) => validation.porte === 2)
 
-  async function run(task, message) {
+  async function run(task, message, enCours = 'Enregistrement en cours…') {
     setBusy(true)
     try {
-      onChange(await task())
-      toast(message)
+      onChange(await avecSuivi(enCours, task, { succes: message, echec: 'Rien n’a été enregistré.' }))
       refreshCounters()
       setDialog(null)
       setCommentaire('')
@@ -118,16 +134,76 @@ export default function ValidationsTab({ fiche, onChange, onError }) {
     retour: validation.porte === 2 ? retour : null,
     section: choix !== 'VALIDE' && choix !== 'CLASSER' && section ? Number(section) : null,
     classer: choix === 'CLASSER',
-  }), CHOIX[choix].toast)
+  }), CHOIX[choix].toast, 'Enregistrement de votre décision en cours…')
 
   return (
     <section className="fiche-tab" data-fiche-tab="validations">
       <h2>Validations</h2>
-      {plusAncienne && (
-        <Alert severity="warning">
-          Demande « {plusAncienne.role?.libelle} » en attente depuis <b>{plural(plusAncienne.anciennete_jours, 'jour')}</b>. Aucun délai imposé.
-        </Alert>
-      )}
+      <p className="fiche-tab__help">La fiche franchit trois portes. À chacune, les valideurs approuvent ou renvoient la fiche au pilote avec un commentaire.</p>
+      <ol className="portes" aria-label="Les trois portes de validation">
+        {PORTES.map((porte) => {
+          const { classe, label } = etatPorte(fiche.validations, porte.numero)
+          return (
+            <li className={`portes__porte ${classe}`} key={porte.numero}>
+              <span className="portes__numero">{porte.numero}</span>
+              <span className="portes__texte">
+                <b>{porte.titre}</b>
+                <span>{porte.qui}</span>
+              </span>
+              <span className="portes__etat">{label}</span>
+            </li>
+          )
+        })}
+      </ol>
+
+      {PORTES.map((porte) => {
+        const demandes = fiche.validations.filter((validation) => validation.porte === porte.numero)
+        if (demandes.length === 0) return null
+        return (
+          <div className="decisions" key={porte.numero}>
+            <h3>Porte {porte.numero} · {porte.titre}</h3>
+            {demandes.map((validation) => (
+              <article className={`decision ${CLASSES[validation.decision] ?? 'is-later'}${validation.actionnable ? ' decision--a-vous' : ''}`} key={validation.id}>
+                <span aria-hidden="true" className="sar-avatar">{initiales(validation.valideur?.nom)}</span>
+                <div className="decision__corps">
+                  <div className="decision__entete">
+                    <span>
+                      <b>{validation.valideur?.nom ?? 'À désigner'}</b>
+                      <span className="fiche-tab__muted"> · {validation.role?.libelle}</span>
+                    </span>
+                    <Badge tone={tones[validation.decision]}>{DECISIONS[validation.decision]}</Badge>
+                  </div>
+                  <span className="fiche-tab__muted">
+                    Demandé le {formatDate(validation.demandee_le)}
+                    {validation.decidee_le && ` · décidé le ${formatDate(validation.decidee_le)}`}
+                    {validation.decision === 'EN_ATTENTE' && ` · en attente depuis ${plural(validation.anciennete_jours, 'jour')}`}
+                    {fiche.version > 1 && ` · boucle ${validation.version_fiche}`}
+                    {validation.decision === 'EN_ATTENTE' && validation.partages?.length > 0 && ` · partagée avec ${validation.partages.map((person) => person.nom).join(', ')}`}
+                  </span>
+                  {validation.commentaire && <blockquote className="decision__commentaire">{validation.commentaire}</blockquote>}
+                  {validation.section_concernee && <span className="fiche-tab__muted">Section à reprendre : {validation.section_concernee}. {SECTIONS[validation.section_concernee - 1]}</span>}
+                  {validation.decision === 'EN_ATTENTE' && validation.derniere_relance && (
+                    <span className="fiche-tab__muted">Relancé le {formatDateTime(validation.derniere_relance)}</span>
+                  )}
+                  {validation.actionnable && (
+                    <div className="decision__choix">
+                      <span>Votre décision est attendue :</span>
+                      {choixDe(validation.porte).map((choix) => (
+                        <Button disabled={busy} key={choix} size="small" type="button" variant={choix === 'VALIDE' ? 'success' : 'danger'} onClick={() => setDialog({ validation, decision: choix })}>{CHOIX[choix].bouton}</Button>
+                      ))}
+                    </div>
+                  )}
+                  {validation.relancable && (
+                    <div className="decision__choix">
+                      <Button disabled={busy} icon="bell" size="small" type="button" variant="secondary" onClick={() => run(() => ficheService.relancer('validation', validation.id), 'Relance envoyée au valideur', 'Envoi de la relance en cours…')}>Relancer</Button>
+                    </div>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        )
+      })}
 
       {fiche.droits.peut_decider_gains && (
         <div>
@@ -136,7 +212,7 @@ export default function ValidationsTab({ fiche, onChange, onError }) {
             actions={(gain) => (
               <RowActions
                 actions={[
-                  { icon: 'eye', label: 'Voir', onClick: () => setGainVu(gain) },
+                  { label: 'Voir', onClick: () => setGainVu(gain) },
                   { icon: 'check', label: 'Valider', variant: 'success', disabled: busy || gain.statut === 'VALIDE', onClick: () => run(() => ficheService.decisionGain(gain.id, 'VALIDE'), 'Gain validé') },
                   { icon: 'x', label: 'Refuser', variant: 'danger', disabled: busy || gain.statut === 'REFUSE', onClick: () => run(() => ficheService.decisionGain(gain.id, 'REFUSE'), 'Gain refusé') },
                 ]}
@@ -156,45 +232,6 @@ export default function ValidationsTab({ fiche, onChange, onError }) {
           />
         </div>
       )}
-
-      <ol className="sar-timeline">
-        {fiche.validations.length === 0 && (
-          <li><b>Porte 0 — Chef de département choisi en section 4</b><span className="fiche-tab__muted">Quand le pilote soumet les sections 1 à 4</span></li>
-        )}
-        {fiche.validations.map((validation) => (
-          <li className={steps[validation.decision]} key={validation.id}>
-            <span>
-              <b>Porte {validation.porte} — {validation.role?.libelle}</b>{' '}
-              <Badge tone={tones[validation.decision]}>{DECISIONS[validation.decision]}</Badge>
-            </span>
-            <span className="fiche-tab__muted">
-              {validation.valideur?.nom}{validation.decision === 'EN_ATTENTE' && validation.partages?.length > 0 && ` (partagée avec ${validation.partages.map((person) => person.nom).join(', ')})`} · demandé le {formatDate(validation.demandee_le)}
-              {validation.decidee_le && ` · décidé le ${formatDate(validation.decidee_le)}`}
-              {validation.decision === 'EN_ATTENTE' && ` · ${validation.anciennete_jours} j`} · v{validation.version_fiche}
-            </span>
-            {validation.commentaire && <span>« {validation.commentaire} »</span>}
-            {validation.section_concernee && <span className="fiche-tab__muted">Section en cause : {validation.section_concernee}. {SECTIONS[validation.section_concernee - 1]}</span>}
-            {validation.decision === 'EN_ATTENTE' && validation.derniere_relance && (
-              <span className="fiche-tab__muted">Relancé le {formatDateTime(validation.derniere_relance)}</span>
-            )}
-            {validation.relancable && (
-              <span className="fiche-tab__buttons">
-                <Button disabled={busy} icon="bell" size="small" type="button" variant="secondary" onClick={() => run(() => ficheService.relancer('validation', validation.id), 'Relance envoyée au valideur')}>Relancer</Button>
-              </span>
-            )}
-            {validation.actionnable && (
-              <span className="fiche-tab__buttons">
-                {choixDe(validation.porte).map((choix) => (
-                  <Button disabled={busy} key={choix} size="small" type="button" variant={choix === 'VALIDE' ? 'success' : 'danger'} onClick={() => setDialog({ validation, decision: choix })}>{CHOIX[choix].bouton}</Button>
-                ))}
-              </span>
-            )}
-          </li>
-        ))}
-        {fiche.validations.length > 0 && !porte2 && (
-          <li><b>Porte 2 — Contrôle de gestion (si gains), puis le directeur sponsor</b><span className="fiche-tab__muted">Après les mesures et les contrôles</span></li>
-        )}
-      </ol>
 
       <ConfirmDialog
         busy={busy}

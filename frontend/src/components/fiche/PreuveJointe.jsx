@@ -11,9 +11,9 @@ import './PreuveJointe.css'
  * les fichiers déjà joints, et un bouton qui ouvre directement le choix d'un document ou d'une
  * photo. L'envoi part aussitôt et s'annonce (« Envoi en cours… »), puis le fichier apparaît.
  *
- * @param {{ objet: string, objetId?: number, fiche: object, readOnly?: boolean, onJoint?: Function }} props
+ * @param {{ objet: string, objetId?: number, fiche: object, readOnly?: boolean, compact?: boolean, onJoint?: Function }} props
  */
-function PreuveJointe({ objet, objetId, fiche, readOnly, onJoint }) {
+function PreuveJointe({ objet, objetId, fiche, readOnly, compact, onJoint }) {
   const id = useId()
   const { pieces, recharger } = useContext(PiecesJointesContext)
   const [envoi, setEnvoi] = useState(false)
@@ -59,12 +59,12 @@ function PreuveJointe({ objet, objetId, fiche, readOnly, onJoint }) {
           />
           <label aria-disabled={envoi || undefined} className={`preuve-jointe__ajouter${envoi ? ' is-busy' : ''}`} htmlFor={id}>
             {envoi ? <Spinner size="sm" /> : <Icon name="plus" size={14} />}
-            {envoi ? 'Envoi en cours…' : jointes.length ? 'Joindre un autre fichier' : 'Joindre un fichier ou une photo'}
+            {envoi ? 'Envoi en cours…' : compact ? 'Fichier ou photo' : jointes.length ? 'Joindre un autre fichier' : 'Joindre un fichier ou une photo'}
           </label>
         </>
       )}
       {peutJoindre && !objetId && <span className="preuve-jointe__aide">Enregistrez la section pour joindre un fichier ou une photo.</span>}
-      {!peutJoindre && jointes.length === 0 && <span className="preuve-jointe__aide">Aucun fichier joint.</span>}
+      {!peutJoindre && !compact && jointes.length === 0 && <span className="preuve-jointe__aide">Aucun fichier joint.</span>}
       {erreur && <span className="preuve-jointe__erreur" role="alert">{erreur}</span>}
     </div>
   )
