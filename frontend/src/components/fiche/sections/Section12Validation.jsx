@@ -28,7 +28,7 @@ export default function Section12Validation({ fiche, onPrint }) {
         <div className="fiche-section__impression">
           <div className="fiche-section__impression-texte">
             <strong>Imprimer la fiche A3</strong>
-            <span>Format A3 vertical, logo SAR en tête. Choisissez « Enregistrer en PDF » dans la fenêtre d’impression pour obtenir un fichier.</span>
+            <span>Choisissez « Enregistrer en PDF » dans la fenêtre d’impression pour obtenir un fichier.</span>
           </div>
           {(copies?.length ?? 0) > 0 && (
             <Select

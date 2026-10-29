@@ -92,6 +92,7 @@ class CommentaireController extends Controller
             'objet_id' => $commentaire->objet_id,
             'cible' => $commentaire->objet_id === null ? null : ($cibles[$commentaire->contexte.':'.$commentaire->objet_id] ?? null),
             'auteur' => $commentaire->auteur?->nom_complet ?? 'Système',
+            'auteur_id' => $commentaire->auteur_id,
             'created_at' => $commentaire->created_at?->toIso8601String(),
         ];
     }

@@ -246,16 +246,25 @@ export default function ActionsTab({ fiche, options, refs, onChange, onError }) 
     return boutons
   }
 
+  const compte = (filtre) => fiche.actions.filter(filtre).length
   const start = (action, statut) => (['ANNULE', 'BLOQUE', 'REALISE'].includes(statut) ? setDialog({ action, statut }) : apply(action, statut))
 
   return (
     <section className="fiche-tab" data-fiche-tab="actions">
       <div className="fiche-tab__title">
-        <h2>Actions</h2>
+        <h2>Plan d’actions</h2>
+        {fiche.actions.length > 0 && (
+          <ul className="fiche-tab__compteurs" aria-label="Avancement du plan">
+            <li className="is-ok">{compte((action) => action.statut === 'REALISE')} / {fiche.actions.filter((action) => action.statut !== 'ANNULE').length} réalisée{compte((action) => action.statut === 'REALISE') > 1 ? 's' : ''}</li>
+            {compte((action) => action.statut === 'EN_COURS') > 0 && <li className="is-todo">{compte((action) => action.statut === 'EN_COURS')} en cours</li>}
+            {compte((action) => action.en_retard) > 0 && <li className="is-ko">{compte((action) => action.en_retard)} en retard</li>}
+            {compte((action) => action.statut === 'BLOQUE') > 0 && <li className="is-ko">{compte((action) => action.statut === 'BLOQUE')} bloquée{compte((action) => action.statut === 'BLOQUE') > 1 ? 's' : ''}</li>}
+          </ul>
+        )}
         {fiche.droits.peut_ajouter_action && <Button icon="plus" size="small" type="button" variant="secondary" onClick={() => setAjout(true)}>Ajouter une action</Button>}
       </div>
       <p className="fiche-tab__help">
-        Démarrez chaque action, puis passez-la à « Réalisée » (preuve facultative). Une action sous MOC attend le MOC clôturé.
+        Chaque responsable démarre son action, puis la passe à « Réalisée » avec une preuve si possible. Une action liée à un MOC attend que le MOC soit clôturé.
       </p>
       <DataTable
         actions={(action) => <RowActions actions={actionsDe(action)} />}

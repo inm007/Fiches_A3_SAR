@@ -7,6 +7,7 @@ use App\Models\EvenementHistorique;
 use App\Models\FicheA3;
 use App\Models\NotificationInterne;
 use App\Models\Unite;
+use App\Services\HistoryLogger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Concerns\SimuleFiches;
@@ -197,6 +198,20 @@ class DroitsFichesTest extends TestCase
         foreach (['AGENT', 'VALIDEUR_PRODUCTION'] as $role) {
             $this->agir($role)->getJson("/api/fiches/{$fiche->id}/historique")->assertForbidden();
         }
+    }
+
+    public function test_history_names_fields_amounts_and_dates_in_plain_french(): void
+    {
+        $fiche = $this->declarer();
+        $this->designerPilote($fiche);
+        $historique = app(HistoryLogger::class);
+        $historique->log($fiche, null, 'MODIFICATION_CHAMP', 'impact_financier_estime', null, 33000000);
+        $historique->log($fiche, null, 'MODIFICATION_CHAMP', 'date_cible', '2026-11-03 00:00:00', '2026-12-15 00:00:00');
+
+        $phrases = collect($this->agir('PILOTE')->getJson("/api/fiches/{$fiche->id}/historique")->assertOk()->json('data'))->pluck('phrase');
+
+        $this->assertContains('Le système a renseigné l’impact financier estimé : 33 000 000 FCFA.', $phrases);
+        $this->assertContains('Le système a modifié la date cible : 03/11/2026 → 15/12/2026.', $phrases);
     }
 
     public function test_hold_is_reserved_to_pilot_and_direction(): void
