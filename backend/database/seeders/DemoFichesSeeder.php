@@ -69,7 +69,8 @@ class DemoFichesSeeder extends Seeder
      * un pilote qui déclare pilote lui-même sa fiche.
      *
      * Options : gains [[montant, catégorie, hypothèse]], gains_refuses [index], sans_gain, restreint,
-     * sponsor, equipe [comptes, agents ou pilotes], cg (partage|reattribution).
+     * sponsor, equipe [comptes, agents ou pilotes], retrait (membre retiré ensuite de l'équipe),
+     * cg (partage|reattribution).
      *
      * @var array<string, array<int, array<int|string, mixed>>>
      */
@@ -99,17 +100,19 @@ class DemoFichesSeeder extends Seeder
             ['Capteur de pression défaillant sur le ballon B-07', 'UTIL', 'B-07', 'INCIDENT_PRESQUE_ACCIDENT', 'SECURITE_HSE', 'QHSE', 'PERTINENCE', 9, 0],
             ['Repeindre les garde-corps du reformeur', 'REF', null, 'SUGGESTION_TERRAIN', 'ORGANISATION', 'QHSE', 'CLASSEE_CHEF', 11, 0],
             ['Fuite d’huile au palier de la turbine T-02', 'UTIL', 'T-02', 'INSPECTION', 'FIABILITE', 'FIABILITE', 'SANS_PILOTE', 2, 0],
+            ['Purges vapeur chaudes non protégées au poste P-650', 'UTIL', 'P-650', 'INCIDENT_PRESQUE_ACCIDENT', 'SECURITE_HSE', 'QHSE', 'ATTENTE_PRODUCTION', 18, 0],
         ],
         'pilote.demo' => [
             ['Réduire le temps de démarrage du four F-101', 'DIST', 'F-101', 'RETOUR_D_EXPERIENCE', 'ENERGIE', 'INTEGRITE', 'CLOTURE', 165, 135, 'gains' => [[5_400_000, 'ENERGIE_ECONOMISEE', 'Deux heures de fuel gaz économisées par démarrage']], 'sponsor' => 'direction2.demo', 'equipe' => ['agent.demo']],
             ['Fiabiliser le compresseur de recyclage K-301 au démarrage', 'REF', 'K-301', 'RETOUR_D_EXPERIENCE', 'FIABILITE', 'FIABILITE', 'REALISATION', 75, 0, 'equipe' => ['agent2.demo', 'pilote2.demo']],
             ['Fiabiliser les purgeurs vapeur', 'DIST', 'E-104', 'SUGGESTION_TERRAIN', 'ENERGIE', 'QHSE', 'PLAN_PRET', 16, 0, 'equipe' => ['agent.demo']],
-            ['Optimiser le lavage du dessaleur', 'DIST', 'D-120', 'ECART_KPI', 'COUT', 'PROCEDE', 'EQUIPE', 12, 0, 'equipe' => ['agent.demo']],
+            ['Optimiser le lavage du dessaleur', 'DIST', 'D-120', 'ECART_KPI', 'COUT', 'PROCEDE', 'EQUIPE', 12, 0, 'equipe' => ['agent.demo', 'agent2.demo'], 'retrait' => 'agent2.demo'],
             ['Réduire les déchets d’emballage du magasin', 'DIST', null, 'SUGGESTION_TERRAIN', 'COUT', 'QHSE', 'PERTINENCE', 4, 0, 'restreint' => true],
         ],
         'pilote2.demo' => [
             ['Réduire la perte de catalyseur au reformeur', 'REF', 'R-401', 'ECART_KPI', 'COUT', 'PROCEDE', 'CLOTURE', 168, 138, 'gains' => [[18_000_000, 'AUTRES', 'Appoint de catalyseur réduit de 30 %'], [2_500_000, 'MAINTENANCE_EVITEE', 'Un nettoyage du réacteur évité']], 'equipe' => ['agent2.demo', 'pilote.demo']],
-            ['Purges manuelles du ballon d’air comprimé B-07', 'UTIL', 'B-07', 'SUGGESTION_TERRAIN', 'ORGANISATION', 'QHSE', 'VERIF_J90', 100, 70, 'gains' => [[1_200_000, 'ENERGIE_ECONOMISEE', 'Fuites d’air réduites au compresseur']], 'equipe' => ['agent2.demo']],
+            ['Purges manuelles du ballon d’air comprimé B-07', 'UTIL', 'B-07', 'SUGGESTION_TERRAIN', 'ORGANISATION', 'QHSE', 'VERIF_J90', 100, 70, 'gains' => [[1_200_000, 'ENERGIE_ECONOMISEE', 'Fuites d’air réduites au compresseur']], 'equipe' => ['agent2.demo', 'agent.demo']],
+            ['Récupérer les condensats de la ligne vapeur L-12', 'UTIL', 'L-12', 'ECART_KPI', 'ENERGIE', 'INTEGRITE', 'VALIDATION_CLOTURE', 128, 98, 'gains' => [[8_600_000, 'ENERGIE_ECONOMISEE', 'Eau déminéralisée et vapeur récupérées (3 100 t/an)']], 'cg' => 'reattribution', 'equipe' => ['agent2.demo']],
             ['Démarrage difficile de la pompe P-650 après arrêt', 'UTIL', 'P-650', 'SUGGESTION_TERRAIN', 'FIABILITE', 'FIABILITE', 'REDACTION', 3, 0],
         ],
     ];
@@ -239,8 +242,22 @@ class DemoFichesSeeder extends Seeder
         if (! $parPilote) {
             $equipe[] = $declarant;
         }
+        // Comme depuis l'onglet Équipe : historique et invitation notifiée au membre.
         foreach ($equipe as $membre) {
-            $fiche->membres()->syncWithoutDetaching([User::where('identifiant', $membre)->value('id') => ['ajoute_par' => $pilote->userId()]]);
+            $membreId = User::where('identifiant', $membre)->value('id');
+            if ($fiche->membres()->whereKey($membreId)->exists()) {
+                continue;
+            }
+            $fiche->membres()->attach($membreId, ['ajoute_par' => $pilote->userId()]);
+            $this->history->log($fiche, $pilote->userId(), 'AJOUT_MEMBRE', 'equipe', null, $membreId);
+            $this->notifications->notify([$membreId], $fiche, 'AJOUT_MEMBRE', User::find($pilote->userId())->nom_complet.' vous invite dans l’équipe de la fiche : vous la voyez et renseignez les sections 5 à 11.', auteurId: $pilote->userId());
+        }
+        if (isset($s['retrait'])) {
+            $this->jour($debut - 3);
+            $retireId = User::where('identifiant', $s['retrait'])->value('id');
+            $fiche->membres()->detach($retireId);
+            $this->history->log($fiche, $pilote->userId(), 'RETRAIT_MEMBRE', 'equipe', $retireId, null);
+            $this->notifications->notify([$retireId], $fiche, 'RETRAIT_MEMBRE', 'Vous ne faites plus partie de l’équipe de cette fiche.', auteurId: $pilote->userId());
         }
         $membre = $this->profil($equipe[0] ?? 'agent.demo', 'AGENT', $equipe === [] ? null : $unite->id);
 

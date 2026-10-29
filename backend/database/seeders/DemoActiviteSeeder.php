@@ -6,11 +6,13 @@ use App\Models\ActionA3;
 use App\Models\Commentaire;
 use App\Models\FicheA3;
 use App\Models\JournalAdministration;
+use App\Models\Liste;
 use App\Models\NotificationInterne;
 use App\Models\Parametre;
 use App\Models\Perennisation;
 use App\Models\ReferenceSap;
 use App\Models\User;
+use App\Models\ValeurListe;
 use App\Models\Validation;
 use App\Services\ActiveProfile;
 use App\Services\PieceJointeService;
@@ -20,6 +22,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -47,6 +50,7 @@ class DemoActiviteSeeder extends Seeder
         $this->journalAdministration();
         $this->parametres();
         $this->referencesSap();
+        $this->optionsAutre();
         foreach (FicheA3::orderBy('id')->get() as $fiche) {
             $this->commentaires($fiche);
             $this->joindreFichiers($fiche);
@@ -90,6 +94,36 @@ class DemoActiviteSeeder extends Seeder
             Parametre::updateOrCreate(['cle' => $cle], ['valeur' => is_bool($valeur) ? ($valeur ? 'true' : 'false') : (string) $valeur]);
         }
         $this->journal($this->id('admin-fonctionnel2.demo'), 'MODIFICATION', 'parametres', ['due_soon_days' => ['avant' => 3, 'apres' => 5]], now()->subDays(150));
+    }
+
+    /**
+     * Options créées depuis une fiche, rangées sous « Autre » de leur liste : l'administrateur les
+     * retrouve dans Référentiels, et une fiche en utilise une comme origine.
+     */
+    private function optionsAutre(): void
+    {
+        $options = [
+            ['origine', 'Observation lors d’une ronde de nuit', 'agent.demo', 'Éclairage insuffisant sur la passerelle du four'],
+            ['origine', 'Remontée du comité sécurité', 'agent2.demo', 'Fuite d’huile au palier de la turbine T-02'],
+            ['methode_analyse', 'AMDEC', 'pilote2.demo', null],
+            ['source_donnees', 'Analyseur en ligne', 'pilote.demo', null],
+        ];
+        foreach ($options as $index => [$listeCode, $libelle, $auteur, $titreFiche]) {
+            $liste = Liste::where('code', $listeCode)->firstOrFail();
+            $autre = $liste->valeurs()->whereNull('parent_id')->whereIn('code', ValeurListe::CODES_AUTRE)->firstOrFail();
+            $le = now()->subDays(20 - $index * 4);
+            $valeur = $liste->valeurs()->updateOrCreate(['code' => Str::upper(Str::slug(Str::ascii($libelle), '_'))], [
+                'parent_id' => $autre->id,
+                'libelle' => $libelle,
+                'ordre' => ((int) $liste->valeurs()->max('ordre')) + 1,
+                'actif' => true,
+                'cree_par_id' => $this->id($auteur),
+            ]);
+            $this->journal($this->id($auteur), 'CREATION_DEPUIS_FICHE', 'valeur_liste:'.$valeur->id, ['liste' => $listeCode, 'code' => $valeur->code, 'libelle' => $libelle, 'parent_id' => $autre->id], $le);
+            if ($titreFiche !== null) {
+                FicheA3::where('titre', $titreFiche)->update(['origine_id' => $valeur->id]);
+            }
+        }
     }
 
     /**
@@ -160,7 +194,7 @@ class DemoActiviteSeeder extends Seeder
             $this->joindre($fiche, $this->pdf("{$perennisation->type} révisé(e) — fiche {$fiche->numero_a3}"), "{$perennisation->type}-{$fiche->id}.pdf", $perennisation, $pilote);
         }
 
-        $agent = $fiche->membres()->whereHas('affectations.role', fn ($q) => $q->where('code', 'AGENT'))->first();
+        $agent = $fiche->membres()->whereHas('affectations', fn ($q) => $q->where('unite_id', $fiche->unite_id)->whereHas('role', fn ($r) => $r->where('code', 'AGENT')))->first();
         if ($agent !== null) {
             $this->aLaDate($fiche->created_at->copy()->addHours(5));
             $this->joindre($fiche, $this->png("Constat — {$fiche->numero_a3}"), 'photo-constat.png', null, $this->profil($agent->identifiant, 'AGENT', $fiche->unite_id));
